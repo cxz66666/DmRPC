@@ -1,6 +1,9 @@
 #include "numautil.h"
 #include "commons.h"
 #include <numa.h>
+#include <fstream>
+#include <numaif.h>
+#include <sys/shm.h>
 
 namespace rmem
 {
@@ -51,4 +54,98 @@ namespace rmem
                                         &cpuset);
         rt_assert(rc == 0, "Error setting thread affinity");
     }
+    int get_2M_huagepages_free(size_t numa_node)
+    {
+        rt_assert(numa_node < numa_num_configured_nodes(), "numa node illegal");
+        std::ifstream file("/sys/devices/system/node/node" + std::to_string(numa_node) + "/hugepages/hugepages-2048kB/free_hugepages", std::ios::in);
+
+        if (!file)
+        {
+            // maybe open error, we need try this function latter
+            return -1;
+        }
+        int res;
+        file >> res;
+        rt_assert(file.eof(), "unexpect error");
+
+        file.close();
+    }
+
+    int get_2M_huagepages_nr(size_t numa_node)
+    {
+        rt_assert(numa_node < numa_num_configured_nodes(), "numa node illegal");
+        std::ifstream file("/sys/devices/system/node/node" + std::to_string(numa_node) + "/hugepages/hugepages-2048kB/nr_hugepages", std::ios::in);
+
+        if (!file)
+        {
+            // maybe open error, we need try this function latter
+            return -1;
+        }
+        int res;
+        file >> res;
+        rt_assert(file.eof(), "unexpect error");
+
+        file.close();
+    }
+
+    void *get_huge_mem(int numa_node, size_t size)
+    {
+        size = round_up<2 * 1024 * 1024>(size);
+        int shm_key, shm_id;
+        while (true)
+        {
+            // Choose a positive SHM key. Negative is fine but it looks scary in the
+            // error message.
+            shm_key = rand();
+            shm_key = std::abs(shm_key);
+
+            // Try to get an SHM region
+            shm_id = shmget(shm_key, size, IPC_CREAT | IPC_EXCL | 0666 | SHM_HUGETLB);
+
+            if (shm_id == -1)
+            {
+                switch (errno)
+                {
+                case EEXIST:
+                    RMEM_INFO("shm_key already exists. Try again.");
+                    continue; // shm_key already exists. Try again.
+
+                case EACCES:
+                    RMEM_ERROR("Invalid argument, maybe code is not illegal");
+                    exit(-1);
+
+                case EINVAL:
+                    RMEM_ERROR("Invalid argument, maybe code is not illegal");
+                    exit(-1);
+
+                case ENOMEM:
+                    // Out of memory
+                    RMEM_ERROR("OOM killed\n");
+                    exit(-1);
+
+                default:
+                    RMEM_ERROR("Unexpect error \n");
+                    exit(-1);
+                }
+            }
+            else
+            {
+                // shm_key worked. Break out of the while loop.
+                break;
+            }
+        }
+    }
+    void *shm_buf = shmat(shm_id, nullptr, 0);
+    shmctl(shm_id, IPC_RMID, nullptr);
+    const unsigned long nodemask =
+        (1ul << static_cast<unsigned long>(numa_node));
+    long ret = mbind(shm_buf, size, MPOL_BIND, &nodemask, 32, 0);
+
+    if (ret)
+    {
+        RMEM_ERROR("mbind error %ld", ret);
+        exit(-1);
+    }
+
+    return shm_buf;
 }

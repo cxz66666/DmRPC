@@ -1,5 +1,6 @@
 #include "worker.h"
 #include "rpc_type.h"
+#include "req_type.h"
 namespace rmem
 {
     void worker_func(Context *ctx)

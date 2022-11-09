@@ -16,5 +16,14 @@ namespace rmem
     /// numa_node
     void bind_to_core(std::thread &thread, size_t numa_node,
                       size_t numa_local_index);
+    int get_2M_huagepages_free(size_t numa_node);
 
+    int get_2M_huagepages_nr(size_t numa_node);
+
+    template <uint64_t power_of_two_number, typename T>
+    static constexpr inline T round_up(T x)
+    {
+        return ((x) + T(power_of_two_number - 1)) & (~T(power_of_two_number - 1));
+    }
+    void *get_huge_mem(int numa_node, size_t size);
 }

@@ -22,6 +22,8 @@
 #define RING_BUF_H
 #include <stdint.h>
 #include "commons.h"
+#include "req_type.h"
+
 /*! Ring buffer counter/index
  *
  * @attention

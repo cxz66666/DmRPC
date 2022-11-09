@@ -1,8 +1,9 @@
-#include "../commons.h"
+#include "commons.h"
 #include "api.h"
 #include "extern.h"
 #include "configs.h"
 #include "transport_impl/dpdk/dpdk_transport.h"
+#include "req_type.h"
 namespace rmem
 {
     // init eRPC and DPDK, will exit when error
