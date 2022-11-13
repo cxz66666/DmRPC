@@ -36,6 +36,9 @@ include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/third_party/asio/include)
 
 include_directories(${CMAKE_SOURCE_DIR}/third_party/eRPC/src)
 
+# Common sub-projects: atomic_queue
+include_directories(${CMAKE_SOURCE_DIR}/third_party/atomic_queue/include)
+
 
 # Add additional compilation flags only after adding subprojects
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DALLOW_EXPERIMENTAL_API -std=c++11 -march=native -Wall -Wextra -Werror -pedantic")

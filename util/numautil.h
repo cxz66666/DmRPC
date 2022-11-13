@@ -2,6 +2,9 @@
 #include <vector>
 #include <stdlib.h>
 #include <thread>
+#include <numaif.h>
+#include <sys/shm.h>
+#include <numa.h>
 
 namespace rmem
 {

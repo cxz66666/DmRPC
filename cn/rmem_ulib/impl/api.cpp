@@ -9,7 +9,8 @@ namespace rmem
     // init eRPC and DPDK, will exit when error
     void rmem_init(std::string host, size_t numa_node)
     {
-        g_lock.lock();
+        std::lock_guard<std::mutex> lock(g_lock);
+
         if (g_initialized)
         {
             RMEM_INFO("already init!");

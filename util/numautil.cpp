@@ -1,9 +1,6 @@
 #include "numautil.h"
 #include "commons.h"
-#include <numa.h>
 #include <fstream>
-#include <numaif.h>
-#include <sys/shm.h>
 
 namespace rmem
 {
@@ -120,7 +117,7 @@ namespace rmem
 
                 case ENOMEM:
                     // Out of memory
-                    RMEM_ERROR("OOM killed\n");
+                    RMEM_ERROR("No enough memory could be allocated, please insure you have enough 2M hugepage on this NUMA\n");
                     exit(-1);
 
                 default:
@@ -134,18 +131,22 @@ namespace rmem
                 break;
             }
         }
-    }
-    void *shm_buf = shmat(shm_id, nullptr, 0);
-    shmctl(shm_id, IPC_RMID, nullptr);
-    const unsigned long nodemask =
-        (1ul << static_cast<unsigned long>(numa_node));
-    long ret = mbind(shm_buf, size, MPOL_BIND, &nodemask, 32, 0);
+        void *shm_buf = shmat(shm_id, nullptr, 0);
+        rt_assert(shm_buf != nullptr,
+                  "HugeAlloc: shmat() failed. Key = " + std::to_string(shm_key));
+        shmctl(shm_id, IPC_RMID, nullptr);
 
-    if (ret)
-    {
-        RMEM_ERROR("mbind error %ld", ret);
-        exit(-1);
+        const unsigned long nodemask =
+            (1ul << static_cast<unsigned long>(numa_node));
+        long ret = mbind(shm_buf, size, MPOL_BIND, &nodemask, 32, 0);
+
+        if (ret)
+        {
+            RMEM_ERROR("mbind error %ld", ret);
+            exit(-1);
+        }
+
+        return shm_buf;
     }
 
-    return shm_buf;
 }

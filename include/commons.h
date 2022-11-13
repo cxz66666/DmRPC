@@ -27,6 +27,10 @@ namespace rmem
 
 #define _unreach() __builtin_unreachable()
 
+#define Ki(x) (static_cast<size_t>(x) * 1000)
+#define Mi(x) (static_cast<size_t>(x) * 1000 * 1000)
+#define Gi(x) (static_cast<size_t>(x) * 1000 * 1000 * 1000)
+
 #define KB(x) (static_cast<size_t>(x) << 10)
 #define MB(x) (static_cast<size_t>(x) << 20)
 #define GB(x) (static_cast<size_t>(x) << 30)
