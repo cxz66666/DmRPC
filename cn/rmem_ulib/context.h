@@ -123,14 +123,14 @@ namespace rmem
         ~Context();
         // need have g_lock before call this function
         // return bind_core_index(0 to MaxContext-1)
-        size_t get_core_index_unlock();
+        size_t get_core_index_unlock() const;
 
         // must be called by user thread
         void start_worker_thread();
         // must be called by user thread;
         void stop_worker_thread();
         // need have g_lock before call this function
-        uint8_t get_legal_rpc_id_unlock();
+        static uint8_t get_legal_rpc_id_unlock();
 
         // rpc element
         erpc::Rpc<erpc::CTransport> *rpc_;

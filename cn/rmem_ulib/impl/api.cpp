@@ -1,5 +1,7 @@
 #include "commons.h"
 #include "api.h"
+
+#include <utility>
 #include "extern.h"
 #include "configs.h"
 #include "transport_impl/dpdk/dpdk_transport.h"
@@ -38,7 +40,7 @@ namespace rmem
                 RMEM_INFO("use primary mode, only this process can use!");
             }
             g_initialized = true;
-            g_nexus = new erpc::Nexus(host, numa_node);
+            g_nexus = new erpc::Nexus(std::move(host), numa_node);
             g_numa_node = numa_node;
             RMEM_INFO("init success!");
         }
@@ -66,7 +68,7 @@ namespace rmem
     }
 
     // try to create a server on a session, store session num to ctx
-    int connect_session(Context *ctx, std::string host, uint8_t remote_rpc_id, int timeout_ms)
+    int connect_session(Context *ctx, const std::string& host, uint8_t remote_rpc_id, int timeout_ms)
     {
         rt_assert(ctx != nullptr, "context must not be empty");
         rt_assert(ctx->concurrent_store_->get_session_num() == -1, "can only have one session on a context, don't use connect_session twice before first one disconnect");
@@ -223,7 +225,7 @@ namespace rmem
 
     // int rmem_dist_barrier(Context *ctx);
 
-    int rmem_fork(Context *ctx, unsigned long addr, size_t size)
+    unsigned long rmem_fork(Context *ctx, unsigned long addr, size_t size)
     {
         rt_assert(ctx != nullptr, "context must not be empty");
         rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
@@ -246,7 +248,6 @@ namespace rmem
 
         // TODO add extra check at here for res.first;
         return res.second;
-
     }
 
     int rmem_join(Context *ctx, unsigned long addr, uint16_t thread_id, uint16_t session_id){

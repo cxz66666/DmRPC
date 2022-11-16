@@ -67,6 +67,7 @@ namespace rmem
         rt_assert(file.eof(), "unexpect error");
 
         file.close();
+        return res;
     }
 
     int get_2M_huagepages_nr(size_t numa_node)
@@ -84,6 +85,7 @@ namespace rmem
         rt_assert(file.eof(), "unexpect error");
 
         file.close();
+        return res;
     }
 
     void *get_huge_mem(uint32_t numa_node, size_t size)

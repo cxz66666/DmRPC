@@ -15,7 +15,7 @@ namespace rmem
     int close_context(Context *ctx);
 
     // try to create a server on a session, store session num to ctx
-    int connect_session(Context *ctx, std::string host, uint8_t remote_rpc_id, int timeout_ms);
+    int connect_session(Context *ctx, const std::string& host, uint8_t remote_rpc_id, int timeout_ms);
 
     int disconnect_session(Context *ctx, int timeout_ms);
 
@@ -32,7 +32,7 @@ namespace rmem
     int rmem_write_async(Context *ctx, void *send_buf, unsigned long addr, size_t size);
 
     // int rmem_dist_barrier(Context *ctx);
-    int rmem_fork(Context *ctx, unsigned long addr, size_t size);
+    unsigned long rmem_fork(Context *ctx, unsigned long addr, size_t size);
 
     int rmem_join(Context *ctx, unsigned long addr, uint16_t thread_id, uint16_t session_id);
 

@@ -2,6 +2,7 @@
 
 #include "commons.h"
 #include "rpc.h"
+#include "spinlock_mutex.h"
 #include <unordered_map>
 #include <list>
 namespace rmem
@@ -18,8 +19,6 @@ namespace rmem
     class vma_struct
     {
     public:
-        vma_struct();
-        ~vma_struct();
         unsigned long vm_start;
         unsigned long vm_end;
         unsigned long vm_flags;
@@ -54,11 +53,19 @@ namespace rmem
 
         inline bool do_write(vma_struct *vma, unsigned long addr, size_t size, void *buf);
 
+        inline void do_free(vma_struct *vma);
+
         inline unsigned long do_fork(vma_struct *vma, unsigned long addr, size_t size);
 
         inline bool do_join(mm_struct*target_mm, unsigned long addr);
         // vma
         std::list<vma_struct *> vma_list;
+        // this will also include in vma_list,
+        // and will be deleted when other progress install it!
+        std::list<fork_struct *> fork_list;
+
+        // lock for vma_list and fork_list
+        spinlock_mutex vma_list_lock;
 
     private:
         // vm_pfn is the virtual page frame number, which vm_pfn<<21 belong to vma [start,end]
@@ -69,9 +76,7 @@ namespace rmem
 
         std::unordered_map<unsigned long, unsigned long> addr_map;
 
-        // this will also include in vma_list,
-        // and will be deleted when other progress install it!
-        std::list<fork_struct *> fork_list;
+
 
         uint16_t thread_id;
         uint16_t session_id;
@@ -85,9 +90,7 @@ namespace rmem
         size_t thread_id_;        // The ID of the thread that owns this context
         size_t num_sm_resps_ = 0; // Number of SM responses
 
-        virtual ~BasicAppContext()
-        {
-        }
+        virtual ~BasicAppContext() = default;
     };
 
     class ServerContext : public BasicAppContext
@@ -101,11 +104,12 @@ namespace rmem
         size_t stat_req_read_tot;
         size_t stat_req_write_tot;
         size_t stat_req_fork_tot;
+        size_t stat_req_join_tot;
         size_t stat_req_error_tot;
 
         // key = session_num
         std::unordered_map<uint16_t, mm_struct *> mm_struct_map_;
-        inline mm_struct* find_target_mm(uint16_t tid, uint16_t sid);
+        static inline mm_struct* find_target_mm(uint16_t tid, uint16_t sid);
 
     };
 

@@ -4,7 +4,7 @@
 
 namespace rmem
 {
-    inline bool page_table::do_page_read(unsigned long pfn, void *recv_buf, size_t size, size_t offset, uint16_t tid, uint16_t sid)
+    bool page_table::do_page_read(unsigned long pfn, void *recv_buf, size_t size, size_t offset, uint16_t tid, uint16_t sid)
     {
         if (unlikely(pfn >= g_page_table_size || offset + size >= PAGE_SIZE))
         {
@@ -27,7 +27,7 @@ namespace rmem
         return true;
     }
 
-    inline bool page_table::do_page_write(unsigned long pfn, void *recv_buf, size_t size, size_t offset, uint16_t tid, uint16_t sid)
+    bool page_table::do_page_write(unsigned long pfn, void *recv_buf, size_t size, size_t offset, uint16_t tid, uint16_t sid)
     {
         if (unlikely(pfn >= g_page_table_size || offset + size >= PAGE_SIZE))
         {
@@ -55,7 +55,7 @@ namespace rmem
 
         return true;
     }
-    inline bool page_table::do_page_fork(unsigned long pfn){
+    bool page_table::do_page_fork(unsigned long pfn){
         if (unlikely(pfn >= g_page_table_size))
         {
             return false;

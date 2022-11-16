@@ -20,7 +20,7 @@ namespace rmem
             RMEM_ERROR("create rpc error, rpc_id %u, phy_port %u", rpc_id, phy_port);
             exit(-1);
         }
-        RingBufElement *rbe = static_cast<RingBufElement *>(malloc(sizeof(RingBufElement) * ClientRingBufSize));
+        auto *rbe = static_cast<RingBufElement *>(malloc(sizeof(RingBufElement) * ClientRingBufSize));
         if (rbe == nullptr)
         {
             RMEM_ERROR("create ring buffer elements array error, rpc_id %u, phy_port %u", rpc_id, phy_port);
@@ -136,7 +136,7 @@ namespace rmem
         RMEM_INFO("worker thread stop success");
     }
 
-    size_t Context::get_core_index_unlock()
+    size_t Context::get_core_index_unlock() const
     {
         return bind_core_index;
     }

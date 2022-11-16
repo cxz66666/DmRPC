@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "context.h"
 
 namespace rmem
@@ -75,7 +77,7 @@ namespace rmem
         std::unique_lock<std::mutex> lock(mtx);
         rt_assert(!notified, "notify value must be false!");
         resp = resp_value;
-        debug_msg = msg_value;
+        debug_msg = std::move(msg_value);
 
         notified = true;
         // also can use notify all(because only have one waiter)
@@ -88,7 +90,7 @@ namespace rmem
         rt_assert(!notified, "notify value must be false!");
         resp = resp_value;
         extra_resp = extra;
-        debug_msg = msg_value;
+        debug_msg = std::move(msg_value);
 
         notified = true;
         // also can use notify all(because only have one waiter)

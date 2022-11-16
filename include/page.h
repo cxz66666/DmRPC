@@ -1,6 +1,7 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
+#include <cstddef>
 #include "spinlock_mutex.h"
 
 namespace rmem {
@@ -36,11 +37,11 @@ namespace rmem {
     class page_table
     {
     public:
-        inline bool do_page_read(unsigned long pfn, void *recv_buf, size_t size, size_t offset, uint16_t tid, uint16_t sid);
+        static bool do_page_read(unsigned long pfn, void *recv_buf, size_t size, size_t offset, uint16_t tid, uint16_t sid);
         // must be use after handler cow or page fault
-        inline bool do_page_write(unsigned long pfn, void *send_buf, size_t size, size_t offset, uint16_t tid, uint16_t sid);
+        bool do_page_write(unsigned long pfn, void *send_buf, size_t size, size_t offset, uint16_t tid, uint16_t sid);
 
-        inline bool do_page_fork(unsigned long pfn);
+        bool do_page_fork(unsigned long pfn);
         bool valid : 1;
         bool r : 1;
         bool w : 1;
@@ -57,6 +58,6 @@ namespace rmem {
         spinlock_mutex lock;
 
         uint32_t reserved2 : 24;
-    } __attribute__((packed));
+    };
     static_assert(sizeof(page_table) == 8);
 }
