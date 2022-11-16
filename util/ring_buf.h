@@ -80,6 +80,11 @@ typedef struct
             size_t rw_size;
         } rw;
 
+        struct {
+            unsigned long addr;
+            uint16_t thread_id;
+            uint16_t session_id;
+        } join;
         struct
         {
             int *poll_results;
@@ -111,6 +116,6 @@ bool RingBuf_get(RingBuf *const me, RingBufElement *pel);
  */
 using RingBufHandler = std::function<void(RingBufElement const)>;
 
-void RingBuf_process_all(RingBuf *const me, RingBufHandler handler);
+void RingBuf_process_all(RingBuf *const me, const RingBufHandler& handler);
 
 #endif /* RING_BUF_H */

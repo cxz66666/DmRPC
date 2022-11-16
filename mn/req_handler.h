@@ -6,6 +6,76 @@
 #include <list>
 namespace rmem
 {
+    void alloc_req_handler(erpc::ReqHandle *req_handle, void *_context);
+    void free_req_handler(erpc::ReqHandle *req_handle, void *_context);
+    void read_req_handler(erpc::ReqHandle *req_handle, void *_context);
+    void write_req_handler(erpc::ReqHandle *req_handle, void *_context);
+    void fork_req_handler(erpc::ReqHandle *req_handle, void *_context);
+    void join_req_handler(erpc::ReqHandle *req_handle, void *_context);
+
+    void basic_sm_handler(int session_num, erpc::SmEventType sm_event_type,
+                          erpc::SmErrType sm_err_type, void *_context);
+    class vma_struct
+    {
+    public:
+        vma_struct();
+        ~vma_struct();
+        unsigned long vm_start;
+        unsigned long vm_end;
+        unsigned long vm_flags;
+        // TODO rb tree
+    };
+
+    class fork_struct: public vma_struct {
+    public:
+        std::unordered_map<unsigned long, unsigned long> addr_map;
+    };
+
+    class mm_struct
+    {
+
+    public:
+        mm_struct(uint16_t tid, uint16_t sid);
+        ~mm_struct();
+        // always return true now!
+        //  TODO check if the address is valid
+        unsigned long insert_range(size_t size, unsigned long vm_flags);
+
+        // [addr, addr+size] belong to one vm area [start,end]
+        vma_struct *find_vma_range(unsigned long addr, size_t size);
+        // [addr, addr+size] equal to vm area [start,end]
+        std::list<vma_struct *>::iterator find_vma(unsigned long addr, size_t size);
+
+        // don't need size, find the vma which start == addr
+        std::list<fork_struct *>::iterator find_fork_vma(unsigned long addr);
+
+        // read virtual addr [addr, addr+size] into buf[0,size], also will do page_fault if not mapped
+        inline bool do_read(vma_struct *vma, unsigned long addr, size_t size, void *buf);
+
+        inline bool do_write(vma_struct *vma, unsigned long addr, size_t size, void *buf);
+
+        inline unsigned long do_fork(vma_struct *vma, unsigned long addr, size_t size);
+
+        inline bool do_join(mm_struct*target_mm, unsigned long addr);
+        // vma
+        std::list<vma_struct *> vma_list;
+
+    private:
+        // vm_pfn is the virtual page frame number, which vm_pfn<<21 belong to vma [start,end]
+        // it's used for pages **which pfn is not exist**, and we will allocate a pfn from queue and init it's page table
+        inline void handler_page_map(vma_struct *vma, unsigned long vm_pfn);
+
+        unsigned long get_unmapped_area(size_t length);
+
+        std::unordered_map<unsigned long, unsigned long> addr_map;
+
+        // this will also include in vma_list,
+        // and will be deleted when other progress install it!
+        std::list<fork_struct *> fork_list;
+
+        uint16_t thread_id;
+        uint16_t session_id;
+    };
 
     class BasicAppContext
     {
@@ -35,54 +105,8 @@ namespace rmem
 
         // key = session_num
         std::unordered_map<uint16_t, mm_struct *> mm_struct_map_;
+        inline mm_struct* find_target_mm(uint16_t tid, uint16_t sid);
+
     };
-
-    class mm_struct
-    {
-
-    public:
-        mm_struct();
-        ~mm_struct();
-        // always return true now!
-        //  TODO check if the address is valid
-        unsigned long insert_range(size_t size, unsigned long vm_flags);
-
-        // [addr, addr+size] belong to one vm area [start,end]
-        vma_struct *find_vma_range(unsigned long addr, size_t size);
-        // [addr, addr+size] equal to vm area [start,end]
-        std::list<vma_struct *>::iterator find_vma(unsigned long addr, size_t size);
-
-        // vm_pfn is the virtual page frame number, which vm_pfn<<21 belong to vma [start,end]
-        inline void handler_page_map(vma_struct *vma, unsigned long vm_pfn);
-
-        // vma
-        std::list<vma_struct *> vma_list;
-
-    private:
-        unsigned long get_unmapped_area(size_t length);
-
-        std::unordered_map<unsigned long, unsigned long> addr_map;
-
-        std::list<vma_struct *> fork_list;
-    };
-    class vma_struct
-    {
-    public:
-        vma_struct();
-        ~vma_struct();
-        unsigned long vm_start;
-        unsigned long vm_end;
-        unsigned long vm_flags;
-        // TODO rb tree
-    };
-
-    void
-    alloc_req_handler(erpc::ReqHandle *req_handle, void *_context);
-    void free_req_handler(erpc::ReqHandle *req_handle, void *_context);
-    void read_req_handler(erpc::ReqHandle *req_handle, void *_context);
-    void write_req_handler(erpc::ReqHandle *req_handle, void *_context);
-    void fork_req_handler(erpc::ReqHandle *req_handle, void *_context);
-    void basic_sm_handler(int session_num, erpc::SmEventType sm_event_type,
-                          erpc::SmErrType sm_err_type, void *_context);
 
 }

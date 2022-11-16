@@ -3,6 +3,9 @@
 #include <stddef.h>
 namespace rmem
 {
+    // used for vm_flags fields
+#define VM_FLAG_READ 0x1
+#define VM_FLAG_WRITE 0x2
     enum class RPC_TYPE : uint8_t
     {
         RPC_ALLOC = 1,
@@ -10,6 +13,7 @@ namespace rmem
         RPC_READ,
         RPC_WRITE,
         RPC_FORK,
+        RPC_JOIN,
     };
 
     class CommonReq
@@ -109,15 +113,34 @@ namespace rmem
         CommonReq req;
         unsigned long raddr;
         size_t rsize;
-        unsigned long vm_flags;
         ForkReq(RPC_TYPE t, size_t num) : req{t, num} {}
-        ForkReq(RPC_TYPE t, size_t num, unsigned long addr, size_t size, unsigned long flags) : req{t, num}, raddr(addr), rsize(size), vm_flags(flags) {}
+        ForkReq(RPC_TYPE t, size_t num, unsigned long addr, size_t size) : req{t, num}, raddr(addr), rsize(size) {}
     } __attribute__((packed));
 
     class ForkResp
     {
     public:
         CommonResp resp;
+        unsigned  long new_raddr;
         ForkResp(RPC_TYPE t, size_t num, int s) : resp{t, num, s} {}
+        ForkResp(RPC_TYPE t, size_t num, int s, unsigned long addr) : resp{t, num, s}, new_raddr(addr) {}
     } __attribute__((packed));
+
+    class JoinReq
+    {
+    public:
+        CommonReq req;
+        unsigned long raddr;
+        uint16_t  thread_id;
+        uint16_t  session_id;
+        JoinReq(RPC_TYPE t, size_t num) : req{t, num} {}
+        JoinReq(RPC_TYPE t, size_t num, unsigned long addr, uint16_t tid, uint16_t sid) : req{t, num}, raddr(addr), thread_id(tid), session_id(sid) {}
+    } __attribute__((packed));
+
+    class JoinResp
+    {
+    public:
+        CommonResp resp;
+        JoinResp(RPC_TYPE t, size_t num, int s) : resp{t, num, s} {}
+    };
 }

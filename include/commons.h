@@ -35,8 +35,32 @@ namespace rmem
 #define MB(x) (static_cast<size_t>(x) << 20)
 #define GB(x) (static_cast<size_t>(x) << 30)
 
+#define min_(x, y) x < y ? x : y
+
+#define max_(x, y) x > y ? x : y
+
+#define min_t(type, x, y) ({			\
+	type __min1 = (x);			\
+	type __min2 = (y);			\
+	__min1 < __min2 ? __min1: __min2; })
+
+#define max_t(type, x, y) ({			\
+	type __max1 = (x);			\
+	type __max2 = (y);			\
+	__max1 > __max2 ? __max1: __max2; })
+
+#define SWAP(x, y)             \
+    do                         \
+    {                          \
+        typeof(x) ____val = x; \
+        x = y;                 \
+        y = ____val;           \
+    } while (0)
+
+#define is_log2(v) (((v) & ((v)-1)) == 0)
+
     /// Check a condition at runtime. If the condition is false, throw exception.
-    static inline void rt_assert(bool condition, std::string throw_str, char *s)
+    static inline void rt_assert(bool condition, const std::string& throw_str, char *s)
     {
         if (unlikely(!condition))
         {
@@ -52,7 +76,7 @@ namespace rmem
     }
 
     /// Check a condition at runtime. If the condition is false, throw exception.
-    static inline void rt_assert(bool condition, std::string throw_str)
+    static inline void rt_assert(bool condition, const std::string& throw_str)
     {
         if (unlikely(!condition))
             throw std::runtime_error(throw_str);

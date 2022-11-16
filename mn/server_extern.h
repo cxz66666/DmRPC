@@ -2,6 +2,8 @@
 #include "page.h"
 #include "nexus.h"
 #include "atomic_queue/atomic_queue.h"
+#include "req_handler.h"
+
 #include <mutex>
 #include <memory>
 namespace rmem
@@ -19,4 +21,7 @@ namespace rmem
     extern erpc::Nexus *g_nexus;
 
     extern volatile sig_atomic_t ctrl_c_pressed;
+
+    extern ServerContext* g_server_context;
+
 }

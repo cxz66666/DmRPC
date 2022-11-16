@@ -14,7 +14,7 @@ namespace rmem
 
         RMEM_HANDLER rmem_handlers[] = {handler_connect, handler_disconnnect, handler_alloc, handler_free,
                                         handler_read_sync, handler_read_async, handler_write_sync,
-                                        handler_write_async, handler_poll};
+                                        handler_write_async, handler_fork, handler_join, handler_poll};
 
         auto handler = [&](RingBufElement const el) -> void
         {
@@ -22,7 +22,7 @@ namespace rmem
             rt_assert(el.req_type <= REQ_TYPE::RMEM_POOL);
             rmem_handlers[static_cast<uint8_t>(el.req_type)](ctx, ws, el);
         };
-        while (1)
+        while (true)
         {
             RingBuf_process_all(ctx->ringbuf_, handler);
             ctx->rpc_->run_event_loop_once();
@@ -141,12 +141,27 @@ namespace rmem
         erpc::MsgBuffer req = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ForkReq));
         erpc::MsgBuffer resp = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ForkResp));
 
-        new (req.buf_) ForkReq(RPC_TYPE::RPC_FORK, req_number, el.alloc.alloc_addr, el.alloc.alloc_size, el.alloc.vm_flags);
+        new (req.buf_) ForkReq(RPC_TYPE::RPC_FORK, req_number, el.alloc.alloc_addr, el.alloc.alloc_size);
         ws->sended_req[req_number] = {req, resp};
 
         ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_FORK),
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
                                    callback_fork, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
+    }
+
+    void handler_join(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    {
+        size_t req_number = ws->generate_next_num();
+        erpc::MsgBuffer req = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(JoinReq));
+        erpc::MsgBuffer resp = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(JoinResp));
+
+        new (req.buf_) JoinReq(RPC_TYPE::RPC_JOIN, req_number, el.join.addr, el.join.thread_id,el.join.session_id);
+        ws->sended_req[req_number] = {req, resp};
+
+        ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_JOIN),
+                                   &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
+                                   callback_join, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
+
     }
 
     void handler_poll(Context *ctx, WorkerStore *ws, const RingBufElement &el)
@@ -171,8 +186,7 @@ namespace rmem
         RMEM_INFO("polled %d response (max num %d)", num, el.poll.poll_max_num);
 
         ctx->condition_resp_->notify_waiter(num, "");
-        return;
-    }
+   }
 
     void callback_alloc(void *_context, void *_tag)
     {
@@ -341,14 +355,38 @@ namespace rmem
 
         ForkResp *resp = reinterpret_cast<ForkResp *>(resp_buffer.buf_);
 
-        rt_assert(resp_buffer.get_data_size() == sizeof(WriteResp));
+        rt_assert(resp_buffer.get_data_size() == sizeof(ForkResp));
 
+        ctx->condition_resp_->notify_waiter_extra(resp->resp.status, resp->new_raddr, "");
+
+        ctx->rpc_->free_msg_buffer(req_buffer);
+        ctx->rpc_->free_msg_buffer(resp_buffer);
+        ws->sended_req.erase(req_number);
+    }
+
+    void callback_join(void *_context, void *_tag)
+    {
+        Context *ctx = static_cast<Context *>(_context);
+        WorkerTag *worker_tag = static_cast<WorkerTag *>(_tag);
+        WorkerStore *ws = worker_tag->ws;
+        size_t req_number = worker_tag->req_number;
+        rt_assert(ws != nullptr, "worker store must not be empty!");
+
+        rt_assert(ws->sended_req.count(req_number) > 0, "sended_req must have req entry");
+
+        erpc::MsgBuffer req_buffer = ws->sended_req[req_number].first;
+        erpc::MsgBuffer resp_buffer = ws->sended_req[req_number].second;
+
+        JoinResp *resp = reinterpret_cast<JoinResp *>(resp_buffer.buf_);
+
+        rt_assert(resp_buffer.get_data_size() == sizeof(JoinResp));
         ctx->condition_resp_->notify_waiter(resp->resp.status, "");
 
         ctx->rpc_->free_msg_buffer(req_buffer);
         ctx->rpc_->free_msg_buffer(resp_buffer);
         ws->sended_req.erase(req_number);
     }
+
 
     void basic_sm_handler(int session_num, erpc::SmEventType sm_event_type,
                           erpc::SmErrType sm_err_type, void *_context)

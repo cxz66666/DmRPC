@@ -1,6 +1,7 @@
 #include "numautil.h"
 #include "commons.h"
 #include <fstream>
+#include <random>
 
 namespace rmem
 {
@@ -15,11 +16,11 @@ namespace rmem
         rt_assert(numa_node <= static_cast<size_t>(numa_max_node()));
 
         std::vector<size_t> ret;
-        size_t num_lcores = static_cast<size_t>(numa_num_configured_cpus());
+        auto num_lcores = static_cast<size_t>(numa_num_configured_cpus());
 
         for (size_t i = 0; i < num_lcores; i++)
         {
-            if (numa_node == static_cast<size_t>(numa_node_of_cpu(i)))
+            if (numa_node == static_cast<size_t>(numa_node_of_cpu(static_cast<int>(i))))
             {
                 ret.push_back(i);
             }
@@ -53,7 +54,7 @@ namespace rmem
     }
     int get_2M_huagepages_free(size_t numa_node)
     {
-        rt_assert(numa_node < numa_num_configured_nodes(), "numa node illegal");
+        rt_assert(numa_node < static_cast<size_t>(numa_num_configured_nodes()), "numa node illegal");
         std::ifstream file("/sys/devices/system/node/node" + std::to_string(numa_node) + "/hugepages/hugepages-2048kB/free_hugepages", std::ios::in);
 
         if (!file)
@@ -70,7 +71,7 @@ namespace rmem
 
     int get_2M_huagepages_nr(size_t numa_node)
     {
-        rt_assert(numa_node < numa_num_configured_nodes(), "numa node illegal");
+        rt_assert(numa_node < static_cast<size_t>(numa_num_configured_nodes()), "numa node illegal");
         std::ifstream file("/sys/devices/system/node/node" + std::to_string(numa_node) + "/hugepages/hugepages-2048kB/nr_hugepages", std::ios::in);
 
         if (!file)
@@ -85,15 +86,19 @@ namespace rmem
         file.close();
     }
 
-    void *get_huge_mem(int numa_node, size_t size)
+    void *get_huge_mem(uint32_t numa_node, size_t size)
     {
         size = round_up<2 * 1024 * 1024>(size);
         int shm_key, shm_id;
+
+        std::random_device rd;
+        std::uniform_int_distribution<int> dist(0, RAND_MAX);
+
         while (true)
         {
-            // Choose a positive SHM key. Negative is fine but it looks scary in the
+            // Choose a positive SHM key. Negative is fine, but it looks scary in the
             // error message.
-            shm_key = rand();
+            shm_key = dist(rd);
             shm_key = std::abs(shm_key);
 
             // Try to get an SHM region
@@ -108,13 +113,9 @@ namespace rmem
                     continue; // shm_key already exists. Try again.
 
                 case EACCES:
+                case  EINVAL:
                     RMEM_ERROR("Invalid argument, maybe code is not illegal");
                     exit(-1);
-
-                case EINVAL:
-                    RMEM_ERROR("Invalid argument, maybe code is not illegal");
-                    exit(-1);
-
                 case ENOMEM:
                     // Out of memory
                     RMEM_ERROR("No enough memory could be allocated, please insure you have enough 2M hugepage on this NUMA\n");

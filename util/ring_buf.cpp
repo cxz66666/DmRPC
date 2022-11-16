@@ -19,8 +19,6 @@
  * @brief Lock-free ring buffer
  */
 
-#include <stdbool.h>
-
 #include "ring_buf.h"
 
 /*..........................................................................*/
@@ -91,7 +89,7 @@ RingBufCtr RingBuf_num_free(RingBuf *const me)
 }
 
 /*..........................................................................*/
-void RingBuf_process_all(RingBuf *const me, RingBufHandler handler)
+void RingBuf_process_all(RingBuf *const me, const RingBufHandler& handler)
 {
     RingBufCtr tail = me->tail;
     while (me->head != tail)

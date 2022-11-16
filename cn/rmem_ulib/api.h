@@ -32,7 +32,9 @@ namespace rmem
     int rmem_write_async(Context *ctx, void *send_buf, unsigned long addr, size_t size);
 
     // int rmem_dist_barrier(Context *ctx);
-    int rmem_fork(Context *ctx, unsigned long addr, size_t size, unsigned long vm_flags);
+    int rmem_fork(Context *ctx, unsigned long addr, size_t size);
+
+    int rmem_join(Context *ctx, unsigned long addr, uint16_t thread_id, uint16_t session_id);
 
     int rmem_poll(Context *ctx, int *results, int max_num);
 }

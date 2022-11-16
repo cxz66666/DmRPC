@@ -3,7 +3,7 @@
 #include "ring_buf.h"
 #include "extern.h"
 #include "commons.h"
-#include "spinlock.h"
+#include "spinlock_mutex.h"
 #include <thread>
 #include <condition_variable>
 #include <chrono>
@@ -96,6 +96,7 @@ namespace rmem
         friend void handler_write_sync(Context *ctx, WorkerStore *ws, const RingBufElement &el);
         friend void handler_write_async(Context *ctx, WorkerStore *ws, const RingBufElement &el);
         friend void handler_fork(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+        friend void handler_join(Context *ctx, WorkerStore *ws, const RingBufElement &el);
         friend void handler_poll(Context *ctx, WorkerStore *ws, const RingBufElement &el);
         friend void callback_alloc(void *_context, void *_tag);
         friend void callback_free(void *_context, void *_tag);
@@ -104,11 +105,12 @@ namespace rmem
         friend void callback_write_async(void *_context, void *_tag);
         friend void callback_write_sync(void *_context, void *_tag);
         friend void callback_fork(void *_context, void *_tag);
+        friend void callback_join(void *_context, void *_tag);
         friend Context *open_context(uint8_t phy_port);
         friend int close_context(class Context *ctx);
 
     public:
-        // conherence data(need use atomic action)
+        // parallel data(need use atomic action)
         ConcurrentStroe *concurrent_store_;
         // ring buffer for convert msg from user thread to worker thread
         RingBuf *ringbuf_;
@@ -117,15 +119,15 @@ namespace rmem
         ConditionResp *condition_resp_;
 
     private:
-        Context(uint8_t phy_port);
+        explicit Context(uint8_t phy_port);
         ~Context();
         // need have g_lock before call this function
         // return bind_core_index(0 to MaxContext-1)
         size_t get_core_index_unlock();
 
-        // must called by user thread
+        // must be called by user thread
         void start_worker_thread();
-        // must called by user thread;
+        // must be called by user thread;
         void stop_worker_thread();
         // need have g_lock before call this function
         uint8_t get_legal_rpc_id_unlock();

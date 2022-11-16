@@ -57,13 +57,19 @@ namespace rmem
         rt_assert(mlock(g_pages, FLAGS_rmem_size) == 0, "mlock failed");
         rt_assert(mlock(g_page_tables, g_page_table_size * PAGE_TABLE_SIZE) == 0, "mlock failed");
 
+        g_server_context= new ServerContext[FLAGS_rmem_server_thread];
+        if(!g_server_context){
+            RMEM_ERROR("new g_server_context failed, please check the memory configuration");
+            exit(1);
+        }
+
         g_initialized = true;
     }
 
     void init_nexus()
     {
         std::lock_guard<std::mutex> lock(g_lock);
-        if (g_initialized == false || g_nexus != nullptr)
+        if (!g_initialized || g_nexus != nullptr)
         {
             RMEM_ERROR("must init rmem first!");
             exit(-1);
@@ -81,27 +87,28 @@ namespace rmem
         g_nexus->register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_READ), read_req_handler);
         g_nexus->register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_WRITE), write_req_handler);
         g_nexus->register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_FORK), fork_req_handler);
+        g_nexus->register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_JOIN), join_req_handler);
     }
 
     void server_thread(size_t thread_id, erpc::Nexus *nexus)
     {
-        ServerContext c;
-        c.thread_id_ = thread_id;
-        erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(&c),
+        ServerContext *c=g_server_context+thread_id;
+        c->thread_id_ = thread_id;
+        erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(c),
                                         static_cast<uint8_t>(thread_id),
                                         basic_sm_handler, FLAGS_rmem_numa_node);
         rpc.retry_connect_on_invalid_rpc_id_ = true;
 
-        c.rpc_ = &rpc;
+        c->rpc_ = &rpc;
         while (true)
         {
-            c.tput_t0.reset();
+            c->tput_t0.reset();
             rpc.run_event_loop(1000);
-            const double ns = c.tput_t0.get_ns();
+            const double ns = c->tput_t0.get_ns();
 
             printf("thread %zu: %.2f M/s. rx batch %.2f, tx batch %.2f\n", thread_id,
-                   c.stat_req_rx_tot * Ki(1) / (ns), c.rpc_->get_avg_rx_batch(),
-                   c.rpc_->get_avg_tx_batch());
+                   c->stat_req_rx_tot * Ki(1) / (ns), c->rpc_->get_avg_rx_batch(),
+                   c->rpc_->get_avg_tx_batch());
             if (ctrl_c_pressed == 1)
             {
                 break;
@@ -122,7 +129,7 @@ int main(int argc, char **argv)
 
     for (size_t i = 0; i < FLAGS_rmem_server_thread; i++)
     {
-        threads[i] = std::thread(rmem::server_thread, i, &rmem::g_nexus);
+        threads[i] = std::thread(rmem::server_thread, i, rmem::g_nexus);
         rmem::bind_to_core(threads[i], FLAGS_rmem_numa_node, i);
     }
 

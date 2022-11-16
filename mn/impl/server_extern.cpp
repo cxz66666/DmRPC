@@ -1,4 +1,6 @@
 #include "server_extern.h"
+
+
 namespace rmem
 {
 
@@ -13,4 +15,6 @@ namespace rmem
     erpc::Nexus *g_nexus;
 
     volatile sig_atomic_t ctrl_c_pressed;
+
+    ServerContext* g_server_context;
 }

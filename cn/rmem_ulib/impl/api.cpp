@@ -4,6 +4,7 @@
 #include "configs.h"
 #include "transport_impl/dpdk/dpdk_transport.h"
 #include "req_type.h"
+#include "page.h"
 namespace rmem
 {
     // init eRPC and DPDK, will exit when error
@@ -106,7 +107,11 @@ namespace rmem
     {
         rt_assert(ctx != nullptr, "context must not be empty");
         rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
-
+        if (!IS_PAGE_ALIGN(size))
+        {
+            RMEM_ERROR("size is not page aligned, please use aligined alloc size");
+            return EINVAL;
+        }
         RingBufElement elem;
         elem.req_type = REQ_TYPE::RMEM_ALLOC;
         elem.ctx = ctx;
@@ -218,24 +223,54 @@ namespace rmem
 
     // int rmem_dist_barrier(Context *ctx);
 
-    int rmem_fork(Context *ctx, unsigned long addr, size_t size, unsigned long vm_flags)
+    int rmem_fork(Context *ctx, unsigned long addr, size_t size)
     {
         rt_assert(ctx != nullptr, "context must not be empty");
         rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
+
+        if (!IS_PAGE_ALIGN(size) || !IS_PAGE_ALIGN(addr))
+        {
+            RMEM_ERROR("size or addr is not page aligned, please use aligined alloc size and addr");
+            return EINVAL;
+        }
 
         RingBufElement elem;
         elem.req_type = REQ_TYPE::RMEM_FORK;
 
         elem.ctx = ctx;
-        elem.alloc = {size, vm_flags, addr};
+        elem.alloc = {size, 0, addr};
+
+        RingBuf_put(ctx->ringbuf_, elem);
+
+        auto res = ctx->condition_resp_->waiting_resp_extra(DefaultTimeoutMS);
+
+        // TODO add extra check at here for res.first;
+        return res.second;
+
+    }
+
+    int rmem_join(Context *ctx, unsigned long addr, uint16_t thread_id, uint16_t session_id){
+        rt_assert(ctx != nullptr, "context must not be empty");
+        rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
+        if (!IS_PAGE_ALIGN(addr))
+        {
+            RMEM_ERROR("size or addr is not page aligned, please use aligined alloc size and addr");
+            return EINVAL;
+        }
+        RingBufElement elem;
+        elem.req_type = REQ_TYPE::RMEM_JOIN;
+
+        elem.ctx = ctx;
+        elem.join = {addr, thread_id, session_id};
 
         RingBuf_put(ctx->ringbuf_, elem);
 
         int res = ctx->condition_resp_->waiting_resp(DefaultTimeoutMS);
 
-        // TODO check
+        // TODO add extra check at here for res.first;
         return res;
     }
+
 
     int rmem_poll(Context *ctx, int *results, int max_num)
     {

@@ -4,9 +4,9 @@
 #include "commons.h"
 #include "rpc_constants.h"
 
-DEFINE_uint32(rmem_numa_node, 0, "allocated and manager hugepage memory on this numa");
+DEFINE_uint32(rmem_numa_node, 0, "allocated and manager huge_page memory on this numa");
 
-DEFINE_uint32(rmem_size, 32, "Reserved hugepage size on \'rmem_numa_node\' numa node, unit is GB");
+DEFINE_uint32(rmem_size, 32, "Reserved huge_page size on \'rmem_numa_node\' numa node, unit is GB");
 
 DEFINE_uint32(rmem_server_thread, 2, "Thread number in server thread");
 
@@ -16,70 +16,70 @@ DEFINE_uint32(rmem_server_udp_port, 31851, "Server udp port for client to connec
 
 DEFINE_uint32(rmem_dpdk_port, 0, "dpdk used port id to receive/send");
 
-static bool ValidateNumaNode(const char *flagname, uint32_t value)
+static bool ValidateNumaNode(const char *flag_name, uint32_t value)
 {
-    if (value >= 0 && value < numa_num_configured_nodes())
+    if (value < static_cast<uint32_t >(numa_num_configured_nodes()))
     {
         return true;
     }
-    RMEM_ERROR("Invalid value for --%s: %u\n", flagname, (unsigned)value);
+    RMEM_ERROR("Invalid value for --%s: %u\n", flag_name, static_cast<unsigned>(value));
     return false;
 }
 
-static bool ValidateDpdkPort(const char *flagname, uint32_t value)
+static bool ValidateDpdkPort(const char *flag_name, uint32_t value)
 {
-    if (value >= 0 && value < 16)
+    if (value < erpc::kMaxNumERpcProcesses)
     {
         return true;
     }
-    RMEM_ERROR("Invalid value for --%s: %u\n", flagname, (unsigned)value);
+    RMEM_ERROR("Invalid value for --%s: %u\n", flag_name, static_cast<unsigned>(value));
     return false;
 }
 
-static bool ValidateSize(const char *flagname, uint32_t value)
+static bool ValidateSize(const char *flag_name, uint32_t value)
 {
-    if (value >= 0 && value < static_cast<uint32_t>(rmem::get_2M_huagepages_free(FLAGS_rmem_numa_node)))
+    if (value < static_cast<uint32_t>(rmem::get_2M_huagepages_free(FLAGS_rmem_numa_node)))
     {
         return true;
     }
-    RMEM_ERROR("Invalid value for --%s: %u\n", flagname, (unsigned)value);
+    RMEM_ERROR("Invalid value for --%s: %u\n", flag_name, static_cast<unsigned >(value));
     return false;
 }
 
-static bool ValidateServerThread(const char *flagname, uint32_t value)
+static bool ValidateServerThread(const char *flag_name, uint32_t value)
 {
-    if (value >= 0 && value < numa_num_configured_cpus())
+    if ( value < static_cast<uint32_t >(numa_num_configured_cpus()))
     {
         return true;
     }
-    RMEM_ERROR("Invalid value for --%s: %u\n", flagname, (unsigned)value);
+    RMEM_ERROR("Invalid value for --%s: %u\n", flag_name, static_cast<unsigned >(value));
     return false;
 }
 
-static bool ValidateServerIp(const char *flagname, const std::string &value)
+static bool ValidateServerIp(const char *flag_name, const std::string &value)
 {
     if (value.empty())
     {
-        RMEM_ERROR("Invalid value for --%s: %s\n", flagname, value.c_str());
+        RMEM_ERROR("Invalid value for --%s: %s\n", flag_name, value.c_str());
         return false;
     }
     asio::error_code ec;
     asio::ip::address::from_string(value, ec);
     if (ec)
     {
-        RMEM_ERROR("Invalid value for --%s: %s\n", flagname, value.c_str());
+        RMEM_ERROR("Invalid value for --%s: %s\n", flag_name, value.c_str());
         return false;
     }
     return true;
 }
 
-static bool ValidateServerUdpPort(const char *flagname, uint32_t value)
+static bool ValidateServerUdpPort(const char *flag_name, uint32_t value)
 {
     if (value >= erpc::kBaseSmUdpPort && value < erpc::kBaseSmUdpPort + erpc::kMaxNumERpcProcesses)
     {
         return true;
     }
-    RMEM_ERROR("Invalid value for --%s: %u, must between %hu and %hu  \n", flagname, (unsigned)value, erpc::kBaseSmUdpPort, erpc::kBaseSmUdpPort + erpc::kMaxNumERpcProcesses);
+    RMEM_ERROR("Invalid value for --%s: %u, must between %hu and %lu  \n", flag_name, static_cast<unsigned >(value), erpc::kBaseSmUdpPort, erpc::kBaseSmUdpPort + erpc::kMaxNumERpcProcesses);
     return false;
 }
 

@@ -28,5 +28,5 @@ namespace rmem
     {
         return ((x) + T(power_of_two_number - 1)) & (~T(power_of_two_number - 1));
     }
-    void *get_huge_mem(int numa_node, size_t size);
+    void *get_huge_mem(uint32_t numa_node, size_t size);
 }
