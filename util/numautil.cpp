@@ -63,7 +63,9 @@ namespace rmem
             return -1;
         }
         int res;
-        file >> res;
+        while (file >> res)
+        {
+        }
         rt_assert(file.eof(), "unexpect error");
 
         file.close();
@@ -81,7 +83,9 @@ namespace rmem
             return -1;
         }
         int res;
-        file >> res;
+        while (file >> res)
+        {
+        }
         rt_assert(file.eof(), "unexpect error");
 
         file.close();
@@ -115,7 +119,7 @@ namespace rmem
                     continue; // shm_key already exists. Try again.
 
                 case EACCES:
-                case  EINVAL:
+                case EINVAL:
                     RMEM_ERROR("Invalid argument, maybe code is not illegal");
                     exit(-1);
                 case ENOMEM:

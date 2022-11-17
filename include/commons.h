@@ -17,6 +17,9 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <functional>
+#include <execinfo.h>
+#include <unistd.h>
+
 #include "log.h"
 
 namespace rmem
@@ -59,11 +62,23 @@ namespace rmem
 
 #define is_log2(v) (((v) & ((v)-1)) == 0)
 
+    static void print_bt()
+    {
+        void *array[10];
+        size_t size;
+
+        // get void*'s for all entries on the stack
+        size = static_cast<size_t>(backtrace(array, 10));
+
+        // print out all the frames to stderr
+        backtrace_symbols_fd(array, size, STDERR_FILENO);
+    }
     /// Check a condition at runtime. If the condition is false, throw exception.
-    static inline void rt_assert(bool condition, const std::string& throw_str, char *s)
+    static inline void rt_assert(bool condition, const std::string &throw_str, char *s)
     {
         if (unlikely(!condition))
         {
+            print_bt();
             throw std::runtime_error(throw_str + std::string(s));
         }
     }
@@ -72,14 +87,20 @@ namespace rmem
     static inline void rt_assert(bool condition, const char *throw_str)
     {
         if (unlikely(!condition))
-            throw std::runtime_error(throw_str);
+        {
+            print_bt();
+            throw std::runtime_error(std::string(throw_str));
+        }
     }
 
     /// Check a condition at runtime. If the condition is false, throw exception.
-    static inline void rt_assert(bool condition, const std::string& throw_str)
+    static inline void rt_assert(bool condition, const std::string &throw_str)
     {
         if (unlikely(!condition))
+        {
+            print_bt();
             throw std::runtime_error(throw_str);
+        }
     }
 
     /// Check a condition at runtime. If the condition is false, throw exception.
@@ -87,7 +108,10 @@ namespace rmem
     static inline void rt_assert(bool condition)
     {
         if (unlikely(!condition))
+        {
+            print_bt();
             throw std::runtime_error("Error");
+        }
     }
 
 }

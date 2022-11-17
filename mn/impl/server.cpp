@@ -57,8 +57,9 @@ namespace rmem
         rt_assert(mlock(g_pages, FLAGS_rmem_size) == 0, "mlock failed");
         rt_assert(mlock(g_page_tables, g_page_table_size * PAGE_TABLE_SIZE) == 0, "mlock failed");
 
-        g_server_context= new ServerContext[FLAGS_rmem_server_thread];
-        if(!g_server_context){
+        g_server_context = new ServerContext[FLAGS_rmem_server_thread];
+        if (!g_server_context)
+        {
             RMEM_ERROR("new g_server_context failed, please check the memory configuration");
             exit(1);
         }
@@ -92,7 +93,7 @@ namespace rmem
 
     void server_thread(size_t thread_id, erpc::Nexus *nexus)
     {
-        ServerContext *c=g_server_context+thread_id;
+        ServerContext *c = g_server_context + thread_id;
         c->thread_id_ = thread_id;
         erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(c),
                                         static_cast<uint8_t>(thread_id),
@@ -106,9 +107,10 @@ namespace rmem
             rpc.run_event_loop(1000);
             const double ns = c->tput_t0.get_ns();
 
-            printf("thread %zu: %.2f M/s. rx batch %.2f, tx batch %.2f\n", thread_id,
-                   c->stat_req_rx_tot * Ki(1) / (ns), c->rpc_->get_avg_rx_batch(),
-                   c->rpc_->get_avg_tx_batch());
+            printf("thread %zu: total %.2f alloc: %.2f free: %.2f read: %.2f write: %.2f fork: %.2f join: %.2f err: %.2f M/s.\n", thread_id,
+                   c->stat_req_rx_tot * Ki(1) / (ns), c->stat_req_alloc_tot * Ki(1) / (ns), c->stat_req_free_tot * Ki(1) / (ns),
+                   c->stat_req_read_tot * Ki(1) / (ns), c->stat_req_write_tot * Ki(1) / (ns), c->stat_req_fork_tot * Ki(1) / (ns),
+                   c->stat_req_join_tot * Ki(1) / (ns), c->stat_req_error_tot * Ki(1) / (ns));
             if (ctrl_c_pressed == 1)
             {
                 break;

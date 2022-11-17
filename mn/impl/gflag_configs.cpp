@@ -6,9 +6,9 @@
 
 DEFINE_uint32(rmem_numa_node, 0, "allocated and manager huge_page memory on this numa");
 
-DEFINE_uint32(rmem_size, 32, "Reserved huge_page size on \'rmem_numa_node\' numa node, unit is GB");
+DEFINE_uint32(rmem_size, 16, "Reserved huge_page size on \'rmem_numa_node\' numa node, unit is GB");
 
-DEFINE_uint32(rmem_server_thread, 2, "Thread number in server thread");
+DEFINE_uint32(rmem_server_thread, 4, "Thread number in server thread");
 
 DEFINE_string(rmem_server_ip, "", "Server ip for client to connect");
 
@@ -18,7 +18,7 @@ DEFINE_uint32(rmem_dpdk_port, 0, "dpdk used port id to receive/send");
 
 static bool ValidateNumaNode(const char *flag_name, uint32_t value)
 {
-    if (value < static_cast<uint32_t >(numa_num_configured_nodes()))
+    if (value < static_cast<uint32_t>(numa_num_configured_nodes()))
     {
         return true;
     }
@@ -42,17 +42,17 @@ static bool ValidateSize(const char *flag_name, uint32_t value)
     {
         return true;
     }
-    RMEM_ERROR("Invalid value for --%s: %u\n", flag_name, static_cast<unsigned >(value));
+    RMEM_ERROR("Invalid value for --%s: %u\n", flag_name, static_cast<unsigned>(value));
     return false;
 }
 
 static bool ValidateServerThread(const char *flag_name, uint32_t value)
 {
-    if ( value < static_cast<uint32_t >(numa_num_configured_cpus()))
+    if (value < static_cast<uint32_t>(numa_num_configured_cpus()))
     {
         return true;
     }
-    RMEM_ERROR("Invalid value for --%s: %u\n", flag_name, static_cast<unsigned >(value));
+    RMEM_ERROR("Invalid value for --%s: %u\n", flag_name, static_cast<unsigned>(value));
     return false;
 }
 
@@ -79,7 +79,7 @@ static bool ValidateServerUdpPort(const char *flag_name, uint32_t value)
     {
         return true;
     }
-    RMEM_ERROR("Invalid value for --%s: %u, must between %hu and %lu  \n", flag_name, static_cast<unsigned >(value), erpc::kBaseSmUdpPort, erpc::kBaseSmUdpPort + erpc::kMaxNumERpcProcesses);
+    RMEM_ERROR("Invalid value for --%s: %u, must between %hu and %lu  \n", flag_name, static_cast<unsigned>(value), erpc::kBaseSmUdpPort, erpc::kBaseSmUdpPort + erpc::kMaxNumERpcProcesses);
     return false;
 }
 
