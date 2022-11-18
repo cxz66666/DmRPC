@@ -119,6 +119,9 @@ namespace rmem
                     continue; // shm_key already exists. Try again.
 
                 case EACCES:
+                    RMEM_ERROR("Invalid access, maybe code is not illegal");
+                    exit(-1);
+
                 case EINVAL:
                     RMEM_ERROR("Invalid argument, maybe code is not illegal");
                     exit(-1);

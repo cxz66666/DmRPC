@@ -4,7 +4,7 @@
 
 DECLARE_uint32(rmem_numa_node);
 
-DECLARE_uint32(rmem_size);
+DECLARE_uint64(rmem_size);
 
 DECLARE_uint32(rmem_server_thread);
 

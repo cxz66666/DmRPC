@@ -19,6 +19,9 @@ namespace rmem
             RMEM_ERROR("already init!");
             exit(-1);
         }
+        // don't forget!
+        FLAGS_rmem_size *= GB(1);
+
         g_page_table_size = FLAGS_rmem_size / PAGE_SIZE;
 
         // allocate pages from huge page
@@ -129,7 +132,14 @@ int main(int argc, char **argv)
 
     std::vector<std::thread> threads(FLAGS_rmem_server_thread);
 
-    for (size_t i = 0; i < FLAGS_rmem_server_thread; i++)
+    threads[0] = std::thread(rmem::server_thread, 0, rmem::g_nexus);
+
+    // wait for dpdk init
+    usleep(2e6);
+
+    rmem::bind_to_core(threads[0], FLAGS_rmem_numa_node, 0);
+
+    for (size_t i = 1; i < FLAGS_rmem_server_thread; i++)
     {
         threads[i] = std::thread(rmem::server_thread, i, rmem::g_nexus);
         rmem::bind_to_core(threads[i], FLAGS_rmem_numa_node, i);

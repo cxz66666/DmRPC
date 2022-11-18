@@ -6,7 +6,7 @@
 
 DEFINE_uint32(rmem_numa_node, 0, "allocated and manager huge_page memory on this numa");
 
-DEFINE_uint32(rmem_size, 16, "Reserved huge_page size on \'rmem_numa_node\' numa node, unit is GB");
+DEFINE_uint64(rmem_size, 16ul, "Reserved huge_page size on \'rmem_numa_node\' numa node, unit is GB");
 
 DEFINE_uint32(rmem_server_thread, 4, "Thread number in server thread");
 
@@ -36,9 +36,10 @@ static bool ValidateDpdkPort(const char *flag_name, uint32_t value)
     return false;
 }
 
-static bool ValidateSize(const char *flag_name, uint32_t value)
+static bool ValidateSize(const char *flag_name, uint64_t value)
 {
-    if (value < static_cast<uint32_t>(rmem::get_2M_huagepages_free(FLAGS_rmem_numa_node)))
+    // 512* value = 2M page number
+    if (KB(1) / 2 * value < static_cast<uint32_t>(rmem::get_2M_huagepages_free(FLAGS_rmem_numa_node)))
     {
         return true;
     }
