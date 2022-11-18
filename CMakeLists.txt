@@ -141,11 +141,15 @@ set(LIBRARIES ${LIBRARIES} -Wl,--export-dynamic -Wl,--whole-archive -Wl,--as-nee
 set(LIBRARIES ${LIBRARIES} gflags pthread)
 
 
+add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/eRPC)
+
 # Compile the library
 add_library(rmem ${LIBSOURCES})
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/eRPC)
-
 add_executable(rmem_mn ${MNSOURCES})
+
+add_dependencies(rmem erpc)
+
+add_dependencies(rmem_mn erpc)
 
 target_link_libraries(rmem_mn erpc ${LIBRARIES})
