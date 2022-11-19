@@ -7,18 +7,22 @@
 
 namespace rmem
 {
-    inline mm_struct* ServerContext::find_target_mm(uint16_t tid, uint16_t sid) {
-        if(unlikely(tid>=FLAGS_rmem_server_thread)) {
+    inline mm_struct *ServerContext::find_target_mm(uint16_t tid, uint16_t sid)
+    {
+        if (unlikely(tid >= FLAGS_rmem_server_thread))
+        {
             RMEM_WARN("tid > FLAGS_rmem_server_thread");
             return nullptr;
         }
-        if(unlikely(!g_server_context)) {
+        if (unlikely(!g_server_context))
+        {
             RMEM_WARN("g_server_context is nullptr!");
             return nullptr;
         }
-        ServerContext*tmp=g_server_context+tid;
+        ServerContext *tmp = g_server_context + tid;
 
-        if(unlikely(!tmp->mm_struct_map_.count(sid))) {
+        if (unlikely(!tmp->mm_struct_map_.count(sid)))
+        {
             RMEM_WARN("sid not found in mm_struct_map_");
             return nullptr;
         }
@@ -31,7 +35,8 @@ namespace rmem
         this->session_id = sid;
         this->vma_list.clear();
     }
-    mm_struct::~mm_struct() {
+    mm_struct::~mm_struct()
+    {
         rt_assert(vma_list.empty(), "not empty vma_list");
         rt_assert(fork_list.empty(), "not empty fork_list");
     }
@@ -65,7 +70,8 @@ namespace rmem
         return begin;
     }
 
-    unsigned long mm_struct::insert_range(size_t size, unsigned long vm_flags) {
+    unsigned long mm_struct::insert_range(size_t size, unsigned long vm_flags)
+    {
         vma_list_lock.lock();
         unsigned long begin = get_unmapped_area(size);
         unsigned long end = begin + size;
@@ -75,7 +81,8 @@ namespace rmem
         vma->vm_flags = vm_flags;
 
         vma_list.insert(std::lower_bound(vma_list.begin(), vma_list.end(), vma,
-                                         [](const vma_struct *a, const vma_struct *b) {
+                                         [](const vma_struct *a, const vma_struct *b)
+                                         {
                                              return a->vm_start < b->vm_start;
                                          }),
                         vma);
@@ -84,8 +91,6 @@ namespace rmem
 
         return begin;
     }
-
-
 
     std::list<vma_struct *>::iterator mm_struct::find_vma(unsigned long addr, size_t size)
     {
@@ -106,7 +111,8 @@ namespace rmem
         return vma_list.end();
     }
 
-    std::list<fork_struct *>::iterator mm_struct::find_fork_vma(unsigned long addr) {
+    std::list<fork_struct *>::iterator mm_struct::find_fork_vma(unsigned long addr)
+    {
         auto tmp = fork_list.begin();
         while (tmp != fork_list.end())
         {
@@ -122,9 +128,7 @@ namespace rmem
         }
         // use end() to indicate not found
         return fork_list.end();
-
     }
-
 
     vma_struct *mm_struct::find_vma_range(unsigned long addr, size_t size)
     {
@@ -160,7 +164,7 @@ namespace rmem
             }
             unsigned long pfn = addr_map[vfn];
             size_t copy_size = min_(PAGE_SIZE - (addr_index % PAGE_SIZE), size - buf_index);
-            if (unlikely(!g_page_tables[pfn].do_page_read(pfn, static_cast<char*>(buf) + buf_index, copy_size, addr_index % PAGE_SIZE, thread_id, session_id)))
+            if (unlikely(!g_page_tables[pfn].do_page_read(pfn, static_cast<char *>(buf) + buf_index, copy_size, addr_index % PAGE_SIZE, thread_id, session_id)))
             {
                 RMEM_WARN("do_read failed, addr: %lx, size: %lx, buf: %p, buf_index: %lx, addr_index: %lx, vfn: %lx, pfn: %lx, copy_size: %lx, thread_id: %d, session_id: %d", addr, size, buf, buf_index, addr_index, vfn, pfn, copy_size, thread_id, session_id);
                 return false;
@@ -245,7 +249,7 @@ namespace rmem
                 }
             }
 
-            if (unlikely(!g_page_tables[pfn].do_page_write(pfn, static_cast<char*>(buf) + buf_index, copy_size, addr_index % PAGE_SIZE, thread_id, session_id)))
+            if (unlikely(!g_page_tables[pfn].do_page_write(pfn, static_cast<char *>(buf) + buf_index, copy_size, addr_index % PAGE_SIZE, thread_id, session_id)))
             {
                 RMEM_WARN("do_write failed, addr: %lx, size: %lx, buf: %p, buf_index: %lx, addr_index: %lx, vfn: %lx, pfn: %lx, copy_size: %lx, thread_id: %d, session_id: %d", addr, size, buf, buf_index, addr_index, vfn, pfn, copy_size, thread_id, session_id);
                 return false;
@@ -258,8 +262,10 @@ namespace rmem
     inline void mm_struct::do_free(vma_struct *vma)
     {
         // TODO: it will faster if we loop from addr_map?
-        for (size_t vfn = PHYS_2_PFN(PAGE_ROUND_DOWN(vma->vm_start)); vfn < PHYS_2_PFN(PAGE_ROUND_UP(vma->vm_end)); vfn++) {
-            if(addr_map.count(vfn)) {
+        for (size_t vfn = PHYS_2_PFN(PAGE_ROUND_DOWN(vma->vm_start)); vfn < PHYS_2_PFN(PAGE_ROUND_UP(vma->vm_end)); vfn++)
+        {
+            if (addr_map.count(vfn))
+            {
                 unsigned long pfn = addr_map[vfn];
                 addr_map.erase(vfn);
 
@@ -267,87 +273,89 @@ namespace rmem
                 rt_assert(g_page_tables[pfn].valid, "page is not valid");
                 g_page_tables[pfn].ref_count--;
                 // free physical page
-                if(!g_page_tables[pfn].ref_count) {
-                    g_page_tables[pfn].valid=false;
+                if (!g_page_tables[pfn].ref_count)
+                {
+                    g_page_tables[pfn].valid = false;
                     g_free_pages->push(pfn);
                 }
                 g_page_tables[pfn].lock.unlock();
-
             }
         }
     }
 
-
     inline unsigned long mm_struct::do_fork(vma_struct *vma, unsigned long addr, size_t size)
     {
-        unsigned long new_addr = insert_range(size,vma->vm_flags);
+        unsigned long new_addr = insert_range(size, vma->vm_flags);
 
-        auto *fs=new fork_struct();
-        fs->vm_start=new_addr;
-        fs->vm_end=new_addr+size;
-        fs->vm_flags=vma->vm_flags;
+        auto *fs = new fork_struct();
+        fs->vm_start = new_addr;
+        fs->vm_end = new_addr + size;
+        fs->vm_flags = vma->vm_flags;
 
-        size_t offset=new_addr<addr?PHYS_2_PFN(addr-new_addr):PHYS_2_PFN(new_addr-addr);
-        bool flag= new_addr < addr;
-        for (size_t vfn = PHYS_2_PFN(PAGE_ROUND_DOWN(addr)); vfn < PHYS_2_PFN(PAGE_ROUND_UP(addr + size)); vfn++) {
-            if(addr_map.count(vfn)) {
-                unsigned long pfn=addr_map[vfn];
-                size_t new_vfn= (flag?vfn-offset:vfn+offset);
-                fs->addr_map[new_vfn]=pfn;
+        size_t offset = new_addr < addr ? PHYS_2_PFN(addr - new_addr) : PHYS_2_PFN(new_addr - addr);
+        bool flag = new_addr < addr;
+        for (size_t vfn = PHYS_2_PFN(PAGE_ROUND_DOWN(addr)); vfn < PHYS_2_PFN(PAGE_ROUND_UP(addr + size)); vfn++)
+        {
+            if (addr_map.count(vfn))
+            {
+                unsigned long pfn = addr_map[vfn];
+                size_t new_vfn = (flag ? vfn - offset : vfn + offset);
+                fs->addr_map[new_vfn] = pfn;
 
                 if (unlikely(!g_page_tables[pfn].do_page_fork(pfn)))
                 {
                     RMEM_ERROR("do_fork failed, addr: %lx, size: %lx, new_addr: %lx, vfn: %lx, pfn: %lx, offset: %lx, thread_id: %d, session_id: %d", addr, size, new_addr, vfn, pfn, offset, thread_id, session_id);
                     exit(-1);
                 }
-
             }
         }
 
         vma_list_lock.lock();
         // TODO whether need convert it to a function?
         fork_list.insert(std::lower_bound(fork_list.begin(), fork_list.end(), fs,
-                                        [](const fork_struct *a, const fork_struct *b) {
-                                            return a->vm_start < b->vm_start;
-                                        }),
-                       fs);
+                                          [](const fork_struct *a, const fork_struct *b)
+                                          {
+                                              return a->vm_start < b->vm_start;
+                                          }),
+                         fs);
         vma_list_lock.unlock();
 
         return new_addr;
     }
 
-    inline bool mm_struct::do_join(mm_struct*target_mm, unsigned long addr) {
+    inline bool mm_struct::do_join(mm_struct *target_mm, unsigned long addr)
+    {
         target_mm->vma_list_lock.lock();
         auto old_vma = target_mm->find_fork_vma(addr);
-        if (old_vma == target_mm->fork_list.end()) {
+        if (old_vma == target_mm->fork_list.end())
+        {
             target_mm->vma_list_lock.unlock();
             return false;
         }
         target_mm->vma_list_lock.unlock();
-
 
         size_t size = (*old_vma)->vm_end - (*old_vma)->vm_start;
         // already insert new vma to vma_list, so we just need adjust addr_map
         unsigned long new_addr = insert_range(size, (*old_vma)->vm_flags);
 
         size_t offset =
-                new_addr < addr ? PHYS_2_PFN(addr - new_addr) : PHYS_2_PFN(new_addr - addr);
-        bool flag= new_addr < addr;
+            new_addr < addr ? PHYS_2_PFN(addr - new_addr) : PHYS_2_PFN(new_addr - addr);
+        bool flag = new_addr < addr;
 
-        for (auto &[vfn, v]: (*old_vma)->addr_map) {
-            addr_map[flag?vfn-offset:vfn+offset] = v;
+        for (auto &[vfn, v] : (*old_vma)->addr_map)
+        {
+            addr_map[flag ? vfn - offset : vfn + offset] = v;
         }
 
         // don't forget to delete old vma and fork_vma
         target_mm->vma_list_lock.lock();
-        target_mm->vma_list.erase(target_mm->find_vma(addr,size));
+        target_mm->vma_list.erase(target_mm->find_vma(addr, size));
         target_mm->fork_list.erase(old_vma);
         target_mm->vma_list_lock.unlock();
 
         delete *old_vma;
         return true;
     }
-
 
     inline void mm_struct::handler_page_map(vma_struct *vma, unsigned long vm_pfn)
     {
@@ -376,7 +384,15 @@ namespace rmem
         }
     }
 
+    int mm_struct::free_vma_list(unsigned long addr, size_t size)
+    {
+        // TODO
+    }
 
+    int mm_struct::free_all_vma_list()
+    {
+        // TODO
+    }
 
 #define RETURN_IF_ERROR(ERRNO, RESP_STRUCT, CTX, REQ_HANDLER, REQ)                         \
     {                                                                                      \
@@ -452,11 +468,12 @@ namespace rmem
         }
 
         // get the ptr
-        vma_struct* vma_ptr = *vma;
+        vma_struct *vma_ptr = *vma;
         // delete vma from vma_list and fork_list(it will exist when this vma is forked)
         mm->vma_list.erase(vma);
-        auto fork_vma= mm->find_fork_vma(vma_ptr->vm_start);
-        if(unlikely(( fork_vma != mm->fork_list.end()))) {
+        auto fork_vma = mm->find_fork_vma(vma_ptr->vm_start);
+        if (unlikely((fork_vma != mm->fork_list.end())))
+        {
             mm->fork_list.erase(fork_vma);
         }
         mm->vma_list_lock.unlock();
@@ -516,7 +533,7 @@ namespace rmem
 
         ctx->rpc_->resize_msg_buffer(&resp_msgbuf, sizeof(ReadResp) + sizeof(char) * req->rsize);
         ctx->rpc_->enqueue_response(req_handle, &resp_msgbuf);
-   }
+    }
     void write_req_handler(erpc::ReqHandle *req_handle, void *_context)
     {
         ServerContext *ctx = static_cast<ServerContext *>(_context);
@@ -525,7 +542,7 @@ namespace rmem
         auto *req_msgbuf = req_handle->get_req_msgbuf();
         WriteReq *req = reinterpret_cast<WriteReq *>(req_msgbuf->buf_);
 
-        rt_assert(req_msgbuf->get_data_size() == sizeof(WriteReq)+ req->rsize, "data size not match");
+        rt_assert(req_msgbuf->get_data_size() == sizeof(WriteReq) + req->rsize, "data size not match");
 
         rt_assert(ctx->mm_struct_map_.count(req_handle->get_server_session_num()), "session not found");
 
@@ -587,9 +604,10 @@ namespace rmem
         memcpy(req_handle->pre_resp_msgbuf_.buf_, &resp, sizeof(ForkResp));
         ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(ForkResp));
         ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
-   }
+    }
 
-    void join_req_handler(erpc::ReqHandle *req_handle, void *_context) {
+    void join_req_handler(erpc::ReqHandle *req_handle, void *_context)
+    {
         // 这里不妨假设不会出现thread的并发冲突，只会出现session的并发冲突，否则性能还挺可惜的
         // 后面有时间肯定写，得多加几个spin lock
         ServerContext *ctx = static_cast<ServerContext *>(_context);
@@ -603,12 +621,14 @@ namespace rmem
 
         mm_struct *mm = ctx->mm_struct_map_[req_handle->get_server_session_num()];
 
-        mm_struct *target_mm = ctx->find_target_mm(req->thread_id,req->session_id);
-        if(!target_mm) {
+        mm_struct *target_mm = ctx->find_target_mm(req->thread_id, req->session_id);
+        if (!target_mm)
+        {
             RETURN_IF_ERROR(EINVAL, JoinResp, ctx, req_handle, req->req)
         }
 
-        if(!mm->do_join(target_mm, req->raddr)) {
+        if (!mm->do_join(target_mm, req->raddr))
+        {
             RETURN_IF_ERROR(EINVAL, JoinResp, ctx, req_handle, req->req)
         }
 
@@ -616,7 +636,6 @@ namespace rmem
         memcpy(req_handle->pre_resp_msgbuf_.buf_, &resp, sizeof(JoinResp));
         ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(JoinResp));
         ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
-
     }
 
     void basic_sm_handler(int session_num, erpc::SmEventType sm_event_type,

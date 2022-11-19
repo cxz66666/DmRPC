@@ -25,7 +25,8 @@ namespace rmem
         // TODO rb tree
     };
 
-    class fork_struct: public vma_struct {
+    class fork_struct : public vma_struct
+    {
     public:
         std::unordered_map<unsigned long, unsigned long> addr_map;
     };
@@ -57,7 +58,7 @@ namespace rmem
 
         inline unsigned long do_fork(vma_struct *vma, unsigned long addr, size_t size);
 
-        inline bool do_join(mm_struct*target_mm, unsigned long addr);
+        inline bool do_join(mm_struct *target_mm, unsigned long addr);
         // vma
         std::list<vma_struct *> vma_list;
         // this will also include in vma_list,
@@ -74,9 +75,10 @@ namespace rmem
 
         unsigned long get_unmapped_area(size_t length);
 
+        int free_vma_list(unsigned long addr, size_t size);
+        // used for destroy mm_struct
+        int free_all_vma_list();
         std::unordered_map<unsigned long, unsigned long> addr_map;
-
-
 
         uint16_t thread_id;
         uint16_t session_id;
@@ -109,8 +111,7 @@ namespace rmem
 
         // key = session_num
         std::unordered_map<uint16_t, mm_struct *> mm_struct_map_;
-        static inline mm_struct* find_target_mm(uint16_t tid, uint16_t sid);
-
+        static inline mm_struct *find_target_mm(uint16_t tid, uint16_t sid);
     };
 
 }
