@@ -3,7 +3,6 @@
 
 #include <utility>
 #include "extern.h"
-#include "configs.h"
 #include "transport_impl/dpdk/dpdk_transport.h"
 #include "req_type.h"
 #include "page.h"
@@ -49,6 +48,7 @@ namespace rmem
     // register a rpc
     Context *open_context(uint8_t phy_port)
     {
+
         std::unique_lock<std::mutex> lock(g_lock);
 
         return new Context(phy_port);
@@ -68,7 +68,7 @@ namespace rmem
     }
 
     // try to create a server on a session, store session num to ctx
-    int connect_session(Context *ctx, const std::string &host, uint8_t remote_rpc_id, int timeout_ms = DefaultTimeoutMS)
+    int connect_session(Context *ctx, const std::string &host, uint8_t remote_rpc_id, int timeout_ms)
     {
         rt_assert(ctx != nullptr, "context must not be empty");
         rt_assert(ctx->concurrent_store_->get_session_num() == -1, "can only have one session on a context, don't use connect_session twice before first one disconnect");
@@ -87,7 +87,7 @@ namespace rmem
         return res;
     }
 
-    int disconnect_session(Context *ctx, int timeout_ms = DefaultTimeoutMS)
+    int disconnect_session(Context *ctx, int timeout_ms)
     {
         rt_assert(ctx != nullptr, "context must not be empty");
         rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");

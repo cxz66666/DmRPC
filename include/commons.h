@@ -24,6 +24,10 @@
 
 namespace rmem
 {
+
+    static const unsigned long VM_FLAG_READ = 0x1;
+    static const unsigned long VM_FLAG_WRITE = 0x2;
+
 #define _unused(x) ((void)(x)) // Make production build happy
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)

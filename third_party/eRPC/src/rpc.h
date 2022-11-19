@@ -973,7 +973,8 @@ namespace erpc
     //
 
     /// Return true iff we're currently running in this Rpc's creator thread
-    inline bool in_dispatch() const { return get_etid() == creator_etid_; }
+    // modified because we don't use background threads
+    inline bool in_dispatch() const { return true; }
 
     /// Return true iff a user-provided session number is in the session vector
     inline bool is_usr_session_num_in_range_st(int session_num) const

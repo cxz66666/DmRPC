@@ -1,6 +1,6 @@
 
 #pragma once
-
+#include "configs.h"
 #include "commons.h"
 #include "context.h"
 namespace rmem
@@ -15,9 +15,9 @@ namespace rmem
     int close_context(Context *ctx);
 
     // try to create a server on a session, store session num to ctx
-    int connect_session(Context *ctx, const std::string& host, uint8_t remote_rpc_id, int timeout_ms);
+    int connect_session(Context *ctx, const std::string &host, uint8_t remote_rpc_id, int timeout_ms = DefaultTimeoutMS);
 
-    int disconnect_session(Context *ctx, int timeout_ms);
+    int disconnect_session(Context *ctx, int timeout_ms = DefaultTimeoutMS);
 
     unsigned long rmem_alloc(Context *ctx, size_t size, unsigned long vm_flags);
 
