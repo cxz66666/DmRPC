@@ -22,7 +22,7 @@ namespace rmem
     // eRPC's trace file for more involved debugging.
 
 #define rmem_trace_file_or_default_stream trace_file_
-//#define rmem_trace_file_or_default_stream RMEM_LOG_DEFAULT_STREAM
+// #define rmem_trace_file_or_default_stream RMEM_LOG_DEFAULT_STREAM
 
 // If RMEM_LOG_LEVEL is not defined, default to the highest level so that
 // YouCompleteMe does not report compilation errors
@@ -34,6 +34,7 @@ namespace rmem
 #define RMEM_ERROR(...)                                    \
     rmem::output_log_header(stderr, RMEM_LOG_LEVEL_ERROR); \
     fprintf(RMEM_LOG_DEFAULT_STREAM, __VA_ARGS__);         \
+    fprintf(RMEM_LOG_DEFAULT_STREAM, "\n");                \
     fflush(RMEM_LOG_DEFAULT_STREAM)
 #else
 #define RMEM_ERROR(...) ((void)0)
@@ -43,6 +44,7 @@ namespace rmem
 #define RMEM_WARN(...)                                                     \
     rmem::output_log_header(RMEM_LOG_DEFAULT_STREAM, RMEM_LOG_LEVEL_WARN); \
     fprintf(RMEM_LOG_DEFAULT_STREAM, __VA_ARGS__);                         \
+    fprintf(RMEM_LOG_DEFAULT_STREAM, "\n");                                \
     fflush(RMEM_LOG_DEFAULT_STREAM)
 #else
 #define RMEM_WARN(...) ((void)0)
@@ -52,6 +54,7 @@ namespace rmem
 #define RMEM_INFO(...)                                                     \
     rmem::output_log_header(RMEM_LOG_DEFAULT_STREAM, RMEM_LOG_LEVEL_INFO); \
     fprintf(RMEM_LOG_DEFAULT_STREAM, __VA_ARGS__);                         \
+    fprintf(RMEM_LOG_DEFAULT_STREAM, "\n");                                \
     fflush(RMEM_LOG_DEFAULT_STREAM)
 #else
 #define RMEM_INFO(...) ((void)0)
@@ -62,6 +65,7 @@ namespace rmem
     rmem::output_log_header(rmem_trace_file_or_default_stream, \
                             RMEM_LOG_LEVEL_REORDER);           \
     fprintf(rmem_trace_file_or_default_stream, __VA_ARGS__);   \
+    fprintf(rmem_trace_file_or_default_stream, "\n");          \
     fflush(rmem_trace_file_or_default_stream)
 #else
 #define RMEM_REORDER(...) ((void)0)
@@ -72,6 +76,7 @@ namespace rmem
     rmem::output_log_header(rmem_trace_file_or_default_stream, \
                             RMEM_LOG_LEVEL_TRACE);             \
     fprintf(rmem_trace_file_or_default_stream, __VA_ARGS__);   \
+    fprintf(rmem_trace_file_or_default_stream, "\n");          \
     fflush(rmem_trace_file_or_default_stream)
 #else
 #define RMEM_TRACE(...) ((void)0)
@@ -82,6 +87,7 @@ namespace rmem
     rmem::output_log_header(rmem_trace_file_or_default_stream, \
                             RMEM_LOG_LEVEL_CC);                \
     fprintf(rmem_trace_file_or_default_stream, __VA_ARGS__);   \
+    fprintf(rmem_trace_file_or_default_stream, "\n");          \
     fflush(rmem_trace_file_or_default_stream)
 #else
 #define RMEM_CC(...) ((void)0)

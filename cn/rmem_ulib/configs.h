@@ -7,7 +7,7 @@
 namespace rmem
 {
 
-    static constexpr bool IsDPDKDaemon = true;
+    static constexpr bool IsDPDKDaemon = false;
 
     // useless now
     static const std::string DPDKDaemonPath = "./dpdk_daemon";
