@@ -47,7 +47,7 @@ namespace rmem
         WorkerStore();
         ~WorkerStore();
         size_t generate_next_num();
-        size_t set_dist_barrier();
+        // size_t set_dist_barrier();
 
         std::unordered_map<size_t, std::pair<erpc::MsgBuffer, erpc::MsgBuffer>> sended_req;
         // used for async received req

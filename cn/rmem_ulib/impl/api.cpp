@@ -68,7 +68,7 @@ namespace rmem
     }
 
     // try to create a server on a session, store session num to ctx
-    int connect_session(Context *ctx, const std::string& host, uint8_t remote_rpc_id, int timeout_ms)
+    int connect_session(Context *ctx, const std::string &host, uint8_t remote_rpc_id, int timeout_ms = DefaultTimeoutMS)
     {
         rt_assert(ctx != nullptr, "context must not be empty");
         rt_assert(ctx->concurrent_store_->get_session_num() == -1, "can only have one session on a context, don't use connect_session twice before first one disconnect");
@@ -87,7 +87,7 @@ namespace rmem
         return res;
     }
 
-    int disconnect_session(Context *ctx, int timeout_ms)
+    int disconnect_session(Context *ctx, int timeout_ms = DefaultTimeoutMS)
     {
         rt_assert(ctx != nullptr, "context must not be empty");
         rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
@@ -250,7 +250,8 @@ namespace rmem
         return res.second;
     }
 
-    int rmem_join(Context *ctx, unsigned long addr, uint16_t thread_id, uint16_t session_id){
+    int rmem_join(Context *ctx, unsigned long addr, uint16_t thread_id, uint16_t session_id)
+    {
         rt_assert(ctx != nullptr, "context must not be empty");
         rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
         if (!IS_PAGE_ALIGN(addr))
@@ -271,7 +272,6 @@ namespace rmem
         // TODO add extra check at here for res.first;
         return res;
     }
-
 
     int rmem_poll(Context *ctx, int *results, int max_num)
     {

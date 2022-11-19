@@ -57,7 +57,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
 # Options exposed to the user
 option(PERF "Compile for performance" ON)
 set(PGO "none" CACHE STRING "Profile-guided optimization (generate/use/none)")
-set(LOG_LEVEL "warn" CACHE STRING "Logging level (none/error/warn/info/reorder/trace/cc)") 
+set(LOG_LEVEL "info" CACHE STRING "Logging level (none/error/warn/info/reorder/trace/cc)") 
 
 # Profile-guided optimization
 if(PGO STREQUAL "generate")
@@ -108,6 +108,16 @@ else(TESTING)
   add_definitions(-DERPC_TESTING=false)
 endif(TESTING)
 
+
+# The app to compile. Only one app is compiled to reduce compile time.
+if(EXISTS "${CMAKE_SOURCE_DIR}/cn/app/build_app")
+  file(STRINGS "${CMAKE_SOURCE_DIR}/cn/app/build_app" APP)
+else()
+  message(STATUS "No build_app found. No application will be compiled.")
+  return()
+endif()
+message(STATUS "Compiling app = " ${APP})
+
 set(UTILSOURCES
         ${CMAKE_SOURCE_DIR}/util/ring_buf.cpp
         ${CMAKE_SOURCE_DIR}/util/numautil.cpp
@@ -121,6 +131,7 @@ set(LIBSOURCES
   ${CMAKE_SOURCE_DIR}/cn/rmem_ulib/impl/context.cpp
   ${CMAKE_SOURCE_DIR}/cn/rmem_ulib/impl/extern.cpp
   ${CMAKE_SOURCE_DIR}/cn/rmem_ulib/impl/worker.cpp
+  ${CMAKE_SOURCE_DIR}/cn/rmem_ulib/impl/worker_store.cpp
   ${CMAKE_SOURCE_DIR}/cn/rmem_ulib/impl/api.cpp
   ${UTILSOURCES}
   )
@@ -135,7 +146,7 @@ set(
         ${UTILSOURCES}
 )
 
-# rdynamic used for backtrace_symbols()
+# --export-dynamic used for backtrace_symbols()
 
 set(LIBRARIES ${LIBRARIES} -Wl,--export-dynamic -Wl,--whole-archive -Wl,--as-needed rte_node rte_graph rte_bpf rte_flow_classify rte_pipeline rte_table rte_port rte_fib rte_ipsec rte_vhost rte_stack rte_security rte_sched rte_reorder rte_rib rte_regexdev rte_rawdev rte_pdump rte_power rte_member rte_lpm rte_latencystats rte_kni rte_jobstats rte_ip_frag rte_gso rte_gro rte_eventdev rte_efd rte_distributor rte_cryptodev rte_compressdev rte_cfgfile rte_bitratestats rte_bbdev rte_acl rte_timer rte_hash rte_metrics rte_cmdline rte_pci rte_ethdev rte_meter rte_net rte_mbuf rte_mempool rte_rcu rte_ring rte_eal rte_telemetry rte_kvargs -Wl,--no-whole-archive numa dl ibverbs mlx5)
 set(LIBRARIES ${LIBRARIES} gflags pthread)
@@ -150,6 +161,16 @@ add_executable(rmem_mn ${MNSOURCES})
 
 add_dependencies(rmem erpc)
 
+
 add_dependencies(rmem_mn erpc)
 
 target_link_libraries(rmem_mn erpc ${LIBRARIES})
+
+
+# Using link-time optimization sometimes requires building with sources instead
+# of liberpc. See the hello world example's Makefile for an example of
+# compiling with liberpc.
+add_executable(${APP} ${CMAKE_SOURCE_DIR}/cn/app/${APP}/${APP}.cpp ${APP_ADDITIONAL_SOURCES})
+target_link_libraries(${APP} -Wl,--whole-archive erpc -Wl,--no-whole-archive rmem ${LIBRARIES})
+
+
