@@ -43,8 +43,8 @@ namespace rmem
 
         std::vector<std::string> splits = split(line, ' ');
 
-        return splits.size() == 3 && splits[0].length() > 0 &&
-               splits[1].length() > 0 && splits[2].length() > 0;
+        return splits.size() == 2 && splits[0].length() > 0 &&
+               splits[1].length() > 0;
     }
 
     static bool is_valid_uri(std::string uri)
