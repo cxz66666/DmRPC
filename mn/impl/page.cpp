@@ -16,7 +16,7 @@ namespace rmem
             g_page_tables[pfn].lock.unlock();
             return false;
         }
-        if (unlikely(g_page_tables[pfn].access_mode == 0 && (g_page_tables[pfn].session_id != tid || g_page_tables[pfn].thread_id != sid)))
+        if (unlikely(g_page_tables[pfn].access_mode == 0 && (g_page_tables[pfn].session_id != sid || g_page_tables[pfn].thread_id != tid)))
         {
             g_page_tables[pfn].lock.unlock();
             return false;
@@ -42,7 +42,7 @@ namespace rmem
         }
         // TODO is it OK?
         // more extra check?
-        if (unlikely(g_page_tables[pfn].access_mode == 0 && (g_page_tables[pfn].session_id != tid || g_page_tables[pfn].thread_id != sid)))
+        if (unlikely(g_page_tables[pfn].access_mode == 0 && (g_page_tables[pfn].session_id != sid || g_page_tables[pfn].thread_id != tid)))
         {
             g_page_tables[pfn].lock.unlock();
             return false;
@@ -55,27 +55,32 @@ namespace rmem
 
         return true;
     }
-    bool page_table::do_page_fork(unsigned long pfn){
+    bool page_table::do_page_fork(unsigned long pfn)
+    {
         if (unlikely(pfn >= g_page_table_size))
         {
             return false;
         }
         g_page_tables[pfn].lock.lock();
-        if (unlikely(g_page_tables[pfn].valid == false ))
+        if (unlikely(g_page_tables[pfn].valid == false))
         {
             g_page_tables[pfn].lock.unlock();
             return false;
         }
+        if (unlikely(g_page_tables[pfn].ref_count == 0))
+        {
+            RMEM_ERROR("pfn %ld ref_count is 0", pfn);
+        }
         // TODO ref_count == 0 will happen?
-        if(g_page_tables[pfn].ref_count==1) {
-            g_page_tables[pfn].cow=true;
-            g_page_tables[pfn].access_mode=0x3;
+        if (g_page_tables[pfn].ref_count == 1)
+        {
+            g_page_tables[pfn].cow = true;
+            g_page_tables[pfn].access_mode = 0x3;
         }
         g_page_tables[pfn].ref_count++;
         g_page_tables[pfn].lock.unlock();
 
         return true;
-
     }
 
 }

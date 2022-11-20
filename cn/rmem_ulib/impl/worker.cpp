@@ -57,7 +57,7 @@ namespace rmem
             ctx->condition_resp_->notify_waiter(res, "");
             return;
         }
-        // TODO  if res==0, then we will send a disconnect request, we will clear session at sm_handler
+        // if res==0, then we will send a disconnect request, we will clear session at sm_handler
     }
     void handler_alloc(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
@@ -204,7 +204,6 @@ namespace rmem
 
         AllocResp *resp = reinterpret_cast<AllocResp *>(resp_buffer.buf_);
 
-        // TODO add some debug msg
         ctx->condition_resp_->notify_waiter_extra(resp->resp.status, resp->raddr, "");
 
         ctx->rpc_->free_msg_buffer(req_buffer);
@@ -228,7 +227,6 @@ namespace rmem
 
         FreeResp *resp = reinterpret_cast<FreeResp *>(resp_buffer.buf_);
 
-        // TODO add some debug msg
         ctx->condition_resp_->notify_waiter(resp->resp.status, "");
 
         ctx->rpc_->free_msg_buffer(req_buffer);
@@ -255,7 +253,6 @@ namespace rmem
         // TODO enhance this copy!
         memcpy(resp->recv_buf, resp + 1, resp->rsize);
 
-        // TODO add some debug msg
         ws->async_received_req[req_number] = resp->resp.status;
 
         ctx->rpc_->free_msg_buffer(req_buffer);
@@ -282,7 +279,6 @@ namespace rmem
         // TODO enhance this copy!
         memcpy(resp->recv_buf, resp + 1, resp->rsize);
 
-        // TODO add some debug msg
         ctx->condition_resp_->notify_waiter(resp->resp.status, "");
 
         ctx->rpc_->free_msg_buffer(req_buffer);
@@ -306,7 +302,6 @@ namespace rmem
 
         rt_assert(resp_buffer.get_data_size() == sizeof(WriteResp));
 
-        // TODO add some debug msg
         ws->async_received_req[req_number] = resp->resp.status;
 
         ctx->rpc_->free_msg_buffer(req_buffer);
@@ -329,8 +324,6 @@ namespace rmem
         WriteResp *resp = reinterpret_cast<WriteResp *>(resp_buffer.buf_);
 
         rt_assert(resp_buffer.get_data_size() == sizeof(WriteResp));
-
-        // TODO add some debug msg
 
         ctx->condition_resp_->notify_waiter(resp->resp.status, "");
 
