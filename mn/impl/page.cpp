@@ -16,7 +16,7 @@ namespace rmem
             g_page_tables[pfn].lock.unlock();
             return false;
         }
-        if (unlikely(g_page_tables[pfn].access_mode == 0 && (g_page_tables[pfn].session_id != tid || g_page_tables[pfn].thread_id != sid)))
+        if (unlikely(g_page_tables[pfn].access_mode == 0 && (g_page_tables[pfn].session_id != sid || g_page_tables[pfn].thread_id != tid)))
         {
             g_page_tables[pfn].lock.unlock();
             return false;
@@ -42,7 +42,7 @@ namespace rmem
         }
         // TODO is it OK?
         // more extra check?
-        if (unlikely(g_page_tables[pfn].access_mode == 0 && (g_page_tables[pfn].session_id != tid || g_page_tables[pfn].thread_id != sid)))
+        if (unlikely(g_page_tables[pfn].access_mode == 0 && (g_page_tables[pfn].session_id != sid || g_page_tables[pfn].thread_id != tid)))
         {
             g_page_tables[pfn].lock.unlock();
             return false;

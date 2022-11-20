@@ -139,6 +139,8 @@ namespace rmem
     {
     public:
         CommonResp resp;
+        unsigned long raddr;
         JoinResp(RPC_TYPE t, size_t num, int s) : resp{t, num, s} {}
+        JoinResp(RPC_TYPE t, size_t num, int s, unsigned long r) : resp{t, num, s}, raddr(r) {}
     };
 }
