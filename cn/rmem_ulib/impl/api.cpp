@@ -84,6 +84,12 @@ namespace rmem
         int res = ctx->condition_resp_->waiting_resp(timeout_ms);
 
         // TODO add extra check at here;
+
+        if (unlikely(res != 0))
+        {
+            RMEM_WARN("connect session failed, res is %d", res);
+        }
+
         return res;
     }
 
@@ -101,6 +107,10 @@ namespace rmem
         int res = ctx->condition_resp_->waiting_resp(timeout_ms);
 
         // TODO add extra check at here;
+        if (unlikely(res != 0))
+        {
+            RMEM_WARN("disconnect session failed, res is %d", res);
+        }
 
         return res;
     }
@@ -142,6 +152,12 @@ namespace rmem
         int res = ctx->condition_resp_->waiting_resp(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
+
+        if (unlikely(res != 0))
+        {
+            RMEM_WARN("free failed, res is %d", res);
+        }
+
         return res;
     }
 
@@ -162,6 +178,11 @@ namespace rmem
         int res = ctx->condition_resp_->waiting_resp(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
+        if (unlikely(res != 0))
+        {
+            RMEM_WARN("read failed, res is %d", res);
+        }
+
         return res;
     }
 
@@ -181,6 +202,7 @@ namespace rmem
         RingBuf_put(ctx->ringbuf_, elem);
 
         // TODO it this OK?
+
         return 0;
     }
 
@@ -201,6 +223,11 @@ namespace rmem
         int res = ctx->condition_resp_->waiting_resp(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
+
+        if (unlikely(res != 0))
+        {
+            RMEM_WARN("write failed, res is %d", res);
+        }
         return res;
     }
 
@@ -267,10 +294,10 @@ namespace rmem
 
         RingBuf_put(ctx->ringbuf_, elem);
 
-        int res = ctx->condition_resp_->waiting_resp(DefaultTimeoutMS);
+        auto res = ctx->condition_resp_->waiting_resp_extra(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
-        return res;
+        return res.second;
     }
 
     int rmem_poll(Context *ctx, int *results, int max_num)
