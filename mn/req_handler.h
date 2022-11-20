@@ -14,7 +14,7 @@ namespace rmem
     void fork_req_handler(erpc::ReqHandle *req_handle, void *_context);
     void join_req_handler(erpc::ReqHandle *req_handle, void *_context);
 
-    void basic_sm_handler(int session_num, erpc::SmEventType sm_event_type,
+    void basic_sm_handler(int session_num, int remote_session_num, erpc::SmEventType sm_event_type,
                           erpc::SmErrType sm_err_type, void *_context);
     class vma_struct
     {

@@ -136,7 +136,7 @@ namespace erpc
     ERPC_INFO("%s: None. Sending response.\n", issue_msg);
 
     // modified! use session callback for server
-    sm_handler_(session->local_session_num_, SmEventType::kConnected,
+    sm_handler_(session->local_session_num_, session->remote_session_num_, SmEventType::kConnected,
                 SmErrType::kNoError, context_);
 
     sm_pkt_udp_tx_st(resp_sm_pkt);
@@ -195,7 +195,7 @@ namespace erpc
                 sm_err_type_str(sm_pkt.err_type_).c_str());
 
       free_ring_entries(); // Free before callback to allow creating new session
-      sm_handler_(session->local_session_num_, SmEventType::kConnectFailed,
+      sm_handler_(session->local_session_num_, session->remote_session_num_, SmEventType::kConnectFailed,
                   sm_pkt.err_type_, context_);
       bury_session_st(session);
 
@@ -241,7 +241,7 @@ namespace erpc
     session->client_info_.cc_.prev_desired_tx_tsc_ = rdtsc();
 
     ERPC_INFO("%s: None. Session connected.\n", issue_msg);
-    sm_handler_(session->local_session_num_, SmEventType::kConnected,
+    sm_handler_(session->local_session_num_, session->remote_session_num_, SmEventType::kConnected,
                 SmErrType::kNoError, context_);
   }
 

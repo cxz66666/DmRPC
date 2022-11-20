@@ -379,7 +379,7 @@ namespace rmem
         ws->sended_req.erase(req_number);
     }
 
-    void basic_sm_handler(int session_num, erpc::SmEventType sm_event_type,
+    void basic_sm_handler(int session_num, int remote_session_num, erpc::SmEventType sm_event_type,
                           erpc::SmErrType sm_err_type, void *_context)
     {
         Context *ctx = static_cast<Context *>(_context);
@@ -392,7 +392,7 @@ namespace rmem
             RMEM_INFO("Connect connected %d.\n", session_num);
             // TODO add timeout handler
             rt_assert(sm_err_type == erpc::SmErrType::kNoError);
-            ctx->concurrent_store_->insert_session(session_num);
+            ctx->concurrent_store_->insert_session(session_num, remote_session_num);
             ctx->condition_resp_->notify_waiter(static_cast<int>(sm_err_type), "");
             break;
         }

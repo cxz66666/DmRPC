@@ -48,7 +48,7 @@ namespace erpc
     // Act similar to handling a disconnect response
     ERPC_INFO("%s: None. Session resetted.\n", issue_msg);
     free_ring_entries(); // Free before callback to allow creating new session
-    sm_handler_(session->local_session_num_, SmEventType::kDisconnected,
+    sm_handler_(session->local_session_num_, session->remote_session_num_, SmEventType::kDisconnected,
                 SmErrType::kSrvDisconnected, context_);
     bury_session_st(session);
     return true;

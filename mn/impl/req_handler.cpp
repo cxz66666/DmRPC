@@ -693,9 +693,10 @@ namespace rmem
         ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
     }
 
-    void basic_sm_handler(int session_num, erpc::SmEventType sm_event_type,
+    void basic_sm_handler(int session_num, int remote_session_num, erpc::SmEventType sm_event_type,
                           erpc::SmErrType sm_err_type, void *_context)
     {
+        _unused(remote_session_num);
         auto *ctx = static_cast<ServerContext *>(_context);
         ctx->num_sm_resps_++;
 

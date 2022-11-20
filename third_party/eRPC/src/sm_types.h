@@ -65,7 +65,7 @@ namespace erpc
     kDisconnectFailed
   };
 
-  typedef void (*sm_handler_t)(int, SmEventType, SmErrType, void *);
+  typedef void (*sm_handler_t)(int, int, SmEventType, SmErrType, void *);
 
   static std::string session_state_str(SessionState state)
   {

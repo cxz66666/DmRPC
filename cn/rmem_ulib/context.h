@@ -74,12 +74,13 @@ namespace rmem
         ConcurrentStroe();
         ~ConcurrentStroe();
         int get_session_num();
-        void insert_session(int session);
+        int get_remote_session_num();
+        void insert_session(int session, int remote_session);
         void clear_session();
 
     private:
         spinlock_mutex spin_lock;
-        std::vector<int> session_num_vec_;
+        std::vector<std::pair<int, int>> session_num_vec_;
         size_t num_sm_resps_;
         size_t num_sm_reqs_;
     };

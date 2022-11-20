@@ -24,6 +24,6 @@ namespace rmem
     void callback_fork(void *_context, void *_tag);
     void callback_join(void *_context, void *_tag);
 
-    void basic_sm_handler(int session_num, erpc::SmEventType sm_event_type,
+    void basic_sm_handler(int session_num, int remote_session_num, erpc::SmEventType sm_event_type,
                           erpc::SmErrType sm_err_type, void *_context);
 }

@@ -57,7 +57,7 @@ namespace erpc
 
     ERPC_INFO("%s. None. Sending response.\n", issue_msg);
     // modified! use session callback for server
-    sm_handler_(session->local_session_num_, SmEventType::kDisconnected,
+    sm_handler_(session->local_session_num_, session->remote_session_num_, SmEventType::kDisconnected,
                 SmErrType::kNoError, context_);
 
     sm_pkt_udp_tx_st(sm_construct_resp(sm_pkt, SmErrType::kNoError));
@@ -99,7 +99,7 @@ namespace erpc
 
     ERPC_INFO("%s: None. Session disconnected.\n", issue_msg);
     free_ring_entries(); // Free before callback to allow creating a new session
-    sm_handler_(session->local_session_num_, SmEventType::kDisconnected,
+    sm_handler_(session->local_session_num_, session->remote_session_num_, SmEventType::kDisconnected,
                 SmErrType::kNoError, context_);
     bury_session_st(session);
   }
