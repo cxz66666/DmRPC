@@ -74,6 +74,7 @@ namespace rmem
         // TODO ref_count == 0 will happen?
         if (g_page_tables[pfn].ref_count == 1)
         {
+            g_page_tables[pfn].w = false;
             g_page_tables[pfn].cow = true;
             g_page_tables[pfn].access_mode = 0x3;
         }
