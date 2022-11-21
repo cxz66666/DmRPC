@@ -107,10 +107,11 @@ namespace rmem
         friend void callback_write_sync(void *_context, void *_tag);
         friend void callback_fork(void *_context, void *_tag);
         friend void callback_join(void *_context, void *_tag);
-        friend Context *open_context(uint8_t phy_port);
-        friend int close_context(class Context *ctx);
 
     public:
+        explicit Context(uint8_t phy_port);
+        ~Context();
+
         // parallel data(need use atomic action)
         ConcurrentStroe *concurrent_store_;
         // ring buffer for convert msg from user thread to worker thread
@@ -120,8 +121,6 @@ namespace rmem
         ConditionResp *condition_resp_;
 
     private:
-        explicit Context(uint8_t phy_port);
-        ~Context();
         // need have g_lock before call this function
         // return bind_core_index(0 to MaxContext-1)
         size_t get_core_index_unlock() const;

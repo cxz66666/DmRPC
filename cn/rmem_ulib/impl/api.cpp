@@ -45,43 +45,25 @@ namespace rmem
         }
     }
 
-    // register a rpc
-    Context *open_context(uint8_t phy_port)
+    Rmem::Rmem(uint8_t phy_port) : Context(phy_port)
     {
-
-        std::unique_lock<std::mutex> lock(g_lock);
-
-        return new Context(phy_port);
-    }
-
-    // delete this rpc
-    int close_context(Context *ctx)
-    {
-        std::unique_lock<std::mutex> lock(g_lock);
-        if (ctx->concurrent_store_->get_session_num() != -1)
-        {
-            RMEM_WARN("please disconnect session before close context");
-            return -1;
-        }
-        delete ctx;
-        return 0;
+        RMEM_INFO("create rmem ctx success!");
     }
 
     // try to create a server on a session, store session num to ctx
-    int connect_session(Context *ctx, const std::string &host, uint8_t remote_rpc_id, int timeout_ms)
+    int Rmem::connect_session(const std::string &host, uint8_t remote_rpc_id, int timeout_ms)
     {
-        rt_assert(ctx != nullptr, "context must not be empty");
-        rt_assert(ctx->concurrent_store_->get_session_num() == -1, "can only have one session on a context, don't use connect_session twice before first one disconnect");
+        rt_assert(concurrent_store_->get_session_num() == -1, "can only have one session on a context, don't use connect_session twice before first one disconnect");
         rt_assert(timeout_ms > 0, "timeout must > 0");
 
         RingBufElement elem;
         elem.req_type = REQ_TYPE::RMEM_CONNECT;
-        elem.ctx = ctx;
+        elem.ctx = this;
         elem.connect.host = host.c_str();
         elem.connect.remote_rpc_id = remote_rpc_id;
 
-        RingBuf_put(ctx->ringbuf_, elem);
-        int res = ctx->condition_resp_->waiting_resp(timeout_ms);
+        RingBuf_put(ringbuf_, elem);
+        int res = condition_resp_->waiting_resp(timeout_ms);
 
         // TODO add extra check at here;
 
@@ -93,18 +75,17 @@ namespace rmem
         return res;
     }
 
-    int disconnect_session(Context *ctx, int timeout_ms)
+    int Rmem::disconnect_session(int timeout_ms)
     {
-        rt_assert(ctx != nullptr, "context must not be empty");
-        rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
+        rt_assert(concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
         rt_assert(timeout_ms > 0, "timeout must > 0");
 
         RingBufElement elem;
         elem.req_type = REQ_TYPE::RMEM_DISCONNECT;
-        elem.ctx = ctx;
+        elem.ctx = this;
 
-        RingBuf_put(ctx->ringbuf_, elem);
-        int res = ctx->condition_resp_->waiting_resp(timeout_ms);
+        RingBuf_put(ringbuf_, elem);
+        int res = condition_resp_->waiting_resp(timeout_ms);
 
         // TODO add extra check at here;
         if (unlikely(res != 0))
@@ -115,10 +96,9 @@ namespace rmem
         return res;
     }
 
-    unsigned long rmem_alloc(Context *ctx, size_t size, unsigned long vm_flags)
+    unsigned long Rmem::rmem_alloc(size_t size, unsigned long vm_flags)
     {
-        rt_assert(ctx != nullptr, "context must not be empty");
-        rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
+        rt_assert(concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
         if (!IS_PAGE_ALIGN(size))
         {
             RMEM_ERROR("size is not page aligned, please use aligined alloc size");
@@ -126,30 +106,29 @@ namespace rmem
         }
         RingBufElement elem;
         elem.req_type = REQ_TYPE::RMEM_ALLOC;
-        elem.ctx = ctx;
+        elem.ctx = this;
         elem.alloc.alloc_size = size;
         elem.alloc.vm_flags = vm_flags;
 
-        RingBuf_put(ctx->ringbuf_, elem);
-        auto res = ctx->condition_resp_->waiting_resp_extra(DefaultTimeoutMS);
+        RingBuf_put(ringbuf_, elem);
+        auto res = condition_resp_->waiting_resp_extra(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
         return res.second;
     }
 
-    int rmem_free(Context *ctx, unsigned long addr, size_t size)
+    int Rmem::rmem_free(unsigned long addr, size_t size)
     {
-        rt_assert(ctx != nullptr, "context must not be empty");
-        rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
+        rt_assert(concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
 
         RingBufElement elem;
         elem.req_type = REQ_TYPE::RMEM_FREE;
-        elem.ctx = ctx;
+        elem.ctx = this;
         elem.alloc.alloc_size = size;
         elem.alloc.alloc_addr = addr;
 
-        RingBuf_put(ctx->ringbuf_, elem);
-        int res = ctx->condition_resp_->waiting_resp(DefaultTimeoutMS);
+        RingBuf_put(ringbuf_, elem);
+        int res = condition_resp_->waiting_resp(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
 
@@ -161,21 +140,20 @@ namespace rmem
         return res;
     }
 
-    int rmem_read_sync(Context *ctx, void *recv_buf, unsigned long addr, size_t size)
+    int Rmem::rmem_read_sync(void *recv_buf, unsigned long addr, size_t size)
     {
-        rt_assert(ctx != nullptr, "context must not be empty");
-        rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
+        rt_assert(concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
         rt_assert(recv_buf != nullptr, "recv buffer can't be empty");
 
         RingBufElement elem;
         elem.req_type = REQ_TYPE::RMEM_READ_SYNC;
-        elem.ctx = ctx;
+        elem.ctx = this;
         elem.rw.rw_addr = addr;
         elem.rw.rw_size = size;
         elem.rw.rw_buffer = recv_buf;
 
-        RingBuf_put(ctx->ringbuf_, elem);
-        int res = ctx->condition_resp_->waiting_resp(DefaultTimeoutMS);
+        RingBuf_put(ringbuf_, elem);
+        int res = condition_resp_->waiting_resp(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
         if (unlikely(res != 0))
@@ -186,41 +164,39 @@ namespace rmem
         return res;
     }
 
-    int rmem_read_async(Context *ctx, void *recv_buf, unsigned long addr, size_t size)
+    int Rmem::rmem_read_async(void *recv_buf, unsigned long addr, size_t size)
     {
-        rt_assert(ctx != nullptr, "context must not be empty");
-        rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
+        rt_assert(concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
         rt_assert(recv_buf != nullptr, "recv buffer can't be empty");
 
         RingBufElement elem;
         elem.req_type = REQ_TYPE::RMEM_READ_ASYNC;
-        elem.ctx = ctx;
+        elem.ctx = this;
         elem.rw.rw_addr = addr;
         elem.rw.rw_size = size;
         elem.rw.rw_buffer = recv_buf;
 
-        RingBuf_put(ctx->ringbuf_, elem);
+        RingBuf_put(ringbuf_, elem);
 
         // TODO it this OK?
 
         return 0;
     }
 
-    int rmem_write_sync(Context *ctx, void *send_buf, unsigned long addr, size_t size)
+    int Rmem::rmem_write_sync(void *send_buf, unsigned long addr, size_t size)
     {
-        rt_assert(ctx != nullptr, "context must not be empty");
-        rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
+        rt_assert(concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
         rt_assert(send_buf != nullptr, "send buffer can't be empty");
 
         RingBufElement elem;
         elem.req_type = REQ_TYPE::RMEM_WRITE_SYNC;
-        elem.ctx = ctx;
+        elem.ctx = this;
         elem.rw.rw_addr = addr;
         elem.rw.rw_size = size;
         elem.rw.rw_buffer = send_buf;
 
-        RingBuf_put(ctx->ringbuf_, elem);
-        int res = ctx->condition_resp_->waiting_resp(DefaultTimeoutMS);
+        RingBuf_put(ringbuf_, elem);
+        int res = condition_resp_->waiting_resp(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
 
@@ -231,20 +207,19 @@ namespace rmem
         return res;
     }
 
-    int rmem_write_async(Context *ctx, void *send_buf, unsigned long addr, size_t size)
+    int Rmem::rmem_write_async(void *send_buf, unsigned long addr, size_t size)
     {
-        rt_assert(ctx != nullptr, "context must not be empty");
-        rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
+        rt_assert(concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
         rt_assert(send_buf != nullptr, "send buffer can't be empty");
 
         RingBufElement elem;
         elem.req_type = REQ_TYPE::RMEM_WRITE_ASYNC;
-        elem.ctx = ctx;
+        elem.ctx = this;
         elem.rw.rw_addr = addr;
         elem.rw.rw_size = size;
         elem.rw.rw_buffer = send_buf;
 
-        RingBuf_put(ctx->ringbuf_, elem);
+        RingBuf_put(ringbuf_, elem);
 
         // TODO it this OK?
         return 0;
@@ -252,10 +227,9 @@ namespace rmem
 
     // int rmem_dist_barrier(Context *ctx);
 
-    unsigned long rmem_fork(Context *ctx, unsigned long addr, size_t size)
+    unsigned long Rmem::rmem_fork(unsigned long addr, size_t size)
     {
-        rt_assert(ctx != nullptr, "context must not be empty");
-        rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
+        rt_assert(concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
 
         if (!IS_PAGE_ALIGN(size) || !IS_PAGE_ALIGN(addr))
         {
@@ -266,21 +240,20 @@ namespace rmem
         RingBufElement elem;
         elem.req_type = REQ_TYPE::RMEM_FORK;
 
-        elem.ctx = ctx;
+        elem.ctx = this;
         elem.alloc = {size, 0, addr};
 
-        RingBuf_put(ctx->ringbuf_, elem);
+        RingBuf_put(ringbuf_, elem);
 
-        auto res = ctx->condition_resp_->waiting_resp_extra(DefaultTimeoutMS);
+        auto res = condition_resp_->waiting_resp_extra(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
         return res.second;
     }
 
-    int rmem_join(Context *ctx, unsigned long addr, uint16_t thread_id, uint16_t session_id)
+    int Rmem::rmem_join(unsigned long addr, uint16_t thread_id, uint16_t session_id)
     {
-        rt_assert(ctx != nullptr, "context must not be empty");
-        rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
+        rt_assert(concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
         if (!IS_PAGE_ALIGN(addr))
         {
             RMEM_ERROR("size or addr is not page aligned, please use aligined alloc size and addr");
@@ -289,31 +262,30 @@ namespace rmem
         RingBufElement elem;
         elem.req_type = REQ_TYPE::RMEM_JOIN;
 
-        elem.ctx = ctx;
+        elem.ctx = this;
         elem.join = {addr, thread_id, session_id};
 
-        RingBuf_put(ctx->ringbuf_, elem);
+        RingBuf_put(ringbuf_, elem);
 
-        auto res = ctx->condition_resp_->waiting_resp_extra(DefaultTimeoutMS);
+        auto res = condition_resp_->waiting_resp_extra(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
         return res.second;
     }
 
-    int rmem_poll(Context *ctx, int *results, int max_num)
+    int Rmem::rmem_poll(int *results, int max_num)
     {
-        rt_assert(ctx != nullptr, "context must not be empty");
-        rt_assert(ctx->concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
+        rt_assert(concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
 
         RingBufElement elem;
         elem.req_type = REQ_TYPE::RMEM_POOL;
-        elem.ctx = ctx;
+        elem.ctx = this;
         elem.poll.poll_results = results;
         elem.poll.poll_max_num = max_num;
 
-        RingBuf_put(ctx->ringbuf_, elem);
+        RingBuf_put(ringbuf_, elem);
 
-        int res = ctx->condition_resp_->waiting_resp(DefaultTimeoutMS);
+        int res = condition_resp_->waiting_resp(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
         return res;

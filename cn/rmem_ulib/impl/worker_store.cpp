@@ -9,7 +9,7 @@ namespace rmem
         {
             for (auto &v : sended_req)
             {
-                RMEM_INFO("req %ld is also contain in ws", v.first);
+                RMEM_WARN("req %ld is also contain in ws", v.first);
             }
         }
     }

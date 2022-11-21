@@ -7,6 +7,8 @@ namespace rmem
 
     Context::Context(uint8_t phy_port) : bind_core_index(SIZE_MAX), worker_stop_(false)
     {
+        // lock the global lock
+        std::unique_lock<std::mutex> lock(g_lock);
 
         if (!g_initialized)
         {
@@ -55,6 +57,12 @@ namespace rmem
     }
     Context::~Context()
     {
+        std::unique_lock<std::mutex> lock(g_lock);
+        if (concurrent_store_->get_session_num() != -1)
+        {
+            RMEM_ERROR("please disconnect session before close context");
+            exit(-1);
+        }
 
         bool found = false;
         for (size_t index = 0; index < g_active_ctx.size(); index++)

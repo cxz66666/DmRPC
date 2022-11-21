@@ -18,15 +18,15 @@ namespace rmem
 
         auto handler = [&](RingBufElement const el) -> void
         {
-            rt_assert(el.req_type >= REQ_TYPE::RMEM_CONNECT);
-            rt_assert(el.req_type <= REQ_TYPE::RMEM_POOL);
+            // rt_assert(el.req_type >= REQ_TYPE::RMEM_CONNECT);
+            // rt_assert(el.req_type <= REQ_TYPE::RMEM_POOL);
             rmem_handlers[static_cast<uint8_t>(el.req_type)](ctx, ws, el);
         };
         while (true)
         {
             RingBuf_process_all(ctx->ringbuf_, handler);
             ctx->rpc_->run_event_loop_once();
-            if (ctx->worker_stop_)
+            if (unlikely(ctx->worker_stop_))
             {
                 RMEM_INFO("worker thread exit");
                 break;
@@ -52,7 +52,7 @@ namespace rmem
         rt_assert(ctx->concurrent_store_->get_session_num() != -1, "session num must be 1");
 
         int res = ctx->rpc_->destroy_session(ctx->concurrent_store_->get_session_num());
-        if (res != 0)
+        if (unlikely(res != 0))
         {
             ctx->condition_resp_->notify_waiter(res, "");
             return;

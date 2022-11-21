@@ -33,7 +33,7 @@ namespace rmem
         if (cv.wait_for(lock, std::chrono::milliseconds(timeout_ms), [&]()
                         { return notified == true; }))
         {
-            RMEM_INFO("timeout finish wait");
+            // RMEM_INFO("timeout finish wait");
         }
         else
         {
@@ -54,7 +54,7 @@ namespace rmem
         if (cv.wait_for(lock, std::chrono::milliseconds(timeout_ms), [&]()
                         { return notified; }))
         {
-            RMEM_INFO("timeout finish wait");
+            // RMEM_INFO("timeout finish wait");
         }
         else
         {

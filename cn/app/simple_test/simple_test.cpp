@@ -11,51 +11,52 @@ int main()
     char recv_buf[10];
     rmem::rmem_init(rmem::get_uri_for_process(0), 0);
 
-    rmem::Context *ctx = rmem::open_context(0);
-    rmem::Context *ctx2 = rmem::open_context(0);
+    rmem::Rmem *ctx = new rmem::Rmem(0);
+    rmem::Rmem *ctx2 = new rmem::Rmem(0);
 
-    rmem::connect_session(ctx, rmem::get_uri_for_process(1), 0);
-
-    rmem::connect_session(ctx2, rmem::get_uri_for_process(1), 1);
+    ctx->connect_session(rmem::get_uri_for_process(1), 0);
+    ctx2->connect_session(rmem::get_uri_for_process(1), 1);
 
     usleep(100000);
 
-    unsigned long raddr1 = rmem::rmem_alloc(ctx, GB(1), rmem::VM_FLAG_READ | rmem::VM_FLAG_WRITE);
+    unsigned long raddr1 = ctx->rmem_alloc(GB(1), rmem::VM_FLAG_READ | rmem::VM_FLAG_WRITE);
 
     std::cout << "raddr: " << raddr1 << std::endl;
 
     for (size_t i = 0; i < GB(1); i += PAGE_SIZE)
     {
-        rmem::rmem_write_sync(ctx, object, i + raddr1, 10);
+        ctx->rmem_write_sync(object, i + raddr1, 10);
     }
-    usleep(100000);
-    unsigned long fork_addr1 = rmem::rmem_fork(ctx, raddr1, GB(1) / 2);
+    usleep(500000);
+    unsigned long fork_addr1 = ctx->rmem_fork(raddr1, GB(1) / 2);
     std::cout << "fork_addr1: " << fork_addr1 << std::endl;
 
-    unsigned long join_addr1 = rmem::rmem_join(ctx2, fork_addr1, 0, ctx->concurrent_store_->get_session_num());
+    unsigned long join_addr1 = ctx2->rmem_join(fork_addr1, 0, ctx->concurrent_store_->get_remote_session_num());
+    std::cout << "join_addr1: " << join_addr1 << " remote session" << ctx->concurrent_store_->get_remote_session_num() << std::endl;
 
     for (size_t i = 0; i < GB(1) / 2; i += PAGE_SIZE)
     {
-        rmem::rmem_write_sync(ctx2, object2, i + join_addr1, 10);
+        ctx2->rmem_write_sync(object2, i + join_addr1, 10);
     }
     for (size_t i = 0; i < GB(1); i += PAGE_SIZE)
     {
-        rmem::rmem_read_sync(ctx, recv_buf, i + raddr1, 10);
+        ctx->rmem_read_sync(recv_buf, i + raddr1, 10);
         std::cout << recv_buf << std::endl;
     }
 
     for (size_t i = 0; i < GB(1) / 2; i += PAGE_SIZE)
     {
-        rmem::rmem_read_sync(ctx2, recv_buf, i + join_addr1, 10);
+        ctx2->rmem_read_sync(recv_buf, i + join_addr1, 10);
         std::cout << recv_buf << std::endl;
     }
-    usleep(1000000);
+    usleep(5000000);
 
-    rmem::rmem_free(ctx, raddr1, GB(1));
-    rmem::rmem_free(ctx2, join_addr1, GB(1) / 2);
-    rmem::disconnect_session(ctx);
-    rmem::disconnect_session(ctx2);
-    rmem::close_context(ctx);
-    rmem::close_context(ctx2);
+    ctx->rmem_free(raddr1, GB(1));
+    ctx2->rmem_free(join_addr1, GB(1) / 2);
+    ctx->disconnect_session();
+    ctx2->disconnect_session();
+    delete ctx;
+    delete ctx2;
+
     return 0;
 }

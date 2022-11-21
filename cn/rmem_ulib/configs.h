@@ -10,11 +10,9 @@ namespace rmem
     static constexpr bool IsDPDKDaemon = false;
 
     // useless now
-    static const std::string DPDKDaemonPath = "./dpdk_daemon";
+    static const std::string DPDKDaemonPath = "./erpc_dpdk_daemon";
 
     static constexpr uint16_t ClientRingBufSize = 65535;
-
-    static constexpr uint16_t MaxPageSize = 4096;
 
     // perfer to set to be physical cpu core per socket
     static constexpr uint16_t MaxContext = 12;
