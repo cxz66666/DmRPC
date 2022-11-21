@@ -87,7 +87,17 @@ namespace rmem
     {
         size_t req_number = ws->generate_next_num();
         erpc::MsgBuffer req = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ReadReq));
-        erpc::MsgBuffer resp = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ReadResp) + sizeof(char) * el.rw.rw_size);
+
+        erpc::MsgBuffer resp;
+        if (ctx->alloc_buffer.count(el.rw.rw_buffer))
+        {
+            resp = ctx->alloc_buffer[el.rw.rw_buffer];
+            rt_assert(resp.buf_ + sizeof(ReadResp) == el.rw.rw_buffer, "buffer must be continuous");
+        }
+        else
+        {
+            resp = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ReadResp) + sizeof(char) * el.rw.rw_size);
+        }
         new (req.buf_) ReadReq(RPC_TYPE::RPC_READ, req_number, el.rw.rw_buffer, el.rw.rw_addr, el.rw.rw_size);
         ws->sended_req[req_number] = {req, resp};
         ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_READ),
@@ -98,7 +108,16 @@ namespace rmem
     {
         size_t req_number = ws->generate_next_num();
         erpc::MsgBuffer req = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ReadReq));
-        erpc::MsgBuffer resp = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ReadResp) + sizeof(char) * el.rw.rw_size);
+        erpc::MsgBuffer resp;
+        if (ctx->alloc_buffer.count(el.rw.rw_buffer))
+        {
+            resp = ctx->alloc_buffer[el.rw.rw_buffer];
+            rt_assert(resp.buf_ + sizeof(ReadResp) == el.rw.rw_buffer, "buffer must be continuous");
+        }
+        else
+        {
+            resp = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ReadResp) + sizeof(char) * el.rw.rw_size);
+        }
         new (req.buf_) ReadReq(RPC_TYPE::RPC_READ, req_number, el.rw.rw_buffer, el.rw.rw_addr, el.rw.rw_size);
         ws->sended_req[req_number] = {req, resp};
         ws->async_received_req[req_number] = INT_MAX;
@@ -272,12 +291,15 @@ namespace rmem
         rt_assert(resp_buffer.get_data_size() == sizeof(ReadResp) + sizeof(char) * resp->rsize);
 
         // TODO enhance this copy!
-        memcpy(resp->recv_buf, resp + 1, resp->rsize);
+        if (likely(ctx->alloc_buffer.count(resp_buffer.buf_ + sizeof(ReadResp)) == 0))
+        {
+            memcpy(resp->recv_buf, resp + 1, resp->rsize);
+            ctx->rpc_->free_msg_buffer(resp_buffer);
+        }
 
         ws->async_received_req[req_number] = resp->resp.status;
 
         ctx->rpc_->free_msg_buffer(req_buffer);
-        ctx->rpc_->free_msg_buffer(resp_buffer);
         ws->sended_req.erase(req_number);
     }
     void callback_read_sync(void *_context, void *_tag)
@@ -297,13 +319,15 @@ namespace rmem
 
         rt_assert(resp_buffer.get_data_size() == sizeof(ReadResp) + sizeof(char) * resp->rsize);
 
-        // TODO enhance this copy!
-        memcpy(resp->recv_buf, resp + 1, resp->rsize);
+        if (likely(ctx->alloc_buffer.count(resp_buffer.buf_ + sizeof(ReadResp)) == 0))
+        {
+            memcpy(resp->recv_buf, resp + 1, resp->rsize);
+            ctx->rpc_->free_msg_buffer(resp_buffer);
+        }
 
         ctx->condition_resp_->notify_waiter(resp->resp.status, "");
 
         ctx->rpc_->free_msg_buffer(req_buffer);
-        ctx->rpc_->free_msg_buffer(resp_buffer);
         ws->sended_req.erase(req_number);
     }
     void callback_write_async(void *_context, void *_tag)

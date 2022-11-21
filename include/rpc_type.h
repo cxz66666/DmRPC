@@ -78,6 +78,7 @@ namespace rmem
     } __attribute__((packed));
 
     // followed by really data
+    // to use the trick to avoid one copy, we don't use packed struct
     class ReadResp
     {
     public:
@@ -86,7 +87,7 @@ namespace rmem
         size_t rsize;
         ReadResp(RPC_TYPE t, size_t num, int s) : resp{t, num, s} {}
         ReadResp(RPC_TYPE t, size_t num, int s, void *buf, size_t size) : resp{t, num, s}, recv_buf(buf), rsize(size) {}
-    } __attribute__((packed));
+    };
 
     // followed by really data
     // to use the trick to avoid one copy, we don't use packed struct
@@ -99,6 +100,8 @@ namespace rmem
         WriteReq(RPC_TYPE t, size_t num) : req{t, num} {}
         WriteReq(RPC_TYPE t, size_t num, unsigned long addr, size_t size) : req{t, num}, raddr(addr), rsize(size) {}
     };
+
+    static_assert(sizeof(WriteReq) == sizeof(ReadResp), "to use this trick, the sizeof WriteReq must be equal to sizeof ReadResp");
 
     class WriteResp
     {

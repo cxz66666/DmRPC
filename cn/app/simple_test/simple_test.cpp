@@ -5,7 +5,6 @@
 int main()
 {
 
-    char recv_buf[10];
     rmem::rmem_init(rmem::get_uri_for_process(0), 0);
 
     rmem::Rmem *ctx = new rmem::Rmem(0);
@@ -14,7 +13,7 @@ int main()
     void *object = ctx->rmem_get_msg_buffer(10);
     memcpy(object, "123456789", 10);
 
-    void *object2 = ctx->rmem_get_msg_buffer(10);
+    void *object2 = ctx2->rmem_get_msg_buffer(10);
     memcpy(object2, "987654321", 10);
 
     ctx->connect_session(rmem::get_uri_for_process(1), 0);
@@ -43,19 +42,19 @@ int main()
     }
     for (size_t i = 0; i < GB(1); i += PAGE_SIZE)
     {
-        ctx->rmem_read_sync(recv_buf, i + raddr1, 10);
-        std::cout << recv_buf << std::endl;
+        ctx->rmem_read_sync(object, i + raddr1, 10);
+        std::cout << static_cast<char *>(object) << std::endl;
     }
 
     for (size_t i = 0; i < GB(1) / 2; i += PAGE_SIZE)
     {
-        ctx2->rmem_read_sync(recv_buf, i + join_addr1, 10);
-        std::cout << recv_buf << std::endl;
+        ctx2->rmem_read_sync(object2, i + join_addr1, 10);
+        std::cout << static_cast<char *>(object2) << std::endl;
     }
     usleep(5000000);
 
-    std::cout << ctx->rmem_free_msg_buffer(object) << std::endl;
     std::cout << ctx2->rmem_free_msg_buffer(object2) << std::endl;
+    std::cout << ctx->rmem_free_msg_buffer(object) << std::endl;
     ctx->rmem_free(raddr1, GB(1));
     ctx2->rmem_free(join_addr1, GB(1) / 2);
     ctx->disconnect_session();
