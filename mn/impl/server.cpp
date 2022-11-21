@@ -6,7 +6,7 @@
 #include <sys/mman.h>
 #include "rpc_type.h"
 #include "req_handler.h"
-
+#include "page.h"
 namespace rmem
 {
 

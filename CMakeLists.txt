@@ -142,6 +142,8 @@ set(
         ${CMAKE_SOURCE_DIR}/mn/impl/page.cpp
         ${CMAKE_SOURCE_DIR}/mn/impl/req_handler.cpp
         ${CMAKE_SOURCE_DIR}/mn/impl/server.cpp
+        ${CMAKE_SOURCE_DIR}/mn/impl/server_context.cpp
+        ${CMAKE_SOURCE_DIR}/mn/impl/mm_struct.cpp
         ${CMAKE_SOURCE_DIR}/mn/impl/server_extern.cpp
         ${UTILSOURCES}
 )
