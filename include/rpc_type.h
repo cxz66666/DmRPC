@@ -3,7 +3,8 @@
 #include <stddef.h>
 namespace rmem
 {
-    // used for vm_flags fields
+    // TODO whether need packed struct? memory copy will be slow!
+    //  used for vm_flags fields
     enum class RPC_TYPE : uint8_t
     {
         RPC_ALLOC = 1,
@@ -88,6 +89,7 @@ namespace rmem
     } __attribute__((packed));
 
     // followed by really data
+    // to use the trick to avoid one copy, we don't use packed struct
     class WriteReq
     {
     public:
@@ -96,7 +98,7 @@ namespace rmem
         size_t rsize;
         WriteReq(RPC_TYPE t, size_t num) : req{t, num} {}
         WriteReq(RPC_TYPE t, size_t num, unsigned long addr, size_t size) : req{t, num}, raddr(addr), rsize(size) {}
-    } __attribute__((packed));
+    };
 
     class WriteResp
     {

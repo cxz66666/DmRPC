@@ -104,7 +104,6 @@ namespace rmem
         {
             RETURN_IF_ERROR(EINVAL, ReadResp, ctx, req_handle, req->req)
         }
-        // TODO check permission
 
         if ((vma->vm_flags & VM_FLAG_READ) == 0)
         {
@@ -150,8 +149,6 @@ namespace rmem
             RETURN_IF_ERROR(EINVAL, WriteResp, ctx, req_handle, req->req)
         }
 
-        // TODO check permission whether success
-
         if ((vma->vm_flags & VM_FLAG_WRITE) == 0)
         {
             RETURN_IF_ERROR(EACCES, WriteResp, ctx, req_handle, req->req)
@@ -165,8 +162,6 @@ namespace rmem
         memcpy(req_handle->pre_resp_msgbuf_.buf_, &resp, sizeof(WriteResp));
         ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(WriteResp));
         ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
-
-        // TODO check COW success
     }
     void fork_req_handler(erpc::ReqHandle *req_handle, void *_context)
     {
@@ -261,8 +256,6 @@ namespace rmem
 
             if (ctx->mm_struct_map_.count(session_num) != 0)
             {
-                // TODO deference ref_count and free memory when necessary
-
                 delete ctx->mm_struct_map_[session_num];
                 ctx->mm_struct_map_.erase(session_num);
             }
@@ -274,8 +267,6 @@ namespace rmem
             rt_assert(sm_err_type == erpc::SmErrType::kNoError);
 
             rt_assert(ctx->mm_struct_map_.count(session_num) == 1, "mm_struct_map_ does not have this session_num");
-
-            // TODO deference ref_count and free memory
 
             delete ctx->mm_struct_map_[session_num];
             ctx->mm_struct_map_.erase(session_num);

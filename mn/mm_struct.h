@@ -25,7 +25,6 @@ namespace rmem
         mm_struct(uint16_t tid, uint16_t sid);
         ~mm_struct();
         // always return true now!
-        //  TODO check if the address is valid
         unsigned long insert_range(size_t size, unsigned long vm_flags);
 
         // [addr, addr+size] belong to one vm area [start,end]

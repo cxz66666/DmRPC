@@ -5,14 +5,17 @@
 int main()
 {
 
-    char object[10] = "123456789";
-    char object2[10] = "987654321";
-
     char recv_buf[10];
     rmem::rmem_init(rmem::get_uri_for_process(0), 0);
 
     rmem::Rmem *ctx = new rmem::Rmem(0);
     rmem::Rmem *ctx2 = new rmem::Rmem(0);
+
+    void *object = ctx->rmem_get_msg_buffer(10);
+    memcpy(object, "123456789", 10);
+
+    void *object2 = ctx->rmem_get_msg_buffer(10);
+    memcpy(object2, "987654321", 10);
 
     ctx->connect_session(rmem::get_uri_for_process(1), 0);
     ctx2->connect_session(rmem::get_uri_for_process(1), 1);
@@ -51,6 +54,8 @@ int main()
     }
     usleep(5000000);
 
+    std::cout << ctx->rmem_free_msg_buffer(object) << std::endl;
+    std::cout << ctx2->rmem_free_msg_buffer(object2) << std::endl;
     ctx->rmem_free(raddr1, GB(1));
     ctx2->rmem_free(join_addr1, GB(1) / 2);
     ctx->disconnect_session();

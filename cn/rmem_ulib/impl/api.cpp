@@ -6,6 +6,7 @@
 #include "transport_impl/dpdk/dpdk_transport.h"
 #include "req_type.h"
 #include "page.h"
+#include "rpc_type.h"
 namespace rmem
 {
     // init eRPC and DPDK, will exit when error
@@ -178,8 +179,6 @@ namespace rmem
 
         RingBuf_put(ringbuf_, elem);
 
-        // TODO it this OK?
-
         return 0;
     }
 
@@ -221,7 +220,6 @@ namespace rmem
 
         RingBuf_put(ringbuf_, elem);
 
-        // TODO it this OK?
         return 0;
     }
 
@@ -290,4 +288,36 @@ namespace rmem
         // TODO add extra check at here for res.first;
         return res;
     }
+
+    void *Rmem::rmem_get_msg_buffer(size_t size)
+    {
+        rt_assert(rpc_ != nullptr, "rpc is nullptr");
+        erpc::MsgBuffer msg_buf = rpc_->alloc_msg_buffer_or_die(size + sizeof(WriteReq));
+
+        void *data_buf = reinterpret_cast<char *>(msg_buf.buf_) + sizeof(WriteReq);
+        rt_assert(alloc_buffer.count(data_buf) == 0, "buffer is already allocated");
+
+        alloc_buffer[data_buf] = msg_buf;
+
+        return data_buf;
+    }
+
+    int Rmem::rmem_free_msg_buffer(void *buf)
+    {
+        rt_assert(rpc_ != nullptr, "rpc is nullptr");
+
+        if (alloc_buffer.count(buf) == 0)
+        {
+            RMEM_ERROR("buffer is not allocated or already be free");
+            return ENXIO;
+        }
+
+        erpc::MsgBuffer msg_buf = alloc_buffer[buf];
+
+        rpc_->free_msg_buffer(msg_buf);
+        alloc_buffer.erase(buf);
+
+        return 0;
+    }
+
 }

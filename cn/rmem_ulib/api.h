@@ -36,5 +36,11 @@ namespace rmem
         int rmem_join(unsigned long addr, uint16_t thread_id, uint16_t session_id);
 
         int rmem_poll(int *results, int max_num);
+
+        // 实验性质api
+        // 获取一块至少具有size大小的buf，并自由使用，需要使用rmem_free_msg_buffer进行释放
+        void *rmem_get_msg_buffer(size_t size);
+
+        int rmem_free_msg_buffer(void *buf);
     };
 }

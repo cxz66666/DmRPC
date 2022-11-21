@@ -77,7 +77,6 @@ namespace rmem
                 lock.unlock();
                 return false;
             }
-            // TODO is it OK?
             // more extra check?
             if (unlikely(access_mode == 0 && (session_id != sid || thread_id != tid)))
             {
@@ -109,7 +108,6 @@ namespace rmem
             {
                 RMEM_ERROR("pfn %ld ref_count is 0", pfn);
             }
-            // TODO ref_count == 0 will happen?
             if (ref_count == 1)
             {
                 w = false;

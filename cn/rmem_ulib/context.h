@@ -120,6 +120,12 @@ namespace rmem
         // condition variable for sync request
         ConditionResp *condition_resp_;
 
+        // rpc element
+        erpc::Rpc<erpc::CTransport> *rpc_;
+
+        // used for record alloc buffer
+        std::unordered_map<void *, erpc::MsgBuffer> alloc_buffer;
+
     private:
         // need have g_lock before call this function
         // return bind_core_index(0 to MaxContext-1)
@@ -131,9 +137,6 @@ namespace rmem
         void stop_worker_thread();
         // need have g_lock before call this function
         static uint8_t get_legal_rpc_id_unlock();
-
-        // rpc element
-        erpc::Rpc<erpc::CTransport> *rpc_;
 
         size_t bind_core_index;
 
