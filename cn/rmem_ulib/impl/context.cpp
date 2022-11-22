@@ -2,6 +2,7 @@
 #include "configs.h"
 #include "worker.h"
 #include "numautil.h"
+#include "phmap.h"
 namespace rmem
 {
 
@@ -87,7 +88,7 @@ namespace rmem
     }
     uint8_t Context::get_legal_rpc_id_unlock()
     {
-        std::unordered_set<uint8_t> used_id;
+        phmap::flat_hash_set<uint8_t> used_id;
 
         for (auto c : g_active_ctx)
         {
@@ -111,7 +112,7 @@ namespace rmem
         rt_assert(!worker_thread_.joinable(), "[start ]worker thread must not be joinalbe");
         rt_assert(g_active_ctx.size() < MaxContext);
         rt_assert(bind_core_index == SIZE_MAX);
-        std::unordered_set<size_t> indexs;
+        phmap::flat_hash_set<size_t> indexs;
         for (auto m : g_active_ctx)
         {
             indexs.insert(static_cast<Context *>(m)->get_core_index_unlock());

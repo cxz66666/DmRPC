@@ -1,6 +1,8 @@
 #pragma once
 #include "commons.h"
 #include "spinlock_mutex.h"
+#include "phmap.h"
+
 namespace rmem
 {
     class vma_struct
@@ -15,7 +17,7 @@ namespace rmem
     class fork_struct : public vma_struct
     {
     public:
-        std::unordered_map<unsigned long, unsigned long> addr_map;
+        phmap::flat_hash_map<unsigned long, unsigned long> addr_map;
     };
 
     class mm_struct
@@ -66,7 +68,7 @@ namespace rmem
 
         // used for destroy mm_struct
         void free_all_vma_list();
-        std::unordered_map<unsigned long, unsigned long> addr_map;
+        phmap::flat_hash_map<unsigned long, unsigned long> addr_map;
 
         uint16_t thread_id;
         uint16_t session_id;

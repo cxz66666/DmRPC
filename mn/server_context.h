@@ -32,7 +32,7 @@ namespace rmem
         size_t stat_req_error_tot;
 
         // key = session_num
-        std::unordered_map<uint16_t, mm_struct *> mm_struct_map_;
+        phmap::flat_hash_map<uint16_t, mm_struct *> mm_struct_map_;
         static mm_struct *find_target_mm(uint16_t tid, uint16_t sid);
     };
 }

@@ -4,6 +4,8 @@
 #include "extern.h"
 #include "commons.h"
 #include "spinlock_mutex.h"
+#include "phmap.h"
+#include "btree.h"
 #include <thread>
 #include <condition_variable>
 #include <chrono>
@@ -49,9 +51,10 @@ namespace rmem
         size_t generate_next_num();
         // size_t set_dist_barrier();
 
-        std::unordered_map<size_t, std::pair<erpc::MsgBuffer, erpc::MsgBuffer>> sended_req;
+        // need use the address of pair.first and pair.second, so we don't use phmap::flat_hash_map
+        phmap::node_hash_map<size_t, std::pair<erpc::MsgBuffer, erpc::MsgBuffer>> sended_req;
         // used for async received req
-        std::map<size_t, int> async_received_req;
+        phmap::btree_map<size_t, int> async_received_req;
 
     private:
         size_t send_number;
@@ -124,7 +127,7 @@ namespace rmem
         erpc::Rpc<erpc::CTransport> *rpc_;
 
         // used for record alloc buffer
-        std::unordered_map<void *, erpc::MsgBuffer> alloc_buffer;
+        phmap::flat_hash_map<void *, erpc::MsgBuffer> alloc_buffer;
 
     private:
         // need have g_lock before call this function
