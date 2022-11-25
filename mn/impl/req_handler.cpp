@@ -8,14 +8,13 @@
 namespace rmem
 {
 
-#define RETURN_IF_ERROR(ERRNO, RESP_STRUCT, CTX, REQ_HANDLER, REQ)                         \
-    {                                                                                      \
-        RESP_STRUCT resp(REQ.type, REQ.req_number, ERRNO);                                 \
-        memcpy(REQ_HANDLER->pre_resp_msgbuf_.buf_, &resp, sizeof(RESP_STRUCT));            \
-        CTX->rpc_->resize_msg_buffer(&REQ_HANDLER->pre_resp_msgbuf_, sizeof(RESP_STRUCT)); \
-        CTX->rpc_->enqueue_response(REQ_HANDLER, &REQ_HANDLER->pre_resp_msgbuf_);          \
-        CTX->stat_req_error_tot++;                                                         \
-        return;                                                                            \
+#define RETURN_IF_ERROR(ERRNO, RESP_STRUCT, CTX, REQ_HANDLER, REQ)                             \
+    {                                                                                          \
+        new (REQ_HANDLER->pre_resp_msgbuf_.buf_) RESP_STRUCT(REQ.type, REQ.req_number, ERRNO); \
+        CTX->rpc_->resize_msg_buffer(&REQ_HANDLER->pre_resp_msgbuf_, sizeof(RESP_STRUCT));     \
+        CTX->rpc_->enqueue_response(REQ_HANDLER, &REQ_HANDLER->pre_resp_msgbuf_);              \
+        CTX->stat_req_error_tot++;                                                             \
+        return;                                                                                \
     }
 
     void alloc_req_handler(erpc::ReqHandle *req_handle, void *_context)
@@ -42,8 +41,7 @@ namespace rmem
 
         unsigned long addr = mm->insert_range(req->size, req->vm_flags);
 
-        AllocResp resp(req->req.type, req->req.req_number, 0, addr);
-        memcpy(req_handle->pre_resp_msgbuf_.buf_, &resp, sizeof(AllocResp));
+        new (req_handle->pre_resp_msgbuf_.buf_) AllocResp(req->req.type, req->req.req_number, 0, addr);
         ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(AllocResp));
         ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 
@@ -78,8 +76,7 @@ namespace rmem
             RETURN_IF_ERROR(res, FreeResp, ctx, req_handle, req->req)
         }
 
-        FreeResp resp(req->req.type, req->req.req_number, 0);
-        memcpy(req_handle->pre_resp_msgbuf_.buf_, &resp, sizeof(FreeResp));
+        new (req_handle->pre_resp_msgbuf_.buf_) FreeResp(req->req.type, req->req.req_number, 0);
         ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(FreeResp));
         ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 
@@ -120,9 +117,7 @@ namespace rmem
             RETURN_IF_ERROR(EFAULT, ReadResp, ctx, req_handle, req->req)
         }
 
-        ReadResp resp(req->req.type, req->req.req_number, 0, req->recv_buf, req->rsize);
-
-        memcpy(resp_msgbuf.buf_, &resp, sizeof(ReadResp));
+        new (resp_msgbuf.buf_) ReadResp(req->req.type, req->req.req_number, 0, req->recv_buf, req->rsize);
 
         ctx->rpc_->resize_msg_buffer(&resp_msgbuf, sizeof(ReadResp) + sizeof(char) * req->rsize);
         ctx->rpc_->enqueue_response(req_handle, &resp_msgbuf);
@@ -158,8 +153,7 @@ namespace rmem
             RETURN_IF_ERROR(EFAULT, WriteResp, ctx, req_handle, req->req)
         }
 
-        WriteResp resp(req->req.type, req->req.req_number, 0);
-        memcpy(req_handle->pre_resp_msgbuf_.buf_, &resp, sizeof(WriteResp));
+        new (req_handle->pre_resp_msgbuf_.buf_) WriteResp(req->req.type, req->req.req_number, 0);
         ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(WriteResp));
         ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
     }
@@ -190,8 +184,7 @@ namespace rmem
         }
         unsigned long new_addr = mm->do_fork(vma, req->raddr, req->rsize);
 
-        ForkResp resp(req->req.type, req->req.req_number, 0, new_addr);
-        memcpy(req_handle->pre_resp_msgbuf_.buf_, &resp, sizeof(ForkResp));
+        new (req_handle->pre_resp_msgbuf_.buf_) ForkResp(req->req.type, req->req.req_number, 0, new_addr);
         ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(ForkResp));
         ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
     }
@@ -223,8 +216,7 @@ namespace rmem
             RETURN_IF_ERROR(EINVAL, JoinResp, ctx, req_handle, req->req)
         }
 
-        JoinResp resp(req->req.type, req->req.req_number, 0, new_addr);
-        memcpy(req_handle->pre_resp_msgbuf_.buf_, &resp, sizeof(JoinResp));
+        new (req_handle->pre_resp_msgbuf_.buf_) JoinResp(req->req.type, req->req.req_number, 0, new_addr);
         ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(JoinResp));
         ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
     }
