@@ -43,7 +43,7 @@ namespace rmem
     public:
         inline bool do_page_read(unsigned long pfn, void *recv_buf, size_t size, size_t offset, uint16_t tid, uint16_t sid)
         {
-            if (unlikely(offset + size >= PAGE_SIZE))
+            if (unlikely(offset + size > PAGE_SIZE))
             {
                 return false;
             }
@@ -66,7 +66,7 @@ namespace rmem
         // must be use after handler cow or page fault
         inline bool do_page_write(unsigned long pfn, void *send_buf, size_t size, size_t offset, uint16_t tid, uint16_t sid)
         {
-            if (unlikely(pfn >= g_page_table_size || offset + size >= PAGE_SIZE))
+            if (unlikely(pfn >= g_page_table_size || offset + size > PAGE_SIZE))
             {
                 return false;
             }
