@@ -28,7 +28,7 @@ endif(PERF)
 
 
 # build user lib to add include dir
-include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/util ${CMAKE_SOURCE_DIR}/cn/rmem_ulib ${CMAKE_SOURCE_DIR}/mn)
+include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/util ${CMAKE_SOURCE_DIR}/cn/rmem_ulib ${CMAKE_SOURCE_DIR}/cn/app ${CMAKE_SOURCE_DIR}/mn)
 
 
 # Common sub-projects: asio 

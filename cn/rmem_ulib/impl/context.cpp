@@ -118,9 +118,13 @@ namespace rmem
             indexs.insert(static_cast<Context *>(m)->get_core_index_unlock());
         }
         size_t core_index;
-        for (core_index = 0; core_index < MaxContext; core_index++)
+        for (core_index = MaxContext - 1;; core_index--)
         {
             if (!indexs.count(core_index))
+            {
+                break;
+            }
+            if (core_index == 0)
             {
                 break;
             }

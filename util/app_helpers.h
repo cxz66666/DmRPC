@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include "commons.h"
+#include "numautil.h"
 namespace rmem
 {
 

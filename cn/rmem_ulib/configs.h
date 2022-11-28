@@ -14,8 +14,10 @@ namespace rmem
 
     static constexpr uint16_t ClientRingBufSize = 65535;
 
-    // perfer to set to be physical cpu core per socket
-    static constexpr uint16_t MaxContext = 12;
+    // perfer to set to be logical cpu core -1 per socket
+    // we use the lastest logical core for handler nexus
+    // so if you have 24 logical core, you perfer to set it to 23
+    static constexpr uint16_t MaxContext = 23;
 
     // default timeout 10 seconds
     static constexpr int DefaultTimeoutMS = 10000;
