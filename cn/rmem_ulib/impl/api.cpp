@@ -319,5 +319,18 @@ namespace rmem
 
         return 0;
     }
+    int Rmem::rmem_dist_barrier()
+    {
+        rt_assert(concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
 
+        RingBufElement elem;
+        elem.req_type = REQ_TYPE::RMEM_DIST_BARRIER;
+        elem.ctx = this;
+        RingBuf_put(ringbuf_, elem);
+
+        int res = condition_resp_->waiting_resp();
+
+        // TODO add extra check at here for res.first;
+        return res;
+    }
 }

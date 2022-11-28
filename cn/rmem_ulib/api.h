@@ -30,7 +30,6 @@ namespace rmem
 
         int rmem_write_async(void *send_buf, unsigned long addr, size_t size);
 
-        // int rmem_dist_barrier(Context *ctx);
         unsigned long rmem_fork(unsigned long addr, size_t size);
 
         int rmem_join(unsigned long addr, uint16_t thread_id, uint16_t session_id);
@@ -42,5 +41,7 @@ namespace rmem
         void *rmem_get_msg_buffer(size_t size);
 
         int rmem_free_msg_buffer(void *buf);
+
+        int rmem_dist_barrier();
     };
 }

@@ -49,16 +49,18 @@ namespace rmem
         WorkerStore();
         ~WorkerStore();
         size_t generate_next_num();
+        void set_barrier_point();
+        int get_async_req();
         // size_t set_dist_barrier();
 
         // need use the address of pair.first and pair.second, so we don't use phmap::flat_hash_map
         phmap::node_hash_map<size_t, std::pair<erpc::MsgBuffer, erpc::MsgBuffer>> sended_req;
         // used for async received req
         phmap::btree_map<size_t, int> async_received_req;
+        size_t barrier_point;
 
     private:
         size_t send_number;
-        // size_t barrier_point;
     };
 
     // used for callback function second param

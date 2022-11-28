@@ -13,9 +13,10 @@ namespace rmem
         RMEM_READ_ASYNC,
         RMEM_WRITE_SYNC,
         RMEM_WRITE_ASYNC,
-        // RMEM_DIST_BARRIER,
         RMEM_FORK,
         RMEM_JOIN,
         RMEM_POOL,
+        RMEM_DIST_BARRIER,
+
     };
 }

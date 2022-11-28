@@ -14,6 +14,7 @@ namespace rmem
     void handler_fork(Context *ctx, WorkerStore *ws, const RingBufElement &el);
     void handler_join(Context *ctx, WorkerStore *ws, const RingBufElement &el);
     void handler_poll(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+    void handler_barrier(Context *ctx, WorkerStore *ws, const RingBufElement &el);
 
     void callback_alloc(void *_context, void *_tag);
     void callback_free(void *_context, void *_tag);

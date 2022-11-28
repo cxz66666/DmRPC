@@ -2,7 +2,7 @@
 #include <api.h>
 #include <app_helpers.h>
 #include <page.h>
-
+#include <iostream>
 // do we need it ?
 DEFINE_uint64(server_thread_id, 0, "Server thread rpc id");
 DEFINE_uint64(alloc_size, 0, "Alloc size for each request, unit is GB");
@@ -25,6 +25,7 @@ void client_func(size_t thread_id)
     {
         c.resp_msgbuf[i] = c.ctx->rmem_get_msg_buffer(FLAGS_block_size);
     }
+    char buf[10] = "123456789";
 
     c.ctx->rmem_get_msg_buffer(FLAGS_block_size);
     c.ctx->connect_session(rmem::get_uri_for_process(FLAGS_server_index), FLAGS_server_thread_id);
@@ -32,14 +33,14 @@ void client_func(size_t thread_id)
 
     for (size_t i = 0; i < GB(FLAGS_alloc_size); i += PAGE_SIZE)
     {
-        c.ctx->rmem_write_sync(c.req_msgbuf[0], i + raddr, FLAGS_block_size);
+        c.ctx->rmem_write_sync(buf, i + raddr, strlen(buf));
     }
 
     for (size_t i = 0; i < GB(FLAGS_alloc_size); i += FLAGS_block_size)
     {
-        c.ctx->rmem_read_sync(c.resp_msgbuf[0], i + raddr, FLAGS_block_size);
+        c.ctx->rmem_read_async(c.resp_msgbuf[0], i + raddr, FLAGS_block_size);
     }
-
+    c.ctx->rmem_dist_barrier();
     c.ctx->rmem_free(raddr, GB(FLAGS_alloc_size));
     c.ctx->disconnect_session();
 }

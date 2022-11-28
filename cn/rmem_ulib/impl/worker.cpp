@@ -14,7 +14,7 @@ namespace rmem
 
         RMEM_HANDLER rmem_handlers[] = {handler_connect, handler_disconnnect, handler_alloc, handler_free,
                                         handler_read_sync, handler_read_async, handler_write_sync,
-                                        handler_write_async, handler_fork, handler_join, handler_poll};
+                                        handler_write_async, handler_fork, handler_join, handler_poll, handler_barrier};
 
         auto handler = [&](RingBufElement const el) -> void
         {
@@ -107,6 +107,7 @@ namespace rmem
     void handler_read_async(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         size_t req_number = ws->generate_next_num();
+        printf("%ld\n", req_number);
         erpc::MsgBuffer req = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ReadReq));
         erpc::MsgBuffer resp;
         if (ctx->alloc_buffer.count(el.rw.rw_buffer))
@@ -227,6 +228,13 @@ namespace rmem
         ctx->condition_resp_->notify_waiter(num, "");
     }
 
+    void handler_barrier(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    {
+        _unused(ctx);
+        _unused(el);
+        ws->set_barrier_point();
+    }
+
     void callback_alloc(void *_context, void *_tag)
     {
         Context *ctx = static_cast<Context *>(_context);
@@ -235,7 +243,11 @@ namespace rmem
         size_t req_number = worker_tag->req_number;
         rt_assert(ws != nullptr, "worker store must not be empty!");
 
-        rt_assert(ws->sended_req.count(req_number) > 0, "sended_req must have req entry");
+        if (unlikely(ws->sended_req.count(req_number) == 0))
+        {
+            RMEM_INFO("req number %ld not found, maybe discard", req_number);
+            return;
+        }
 
         erpc::MsgBuffer req_buffer = ws->sended_req[req_number].first;
         erpc::MsgBuffer resp_buffer = ws->sended_req[req_number].second;
@@ -258,7 +270,11 @@ namespace rmem
         size_t req_number = worker_tag->req_number;
         rt_assert(ws != nullptr, "worker store must not be empty!");
 
-        rt_assert(ws->sended_req.count(req_number) > 0, "sended_req must have req entry");
+        if (unlikely(ws->sended_req.count(req_number) == 0))
+        {
+            RMEM_INFO("req number %ld not found, maybe discard", req_number);
+            return;
+        }
 
         erpc::MsgBuffer req_buffer = ws->sended_req[req_number].first;
         erpc::MsgBuffer resp_buffer = ws->sended_req[req_number].second;
@@ -281,7 +297,11 @@ namespace rmem
         size_t req_number = worker_tag->req_number;
         rt_assert(ws != nullptr, "worker store must not be empty!");
 
-        rt_assert(ws->sended_req.count(req_number) > 0, "sended_req must have req entry");
+        if (unlikely(ws->sended_req.count(req_number) == 0))
+        {
+            RMEM_INFO("req number %ld not found, maybe discard", req_number);
+            return;
+        }
 
         erpc::MsgBuffer req_buffer = ws->sended_req[req_number].first;
         erpc::MsgBuffer resp_buffer = ws->sended_req[req_number].second;
@@ -301,6 +321,17 @@ namespace rmem
 
         ctx->rpc_->free_msg_buffer(req_buffer);
         ws->sended_req.erase(req_number);
+
+        // find whether have dist barrier
+        if (unlikely(ws->barrier_point == req_number))
+        {
+            printf("req number %ld\n", req_number);
+            for (auto m = ws->async_received_req.begin(); m != ws->async_received_req.end(); m++)
+            {
+                printf("req number %ld, res is %d\n", m->first, m->second);
+            }
+            ctx->condition_resp_->notify_waiter(ws->get_async_req(), "");
+        }
     }
     void callback_read_sync(void *_context, void *_tag)
     {
@@ -310,7 +341,11 @@ namespace rmem
         size_t req_number = worker_tag->req_number;
         rt_assert(ws != nullptr, "worker store must not be empty!");
 
-        rt_assert(ws->sended_req.count(req_number) > 0, "sended_req must have req entry");
+        if (unlikely(ws->sended_req.count(req_number) == 0))
+        {
+            RMEM_INFO("req number %ld not found, maybe discard", req_number);
+            return;
+        }
 
         erpc::MsgBuffer req_buffer = ws->sended_req[req_number].first;
         erpc::MsgBuffer resp_buffer = ws->sended_req[req_number].second;
@@ -338,7 +373,11 @@ namespace rmem
         size_t req_number = worker_tag->req_number;
         rt_assert(ws != nullptr, "worker store must not be empty!");
 
-        rt_assert(ws->sended_req.count(req_number) > 0, "sended_req must have req entry");
+        if (unlikely(ws->sended_req.count(req_number) == 0))
+        {
+            RMEM_INFO("req number %ld not found, maybe discard", req_number);
+            return;
+        }
 
         erpc::MsgBuffer req_buffer = ws->sended_req[req_number].first;
         erpc::MsgBuffer resp_buffer = ws->sended_req[req_number].second;
@@ -356,6 +395,12 @@ namespace rmem
         }
         ctx->rpc_->free_msg_buffer(resp_buffer);
         ws->sended_req.erase(req_number);
+
+        // find whether have dist barrier
+        if (unlikely(ws->barrier_point == req_number))
+        {
+            ctx->condition_resp_->notify_waiter(ws->get_async_req(), "");
+        }
     }
     void callback_write_sync(void *_context, void *_tag)
     {
@@ -365,7 +410,11 @@ namespace rmem
         size_t req_number = worker_tag->req_number;
         rt_assert(ws != nullptr, "worker store must not be empty!");
 
-        rt_assert(ws->sended_req.count(req_number) > 0, "sended_req must have req entry");
+        if (unlikely(ws->sended_req.count(req_number) == 0))
+        {
+            RMEM_INFO("req number %ld not found, maybe discard", req_number);
+            return;
+        }
 
         erpc::MsgBuffer req_buffer = ws->sended_req[req_number].first;
         erpc::MsgBuffer resp_buffer = ws->sended_req[req_number].second;
@@ -394,7 +443,11 @@ namespace rmem
         size_t req_number = worker_tag->req_number;
         rt_assert(ws != nullptr, "worker store must not be empty!");
 
-        rt_assert(ws->sended_req.count(req_number) > 0, "sended_req must have req entry");
+        if (unlikely(ws->sended_req.count(req_number) == 0))
+        {
+            RMEM_INFO("req number %ld not found, maybe discard", req_number);
+            return;
+        }
 
         erpc::MsgBuffer req_buffer = ws->sended_req[req_number].first;
         erpc::MsgBuffer resp_buffer = ws->sended_req[req_number].second;
@@ -418,7 +471,11 @@ namespace rmem
         size_t req_number = worker_tag->req_number;
         rt_assert(ws != nullptr, "worker store must not be empty!");
 
-        rt_assert(ws->sended_req.count(req_number) > 0, "sended_req must have req entry");
+        if (unlikely(ws->sended_req.count(req_number) == 0))
+        {
+            RMEM_INFO("req number %ld not found, maybe discard", req_number);
+            return;
+        }
 
         erpc::MsgBuffer req_buffer = ws->sended_req[req_number].first;
         erpc::MsgBuffer resp_buffer = ws->sended_req[req_number].second;
