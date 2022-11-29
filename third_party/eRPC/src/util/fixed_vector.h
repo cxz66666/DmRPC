@@ -33,7 +33,7 @@ class FixedVector {
   }
 
   /// Return the number of elements currently in the vector
-  inline size_t size() { return free_index_; }
+  inline size_t size() const { return free_index_; }
 
   /// Return the maximum capacity of the FixedVector
   inline size_t capacity() { return N; }

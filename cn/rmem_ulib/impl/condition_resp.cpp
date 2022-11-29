@@ -31,7 +31,7 @@ namespace rmem
         rt_assert(timeout_ms > 0, "timeout value must > 0");
         std::unique_lock<std::mutex> lock(mtx);
         if (cv.wait_for(lock, std::chrono::milliseconds(timeout_ms), [&]()
-                        { return notified == true; }))
+                        { return notified; }))
         {
             // RMEM_INFO("timeout finish wait");
         }

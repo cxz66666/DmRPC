@@ -119,7 +119,7 @@ bool RingBuf_get(RingBuf *const me, RingBufElement *pel);
  * The callback processes one element and runs in the context of
  * RingBuf_process_all().
  */
-using RingBufHandler = std::function<void(RingBufElement const)>;
+using RingBufHandler = std::function<bool(RingBufElement const)>;
 
 void RingBuf_process_all(RingBuf *const me, const RingBufHandler &handler);
 

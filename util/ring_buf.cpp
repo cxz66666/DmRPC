@@ -94,12 +94,15 @@ void RingBuf_process_all(RingBuf *const me, const RingBufHandler& handler)
     RingBufCtr tail = me->tail;
     while (me->head != tail)
     { /* ring buffer NOT empty? */
-        handler(me->buf[tail]);
+        bool res = handler(me->buf[tail]);
         ++tail;
         if (tail == me->end)
         {
             tail = 0U;
         }
         me->tail = tail; /* update the tail to a *valid* index */
+        if(unlikely(!res)){
+            break;
+        }
     }
 }

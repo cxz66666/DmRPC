@@ -10,17 +10,17 @@ namespace rmem
 
         WorkerStore *ws = new WorkerStore();
 
-        using RMEM_HANDLER = std::function<void(Context * ctx, WorkerStore * ws, const RingBufElement &el)>;
+        using RMEM_HANDLER = std::function<bool(Context * ctx, WorkerStore * ws, const RingBufElement &el)>;
 
         RMEM_HANDLER rmem_handlers[] = {handler_connect, handler_disconnnect, handler_alloc, handler_free,
                                         handler_read_sync, handler_read_async, handler_write_sync,
                                         handler_write_async, handler_fork, handler_join, handler_poll, handler_barrier};
 
-        auto handler = [&](RingBufElement const el) -> void
+        auto handler = [&](RingBufElement const el) -> bool
         {
             // rt_assert(el.req_type >= REQ_TYPE::RMEM_CONNECT);
             // rt_assert(el.req_type <= REQ_TYPE::RMEM_POOL);
-            rmem_handlers[static_cast<uint8_t>(el.req_type)](ctx, ws, el);
+            return rmem_handlers[static_cast<uint8_t>(el.req_type)](ctx, ws, el);
         };
         while (true)
         {
@@ -36,15 +36,17 @@ namespace rmem
         delete ws;
     }
 
-    void handler_connect(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    bool handler_connect(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         _unused(ws);
         rt_assert(ctx->rpc_->num_active_sessions() == 0, "one context can only have one connected session");
         rt_assert(ctx->concurrent_store_->get_session_num() == -1, "session num must be zero");
         int session_num = ctx->rpc_->create_session(std::string(el.connect.host), el.connect.remote_rpc_id);
         rt_assert(session_num >= 0, "get a negative session num");
+
+        return true;
     }
-    void handler_disconnnect(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    bool handler_disconnnect(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         _unused(el);
         _unused(ws);
@@ -55,11 +57,12 @@ namespace rmem
         if (unlikely(res != 0))
         {
             ctx->condition_resp_->notify_waiter(res, "");
-            return;
+            return true;
         }
         // if res==0, then we will send a disconnect request, we will clear session at sm_handler
+        return true;
     }
-    void handler_alloc(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    bool handler_alloc(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         size_t req_number = ws->generate_next_num();
         erpc::MsgBuffer req = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(AllocReq));
@@ -71,8 +74,9 @@ namespace rmem
         ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_ALLOC),
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
                                    callback_alloc, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
+        return true;
     }
-    void handler_free(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    bool handler_free(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         size_t req_number = ws->generate_next_num();
         erpc::MsgBuffer req = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(FreeReq));
@@ -82,8 +86,10 @@ namespace rmem
         ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_FREE),
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
                                    callback_free, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
+
+        return true;
     }
-    void handler_read_sync(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    bool handler_read_sync(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         size_t req_number = ws->generate_next_num();
         erpc::MsgBuffer req = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ReadReq));
@@ -103,8 +109,10 @@ namespace rmem
         ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_READ),
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
                                    callback_read_sync, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
+
+        return ctx->rpc_->is_session_not_full(ctx->concurrent_store_->get_session_num());
     }
-    void handler_read_async(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    bool handler_read_async(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         size_t req_number = ws->generate_next_num();
         erpc::MsgBuffer req = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ReadReq));
@@ -124,8 +132,10 @@ namespace rmem
         ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_READ),
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
                                    callback_read_async, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
+
+        return ctx->rpc_->is_session_not_full(ctx->concurrent_store_->get_session_num());
     }
-    void handler_write_sync(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    bool handler_write_sync(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         size_t req_number = ws->generate_next_num();
         erpc::MsgBuffer req;
@@ -147,8 +157,10 @@ namespace rmem
         ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_WRITE),
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
                                    callback_write_sync, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
+
+        return ctx->rpc_->is_session_not_full(ctx->concurrent_store_->get_session_num());
     }
-    void handler_write_async(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    bool handler_write_async(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         size_t req_number = ws->generate_next_num();
         erpc::MsgBuffer req;
@@ -173,9 +185,10 @@ namespace rmem
         ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_WRITE),
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
                                    callback_write_async, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
+        return ctx->rpc_->is_session_not_full(ctx->concurrent_store_->get_session_num());
     }
 
-    void handler_fork(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    bool handler_fork(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         size_t req_number = ws->generate_next_num();
         erpc::MsgBuffer req = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ForkReq));
@@ -187,9 +200,10 @@ namespace rmem
         ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_FORK),
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
                                    callback_fork, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
+        return true;
     }
 
-    void handler_join(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    bool handler_join(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         size_t req_number = ws->generate_next_num();
         erpc::MsgBuffer req = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(JoinReq));
@@ -201,9 +215,10 @@ namespace rmem
         ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_JOIN),
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
                                    callback_join, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
+        return true;
     }
 
-    void handler_poll(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    bool handler_poll(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         int num = 0;
         for (auto m = ws->async_received_req.begin(); m != ws->async_received_req.end();)
@@ -225,12 +240,14 @@ namespace rmem
         RMEM_INFO("polled %d response (max num %d)", num, el.poll.poll_max_num);
 
         ctx->condition_resp_->notify_waiter(num, "");
+        return true;
     }
 
-    void handler_barrier(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    bool handler_barrier(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         _unused(ctx);
         ws->set_barrier_point(el.barrier.barrier_size);
+        return true;
     }
 
     void callback_alloc(void *_context, void *_tag)

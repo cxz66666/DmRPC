@@ -59,7 +59,7 @@ void Rpc<TTr>::enqueue_request(int session_num, uint8_t req_type,
   pkthdr_0->req_num_ = sslot.cur_req_num_;
 
   // Fill in any non-zeroth packet headers, using pkthdr_0 as the base.
-  if (unlikely(req_msgbuf->num_pkts_ > 1)) {
+  if (req_msgbuf->num_pkts_ > 1) {
     for (size_t i = 1; i < req_msgbuf->num_pkts_; i++) {
       pkthdr_t *pkthdr_i = req_msgbuf->get_pkthdr_n(i);
       memcpy(pkthdr_i, pkthdr_0, sizeof(pkthdr_t));

@@ -38,7 +38,7 @@ namespace rmem
         std::mutex mtx;
         bool notified;
         int resp;
-        unsigned long extra_resp;
+        unsigned long extra_resp{};
         std::string debug_msg;
     };
 
@@ -94,17 +94,17 @@ namespace rmem
     class Context
     {
         friend void worker_func(Context *ctx);
-        friend void handler_connect(Context *ctx, WorkerStore *ws, const RingBufElement &el);
-        friend void handler_disconnnect(Context *ctx, WorkerStore *ws, const RingBufElement &el);
-        friend void handler_alloc(Context *ctx, WorkerStore *ws, const RingBufElement &el);
-        friend void handler_free(Context *ctx, WorkerStore *ws, const RingBufElement &el);
-        friend void handler_read_sync(Context *ctx, WorkerStore *ws, const RingBufElement &el);
-        friend void handler_read_async(Context *ctx, WorkerStore *ws, const RingBufElement &el);
-        friend void handler_write_sync(Context *ctx, WorkerStore *ws, const RingBufElement &el);
-        friend void handler_write_async(Context *ctx, WorkerStore *ws, const RingBufElement &el);
-        friend void handler_fork(Context *ctx, WorkerStore *ws, const RingBufElement &el);
-        friend void handler_join(Context *ctx, WorkerStore *ws, const RingBufElement &el);
-        friend void handler_poll(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+        friend bool handler_connect(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+        friend bool handler_disconnnect(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+        friend bool handler_alloc(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+        friend bool handler_free(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+        friend bool handler_read_sync(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+        friend bool handler_read_async(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+        friend bool handler_write_sync(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+        friend bool handler_write_async(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+        friend bool handler_fork(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+        friend bool handler_join(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+        friend bool handler_poll(Context *ctx, WorkerStore *ws, const RingBufElement &el);
         friend void callback_alloc(void *_context, void *_tag);
         friend void callback_free(void *_context, void *_tag);
         friend void callback_read_async(void *_context, void *_tag);

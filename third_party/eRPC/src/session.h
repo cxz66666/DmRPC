@@ -106,6 +106,8 @@ class Session {
   inline bool is_connected() const {
     return state_ == SessionState::kConnected;
   }
+  // used for upper layer to check if session is fulled with requests
+  inline bool is_full() const { return client_info_.sslot_free_vec_.size()==0 || client_info_.credits_==0; }
 
   /**
    * @brief Get the desired TX timestamp, and update TX timestamp tracking

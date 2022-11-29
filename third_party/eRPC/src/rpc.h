@@ -20,6 +20,11 @@
 #include "util/timer.h"
 #include "util/udp_client.h"
 
+
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 namespace erpc
 {
 
@@ -465,6 +470,16 @@ namespace erpc
      * @throw runtime_error if the caller cannot inject faults
      */
     void fault_inject_set_pkt_drop_prob_st(double pkt_drop_prob);
+
+    inline bool is_session_not_full(int session_num) const {
+//        if(unlikely(session_num<0|| session_num>=session_vec_.size()||session_vec_[session_num]== nullptr)) {
+//            return false;
+//        }
+        if(unlikely(session_vec_[session_num]== nullptr)){
+            return true;
+        }
+        return !session_vec_[session_num]->is_full();
+    }
 
   private:
     int create_session_st(std::string remote_uri, uint8_t rem_rpc_id);

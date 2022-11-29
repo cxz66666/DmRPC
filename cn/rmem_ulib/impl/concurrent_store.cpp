@@ -23,7 +23,7 @@ namespace rmem
     void ConcurrentStroe::insert_session(int session, int remote_session)
     {
         spin_lock.lock();
-        session_num_vec_.push_back({session, remote_session});
+        session_num_vec_.emplace_back(session, remote_session);
         spin_lock.unlock();
     }
     void ConcurrentStroe::clear_session()
