@@ -63,7 +63,8 @@ namespace rmem
         elem.connect.host = host.c_str();
         elem.connect.remote_rpc_id = remote_rpc_id;
 
-        RingBuf_put(ringbuf_, elem);
+        while (unlikely(!RingBuf_put(ringbuf_, elem)))
+            ;
         int res = condition_resp_->waiting_resp(timeout_ms);
 
         // TODO add extra check at here;
@@ -85,7 +86,8 @@ namespace rmem
         elem.req_type = REQ_TYPE::RMEM_DISCONNECT;
         elem.ctx = this;
 
-        RingBuf_put(ringbuf_, elem);
+        while (unlikely(!RingBuf_put(ringbuf_, elem)))
+            ;
         int res = condition_resp_->waiting_resp(timeout_ms);
 
         // TODO add extra check at here;
@@ -111,7 +113,8 @@ namespace rmem
         elem.alloc.alloc_size = size;
         elem.alloc.vm_flags = vm_flags;
 
-        RingBuf_put(ringbuf_, elem);
+        while (unlikely(!RingBuf_put(ringbuf_, elem)))
+            ;
         auto res = condition_resp_->waiting_resp_extra(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
@@ -128,7 +131,8 @@ namespace rmem
         elem.alloc.alloc_size = size;
         elem.alloc.alloc_addr = addr;
 
-        RingBuf_put(ringbuf_, elem);
+        while (unlikely(!RingBuf_put(ringbuf_, elem)))
+            ;
         int res = condition_resp_->waiting_resp(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
@@ -153,7 +157,8 @@ namespace rmem
         elem.rw.rw_size = size;
         elem.rw.rw_buffer = recv_buf;
 
-        RingBuf_put(ringbuf_, elem);
+        while (unlikely(!RingBuf_put(ringbuf_, elem)))
+            ;
         int res = condition_resp_->waiting_resp(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
@@ -177,8 +182,8 @@ namespace rmem
         elem.rw.rw_size = size;
         elem.rw.rw_buffer = recv_buf;
 
-        RingBuf_put(ringbuf_, elem);
-
+        while (unlikely(!RingBuf_put(ringbuf_, elem)))
+            ;
         return 0;
     }
 
@@ -194,7 +199,8 @@ namespace rmem
         elem.rw.rw_size = size;
         elem.rw.rw_buffer = send_buf;
 
-        RingBuf_put(ringbuf_, elem);
+        while (unlikely(!RingBuf_put(ringbuf_, elem)))
+            ;
         int res = condition_resp_->waiting_resp(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
@@ -218,8 +224,8 @@ namespace rmem
         elem.rw.rw_size = size;
         elem.rw.rw_buffer = send_buf;
 
-        RingBuf_put(ringbuf_, elem);
-
+        while (unlikely(!RingBuf_put(ringbuf_, elem)))
+            ;
         return 0;
     }
 
@@ -241,8 +247,8 @@ namespace rmem
         elem.ctx = this;
         elem.alloc = {size, 0, addr};
 
-        RingBuf_put(ringbuf_, elem);
-
+        while (unlikely(!RingBuf_put(ringbuf_, elem)))
+            ;
         auto res = condition_resp_->waiting_resp_extra(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
@@ -263,8 +269,8 @@ namespace rmem
         elem.ctx = this;
         elem.join = {addr, thread_id, session_id};
 
-        RingBuf_put(ringbuf_, elem);
-
+        while (unlikely(!RingBuf_put(ringbuf_, elem)))
+            ;
         auto res = condition_resp_->waiting_resp_extra(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
@@ -281,8 +287,8 @@ namespace rmem
         elem.poll.poll_results = results;
         elem.poll.poll_max_num = max_num;
 
-        RingBuf_put(ringbuf_, elem);
-
+        while (unlikely(!RingBuf_put(ringbuf_, elem)))
+            ;
         int res = condition_resp_->waiting_resp(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
@@ -319,14 +325,20 @@ namespace rmem
 
         return 0;
     }
-    int Rmem::rmem_dist_barrier()
+    void Rmem::rmem_dist_barrier_init(size_t size)
     {
         rt_assert(concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
 
         RingBufElement elem;
         elem.req_type = REQ_TYPE::RMEM_DIST_BARRIER;
         elem.ctx = this;
-        RingBuf_put(ringbuf_, elem);
+        elem.barrier.barrier_size = size;
+        while (unlikely(!RingBuf_put(ringbuf_, elem)))
+            ;
+        return;
+    }
+    int Rmem::rmem_dist_barrier()
+    {
 
         int res = condition_resp_->waiting_resp();
 

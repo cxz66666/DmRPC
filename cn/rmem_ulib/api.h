@@ -42,6 +42,8 @@ namespace rmem
 
         int rmem_free_msg_buffer(void *buf);
 
+        void rmem_dist_barrier_init(size_t size);
+
         int rmem_dist_barrier();
     };
 }

@@ -17,9 +17,14 @@ namespace rmem
     {
         return ++send_number;
     }
-    void WorkerStore::set_barrier_point()
+    size_t WorkerStore::get_send_number()
     {
-        barrier_point = send_number;
+        return send_number;
+    }
+    void WorkerStore::set_barrier_point(size_t size)
+    {
+        barrier_point = send_number + size;
+        RMEM_INFO("set barrier point to %ld\n", barrier_point);
     }
     int WorkerStore::get_async_req()
     {

@@ -12,7 +12,7 @@ namespace rmem
     // useless now
     static const std::string DPDKDaemonPath = "./erpc_dpdk_daemon";
 
-    static constexpr uint16_t ClientRingBufSize = 65535;
+    static constexpr uint32_t ClientRingBufSize = 1048576;
 
     // perfer to set to be logical cpu core -1 per socket
     // we use the lastest logical core for handler nexus

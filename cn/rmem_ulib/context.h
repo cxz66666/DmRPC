@@ -49,7 +49,8 @@ namespace rmem
         WorkerStore();
         ~WorkerStore();
         size_t generate_next_num();
-        void set_barrier_point();
+        size_t get_send_number();
+        void set_barrier_point(size_t size);
         int get_async_req();
         // size_t set_dist_barrier();
 

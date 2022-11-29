@@ -107,7 +107,6 @@ namespace rmem
     void handler_read_async(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         size_t req_number = ws->generate_next_num();
-        printf("%ld\n", req_number);
         erpc::MsgBuffer req = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ReadReq));
         erpc::MsgBuffer resp;
         if (ctx->alloc_buffer.count(el.rw.rw_buffer))
@@ -231,8 +230,7 @@ namespace rmem
     void handler_barrier(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         _unused(ctx);
-        _unused(el);
-        ws->set_barrier_point();
+        ws->set_barrier_point(el.barrier.barrier_size);
     }
 
     void callback_alloc(void *_context, void *_tag)
@@ -325,11 +323,6 @@ namespace rmem
         // find whether have dist barrier
         if (unlikely(ws->barrier_point == req_number))
         {
-            printf("req number %ld\n", req_number);
-            for (auto m = ws->async_received_req.begin(); m != ws->async_received_req.end(); m++)
-            {
-                printf("req number %ld, res is %d\n", m->first, m->second);
-            }
             ctx->condition_resp_->notify_waiter(ws->get_async_req(), "");
         }
     }
@@ -371,6 +364,7 @@ namespace rmem
         WorkerTag *worker_tag = static_cast<WorkerTag *>(_tag);
         WorkerStore *ws = worker_tag->ws;
         size_t req_number = worker_tag->req_number;
+
         rt_assert(ws != nullptr, "worker store must not be empty!");
 
         if (unlikely(ws->sended_req.count(req_number) == 0))

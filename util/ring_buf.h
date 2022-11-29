@@ -41,7 +41,7 @@
  * In practice, most C compilers should provide such natural alignment
  * (by inserting some padding into the struct, if necessary).
  */
-typedef uint16_t RingBufCtr;
+typedef uint32_t RingBufCtr;
 
 /*! Ring buffer element type
  *
@@ -80,7 +80,8 @@ typedef struct
             size_t rw_size;
         } rw;
 
-        struct {
+        struct
+        {
             unsigned long addr;
             uint16_t thread_id;
             uint16_t session_id;
@@ -90,6 +91,10 @@ typedef struct
             int *poll_results;
             int poll_max_num;
         } poll;
+        struct
+        {
+            size_t barrier_size;
+        } barrier;
     };
 } __attribute__((aligned(64))) RingBufElement;
 
@@ -116,6 +121,6 @@ bool RingBuf_get(RingBuf *const me, RingBufElement *pel);
  */
 using RingBufHandler = std::function<void(RingBufElement const)>;
 
-void RingBuf_process_all(RingBuf *const me, const RingBufHandler& handler);
+void RingBuf_process_all(RingBuf *const me, const RingBufHandler &handler);
 
 #endif /* RING_BUF_H */

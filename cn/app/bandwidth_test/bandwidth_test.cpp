@@ -3,6 +3,7 @@
 #include <app_helpers.h>
 #include <page.h>
 #include <iostream>
+#include <hs_clock.h>
 // do we need it ?
 DEFINE_uint64(server_thread_id, 0, "Server thread rpc id");
 DEFINE_uint64(alloc_size, 0, "Alloc size for each request, unit is GB");
@@ -35,12 +36,17 @@ void client_func(size_t thread_id)
     {
         c.ctx->rmem_write_sync(buf, i + raddr, strlen(buf));
     }
+    c.ctx->rmem_dist_barrier_init(GB(FLAGS_alloc_size) / FLAGS_block_size);
 
+    rmem::Timer timer;
+    timer.tic();
     for (size_t i = 0; i < GB(FLAGS_alloc_size); i += FLAGS_block_size)
     {
         c.ctx->rmem_read_async(c.resp_msgbuf[0], i + raddr, FLAGS_block_size);
     }
     c.ctx->rmem_dist_barrier();
+    timer.toc("output time");
+
     c.ctx->rmem_free(raddr, GB(FLAGS_alloc_size));
     c.ctx->disconnect_session();
 }
