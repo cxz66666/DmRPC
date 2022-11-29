@@ -3,6 +3,7 @@
 namespace rmem
 {
     void worker_func(Context *ctx);
+    void enqueue_async_req(Context *ctx, WorkerStore *ws);
     bool handler_connect(Context *ctx, WorkerStore *ws, const RingBufElement &el);
     bool handler_disconnnect(Context *ctx, WorkerStore *ws, const RingBufElement &el);
     bool handler_alloc(Context *ctx, WorkerStore *ws, const RingBufElement &el);
@@ -13,7 +14,6 @@ namespace rmem
     bool handler_write_async(Context *ctx, WorkerStore *ws, const RingBufElement &el);
     bool handler_fork(Context *ctx, WorkerStore *ws, const RingBufElement &el);
     bool handler_join(Context *ctx, WorkerStore *ws, const RingBufElement &el);
-    bool handler_poll(Context *ctx, WorkerStore *ws, const RingBufElement &el);
     bool handler_barrier(Context *ctx, WorkerStore *ws, const RingBufElement &el);
 
     void callback_alloc(void *_context, void *_tag);

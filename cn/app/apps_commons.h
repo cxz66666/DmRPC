@@ -16,7 +16,9 @@ DEFINE_uint64(numa_node, 0, "NUMA node for this process");
 DEFINE_uint64(client_index, 0, "Client index line for app_process_file, 0 means line 1 represent status");
 DEFINE_uint64(server_index, 1, "Server index line for app_process_file, 1 means line 2 represent status");
 
-static constexpr size_t kAppMaxConcurrency = 64; // Outstanding reqs per thread
+DEFINE_uint64(client_thread_num,1,"client thread num, must >0 and <DPDK_QUEUE_NUM");
+DEFINE_uint64(server_thread_num,4,"server thread num, must >0 and <DPDK_QUEUE_NUM");
+static constexpr size_t kAppMaxConcurrency = 256; // Outstanding reqs per thread
 
 // Globals
 volatile sig_atomic_t ctrl_c_pressed = 0;
@@ -51,6 +53,14 @@ void check_common_gflags()
     if (FLAGS_client_index == FLAGS_server_index)
     {
         throw std::runtime_error("client_index and server_index must be different");
+    }
+    if (FLAGS_client_thread_num==0)
+    {
+        throw std::runtime_error("client_thread_num must >0");
+    }
+    if(FLAGS_server_thread_num==0)
+    {
+        throw std::runtime_error("server_thread_num must >0");
     }
 }
 

@@ -14,6 +14,7 @@ namespace rmem
 
     static constexpr uint32_t ClientRingBufSize = 1048576;
 
+    static constexpr uint32_t AsyncReceivedReqSize = 1024;
     // perfer to set to be logical cpu core -1 per socket
     // we use the lastest logical core for handler nexus
     // so if you have 24 logical core, you perfer to set it to 23

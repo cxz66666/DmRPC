@@ -1,9 +1,13 @@
 #include "context.h"
-
+#include "configs.h"
 namespace rmem
 {
-    ConcurrentStroe::ConcurrentStroe() : num_sm_resps_(0), num_sm_reqs_(0) {}
-    ConcurrentStroe::~ConcurrentStroe() = default;
+    ConcurrentStroe::ConcurrentStroe() : num_sm_resps_(0), num_sm_reqs_(0) {
+        spsc_queue = new SPSCAtomicQueue(AsyncReceivedReqSize);
+    }
+    ConcurrentStroe::~ConcurrentStroe() {
+        delete spsc_queue;
+    }
     int ConcurrentStroe::get_session_num()
     {
         spin_lock.lock();

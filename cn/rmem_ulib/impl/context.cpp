@@ -84,7 +84,9 @@ namespace rmem
 
         free(ringbuf_->buf);
         free(ringbuf_);
-        free(condition_resp_);
+
+        delete condition_resp_;
+        delete concurrent_store_;
     }
     uint8_t Context::get_legal_rpc_id_unlock()
     {

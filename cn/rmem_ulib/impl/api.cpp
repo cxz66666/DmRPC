@@ -281,16 +281,14 @@ namespace rmem
     {
         rt_assert(concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
 
-        RingBufElement elem;
-        elem.req_type = REQ_TYPE::RMEM_POOL;
-        elem.ctx = this;
-        elem.poll.poll_results = results;
-        elem.poll.poll_max_num = max_num;
-
-        while (unlikely(!RingBuf_put(ringbuf_, elem)))
-            ;
-        int res = condition_resp_->waiting_resp(DefaultTimeoutMS);
-
+        int res= static_cast<int>(concurrent_store_->spsc_queue->was_size());
+        if (res > max_num)
+        {
+            res = max_num;
+        }
+        for(int i=0;i<res;i++){
+            results[i]=concurrent_store_->spsc_queue->pop();
+        }
         // TODO add extra check at here for res.first;
         return res;
     }

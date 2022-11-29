@@ -6,6 +6,7 @@
 #include "spinlock_mutex.h"
 #include "phmap.h"
 #include "btree.h"
+#include "atomic_queue/atomic_queue.h"
 #include <thread>
 #include <condition_variable>
 #include <chrono>
@@ -75,6 +76,7 @@ namespace rmem
     class ConcurrentStroe
     {
         friend class Context;
+        using SPSCAtomicQueue = atomic_queue::AtomicQueueB<int, std::allocator<int>, INT_MIN, true, false, true>; // Use heap-allocated buffer.
 
     public:
         ConcurrentStroe();
@@ -83,6 +85,7 @@ namespace rmem
         int get_remote_session_num();
         void insert_session(int session, int remote_session);
         void clear_session();
+        SPSCAtomicQueue  *spsc_queue;
 
     private:
         spinlock_mutex spin_lock;
@@ -104,7 +107,6 @@ namespace rmem
         friend bool handler_write_async(Context *ctx, WorkerStore *ws, const RingBufElement &el);
         friend bool handler_fork(Context *ctx, WorkerStore *ws, const RingBufElement &el);
         friend bool handler_join(Context *ctx, WorkerStore *ws, const RingBufElement &el);
-        friend bool handler_poll(Context *ctx, WorkerStore *ws, const RingBufElement &el);
         friend void callback_alloc(void *_context, void *_tag);
         friend void callback_free(void *_context, void *_tag);
         friend void callback_read_async(void *_context, void *_tag);

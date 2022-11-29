@@ -14,7 +14,7 @@ namespace rmem
 
         RMEM_HANDLER rmem_handlers[] = {handler_connect, handler_disconnnect, handler_alloc, handler_free,
                                         handler_read_sync, handler_read_async, handler_write_sync,
-                                        handler_write_async, handler_fork, handler_join, handler_poll, handler_barrier};
+                                        handler_write_async, handler_fork, handler_join, handler_barrier};
 
         auto handler = [&](RingBufElement const el) -> bool
         {
@@ -217,30 +217,21 @@ namespace rmem
                                    callback_join, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
         return true;
     }
-
-    bool handler_poll(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    void enqueue_async_req(Context *ctx, WorkerStore *ws)
     {
-        int num = 0;
         for (auto m = ws->async_received_req.begin(); m != ws->async_received_req.end();)
         {
-
             if (m->second == INT_MAX)
             {
                 break;
             }
-            el.poll.poll_results[num++] = m->second;
-            // warning: iter loss effect if ++ iter after erase
-            ws->async_received_req.erase(m++);
-
-            if (num == el.poll.poll_max_num)
-            {
-                break;
+            while(unlikely(!ctx->concurrent_store_->spsc_queue->try_push(m->second))){
+                RMEM_INFO("push into spsc_queue error, req number %ld\n",m->first);
             }
+            // warning: iter loss effect if ++ iter after erase
+//            printf("%ld\n",m->first);
+            ws->async_received_req.erase(m++);
         }
-        RMEM_INFO("polled %d response (max num %d)", num, el.poll.poll_max_num);
-
-        ctx->condition_resp_->notify_waiter(num, "");
-        return true;
     }
 
     bool handler_barrier(Context *ctx, WorkerStore *ws, const RingBufElement &el)
@@ -320,10 +311,10 @@ namespace rmem
 
         erpc::MsgBuffer req_buffer = ws->sended_req[req_number].first;
         erpc::MsgBuffer resp_buffer = ws->sended_req[req_number].second;
-
+    
         ReadResp *resp = reinterpret_cast<ReadResp *>(resp_buffer.buf_);
 
-        rt_assert(resp_buffer.get_data_size() == sizeof(ReadResp) + sizeof(char) * resp->rsize);
+//        rt_assert(resp_buffer.get_data_size() == sizeof(ReadResp) + sizeof(char) * resp->rsize);
 
         // TODO enhance this copy!
         if (likely(ctx->alloc_buffer.count(resp_buffer.buf_ + sizeof(ReadResp)) == 0))
@@ -337,11 +328,12 @@ namespace rmem
         ctx->rpc_->free_msg_buffer(req_buffer);
         ws->sended_req.erase(req_number);
 
-        // find whether have dist barrier
+        // find whether it have dist barrier
         if (unlikely(ws->barrier_point == req_number))
         {
             ctx->condition_resp_->notify_waiter(ws->get_async_req(), "");
         }
+        enqueue_async_req(ctx,ws);
     }
     void callback_read_sync(void *_context, void *_tag)
     {
@@ -362,7 +354,7 @@ namespace rmem
 
         ReadResp *resp = reinterpret_cast<ReadResp *>(resp_buffer.buf_);
 
-        rt_assert(resp_buffer.get_data_size() == sizeof(ReadResp) + sizeof(char) * resp->rsize);
+//        rt_assert(resp_buffer.get_data_size() == sizeof(ReadResp) + sizeof(char) * resp->rsize);
 
         if (likely(ctx->alloc_buffer.count(resp_buffer.buf_ + sizeof(ReadResp)) == 0))
         {
@@ -412,6 +404,7 @@ namespace rmem
         {
             ctx->condition_resp_->notify_waiter(ws->get_async_req(), "");
         }
+        enqueue_async_req(ctx,ws);
     }
     void callback_write_sync(void *_context, void *_tag)
     {
