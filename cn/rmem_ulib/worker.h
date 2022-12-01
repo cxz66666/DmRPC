@@ -5,7 +5,7 @@ namespace rmem
     void worker_func(Context *ctx);
     void enqueue_async_req(Context *ctx, WorkerStore *ws);
     bool handler_connect(Context *ctx, WorkerStore *ws, const RingBufElement &el);
-    bool handler_disconnnect(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+    bool handler_disconnect(Context *ctx, WorkerStore *ws, const RingBufElement &el);
     bool handler_alloc(Context *ctx, WorkerStore *ws, const RingBufElement &el);
     bool handler_free(Context *ctx, WorkerStore *ws, const RingBufElement &el);
     bool handler_read_sync(Context *ctx, WorkerStore *ws, const RingBufElement &el);

@@ -70,7 +70,6 @@ void client_func(size_t thread_id)
     c.ctx->disconnect_session();
 
     delete []res_buffer;
-    delete c.ctx;
     for (size_t i = 0; i < FLAGS_concurrency; i++)
     {
         c.ctx->rmem_free_msg_buffer(c.req_msgbuf[i]);
@@ -80,6 +79,7 @@ void client_func(size_t thread_id)
     {
         c.ctx->rmem_free_msg_buffer(c.resp_msgbuf[i]);
     }
+    delete c.ctx;
 
 }
 
@@ -93,6 +93,7 @@ int main(int argc, char **argv)
     rmem::rt_assert(FLAGS_alloc_size%FLAGS_client_thread_num==0,"alloc_size must be divisible by client_thread_num");
     rmem::rt_assert(rmem::AsyncReceivedReqSize>=FLAGS_concurrency, "AsyncReceivedReqSize must be >= FLAGS_concurrency");
 
+    std::cout<< getpid() <<std::endl;
     rmem::rmem_init(rmem::get_uri_for_process(FLAGS_client_index), FLAGS_numa_node);
 
     FLAGS_alloc_size/=FLAGS_client_thread_num;
@@ -101,11 +102,12 @@ int main(int argc, char **argv)
 
     threads[0] = std::thread(client_func, 0);
     usleep(2e6);
-    rmem::bind_to_core(threads[0], FLAGS_numa_node, 0);
+
+    rmem::bind_to_core(threads[0], FLAGS_numa_node_user_thread, 0);
 
     for(size_t i=1;i<FLAGS_client_thread_num;i++){
         threads[i] = std::thread(client_func, i);
-        rmem::bind_to_core(threads[i], FLAGS_numa_node, i);
+        rmem::bind_to_core(threads[i], FLAGS_numa_node_user_thread, i);
     }
 
     for (auto &t : threads)

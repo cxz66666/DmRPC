@@ -12,6 +12,7 @@ DEFINE_uint64(concurrency, 0, "Concurrency for each request, 1 means sync method
 DEFINE_string(numa_0_ports, "", "Fabric ports on NUMA node 0, CSV, no spaces");
 DEFINE_string(numa_1_ports, "", "Fabric ports on NUMA node 1, CSV, no spaces");
 DEFINE_uint64(numa_node, 0, "NUMA node for this process");
+DEFINE_uint64(numa_node_user_thread, 1, "NUMA node for tested user thread");
 
 DEFINE_uint64(client_index, 0, "Client index line for app_process_file, 0 means line 1 represent status");
 DEFINE_uint64(server_index, 1, "Server index line for app_process_file, 1 means line 2 represent status");
@@ -48,6 +49,10 @@ void check_common_gflags()
     if (FLAGS_numa_node != 0 && FLAGS_numa_node != 1)
     {
         throw std::runtime_error("numa_node must be 0 or 1");
+    }
+    if (FLAGS_numa_node_user_thread != 0 && FLAGS_numa_node_user_thread != 1)
+    {
+        throw std::runtime_error("numa_node_user_thread must be 0 or 1");
     }
 
     if (FLAGS_client_index == FLAGS_server_index)

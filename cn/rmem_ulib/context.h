@@ -50,7 +50,7 @@ namespace rmem
         WorkerStore();
         ~WorkerStore();
         size_t generate_next_num();
-        size_t get_send_number();
+        size_t get_send_number() const;
         void set_barrier_point(size_t size);
         int get_async_req();
         // size_t set_dist_barrier();
@@ -58,8 +58,10 @@ namespace rmem
         // need use the address of pair.first and pair.second, so we don't use phmap::flat_hash_map
         phmap::node_hash_map<size_t, std::pair<erpc::MsgBuffer, erpc::MsgBuffer>> sended_req;
         // used for async received req
-        phmap::btree_map<size_t, int> async_received_req;
-        size_t barrier_point;
+        phmap::node_hash_map<size_t, int> async_received_req;
+        size_t barrier_point{};
+        size_t async_received_req_min;
+        size_t async_received_req_max;
 
     private:
         size_t send_number;
@@ -81,15 +83,27 @@ namespace rmem
     public:
         ConcurrentStroe();
         ~ConcurrentStroe();
-        int get_session_num();
-        int get_remote_session_num();
+        inline int get_session_num() const{
+            // to be honest, this need use spin_lock to protect, but it's ok for now
+            // spin_lock.lock();
+            return session_num;
+            // spin_lock.unlock();
+        }
+        inline int get_remote_session_num() const{
+            // to be honest, this need use spin_lock to protect, but it's ok for now
+            // spin_lock.lock();
+            return remote_session_num;
+            // spin_lock.unlock();
+        }
         void insert_session(int session, int remote_session);
         void clear_session();
         SPSCAtomicQueue  *spsc_queue;
 
     private:
         spinlock_mutex spin_lock;
-        std::vector<std::pair<int, int>> session_num_vec_;
+
+        int session_num;
+        int remote_session_num;
         size_t num_sm_resps_;
         size_t num_sm_reqs_;
     };
@@ -98,7 +112,7 @@ namespace rmem
     {
         friend void worker_func(Context *ctx);
         friend bool handler_connect(Context *ctx, WorkerStore *ws, const RingBufElement &el);
-        friend bool handler_disconnnect(Context *ctx, WorkerStore *ws, const RingBufElement &el);
+        friend bool handler_disconnect(Context *ctx, WorkerStore *ws, const RingBufElement &el);
         friend bool handler_alloc(Context *ctx, WorkerStore *ws, const RingBufElement &el);
         friend bool handler_free(Context *ctx, WorkerStore *ws, const RingBufElement &el);
         friend bool handler_read_sync(Context *ctx, WorkerStore *ws, const RingBufElement &el);

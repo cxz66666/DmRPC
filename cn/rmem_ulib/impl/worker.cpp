@@ -12,7 +12,7 @@ namespace rmem
 
         using RMEM_HANDLER = std::function<bool(Context * ctx, WorkerStore * ws, const RingBufElement &el)>;
 
-        RMEM_HANDLER rmem_handlers[] = {handler_connect, handler_disconnnect, handler_alloc, handler_free,
+        RMEM_HANDLER rmem_handlers[] = {handler_connect, handler_disconnect, handler_alloc, handler_free,
                                         handler_read_sync, handler_read_async, handler_write_sync,
                                         handler_write_async, handler_fork, handler_join, handler_barrier};
 
@@ -46,7 +46,7 @@ namespace rmem
 
         return true;
     }
-    bool handler_disconnnect(Context *ctx, WorkerStore *ws, const RingBufElement &el)
+    bool handler_disconnect(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
         _unused(el);
         _unused(ws);
@@ -129,6 +129,8 @@ namespace rmem
         new (req.buf_) ReadReq(RPC_TYPE::RPC_READ, req_number, el.rw.rw_buffer, el.rw.rw_addr, el.rw.rw_size);
         ws->sended_req[req_number] = {req, resp};
         ws->async_received_req[req_number] = INT_MAX;
+        ws->async_received_req_max=max_(ws->async_received_req_max,req_number);
+
         ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_READ),
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
                                    callback_read_async, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
@@ -181,6 +183,7 @@ namespace rmem
 
         ws->sended_req[req_number] = {req, resp};
         ws->async_received_req[req_number] = INT_MAX;
+        ws->async_received_req_max=max_(ws->async_received_req_max,req_number);
 
         ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_WRITE),
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
@@ -217,20 +220,22 @@ namespace rmem
                                    callback_join, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
         return true;
     }
-    void enqueue_async_req(Context *ctx, WorkerStore *ws)
+    inline void enqueue_async_req(Context *ctx, WorkerStore *ws)
     {
-        for (auto m = ws->async_received_req.begin(); m != ws->async_received_req.end();)
-        {
-            if (m->second == INT_MAX)
-            {
-                break;
+        while(ws->async_received_req_min<=ws->async_received_req_max){
+            if(!ws->async_received_req.contains(ws->async_received_req_min)){
+                ws->async_received_req_min++;
+            } else {
+                int status=ws->async_received_req[ws->async_received_req_min];
+                if(status==INT_MAX){
+                    break;
+                } else {
+                    while(unlikely(!ctx->concurrent_store_->spsc_queue->try_push(status))){
+                        RMEM_INFO("push into spsc_queue error, req number %ld\n",ws->async_received_req_min);
+                    }
+                    ws->async_received_req.erase(ws->async_received_req_min++);
+                }
             }
-            while(unlikely(!ctx->concurrent_store_->spsc_queue->try_push(m->second))){
-                RMEM_INFO("push into spsc_queue error, req number %ld\n",m->first);
-            }
-            // warning: iter loss effect if ++ iter after erase
-//            printf("%ld\n",m->first);
-            ws->async_received_req.erase(m++);
         }
     }
 

@@ -2,10 +2,10 @@
 
 namespace rmem
 {
-    WorkerStore::WorkerStore() = default;
+    WorkerStore::WorkerStore():async_received_req_min(1),async_received_req_max(0),send_number(0) {}
     WorkerStore::~WorkerStore()
     {
-        if (sended_req.size() != 0)
+        if (!sended_req.empty())
         {
             for (auto &v : sended_req)
             {
@@ -17,7 +17,7 @@ namespace rmem
     {
         return ++send_number;
     }
-    size_t WorkerStore::get_send_number()
+    size_t WorkerStore::get_send_number() const
     {
         return send_number;
     }
@@ -29,19 +29,21 @@ namespace rmem
     int WorkerStore::get_async_req()
     {
         int ret = 0;
-        RMEM_INFO("async req range from %ld to %ld", (*async_received_req.begin()).first, (*async_received_req.rbegin()).first);
-        for (auto m = async_received_req.begin(); m != async_received_req.end();)
+        RMEM_INFO("async req range from %ld to %ld", async_received_req_min,async_received_req_max);
+        rt_assert(async_received_req_max <= barrier_point, "async req num is larger than barrier point");
+
+        while(async_received_req_min<=async_received_req_max)
         {
-            rt_assert(m->first <= barrier_point, "async req num is larger than barrier point");
-            if (m->second == INT_MAX)
-            {
-                RMEM_INFO("req %ld don't get ready", m->first);
+            if(!async_received_req.contains(async_received_req_min)){
+                async_received_req_min++;
+            } else {
+                int status=async_received_req[async_received_req_min];
+                if(status==INT_MAX){
+                    RMEM_INFO("req %ld don't get ready", async_received_req_min);
+                } else {
+                    ret++;
+                }
             }
-            else
-            {
-                ret++;
-            }
-            m++;
         }
         async_received_req.clear();
         return ret;
