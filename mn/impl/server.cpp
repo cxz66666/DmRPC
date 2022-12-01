@@ -108,18 +108,19 @@ namespace rmem
         {
             c->tput_t0.reset();
             rpc.run_event_loop(1000);
-            printf("thread %zu: free_page size %d.\n", thread_id, g_free_pages->was_size());
+//            printf("thread %zu: free_page size %d.\n", thread_id, g_free_pages->was_size());
 
-            // const double ns = c->tput_t0.get_ns();
+            const double ns = c->tput_t0.get_ns();
 
-            // printf("thread %zu: total %.2f alloc: %.2f free: %.2f read: %.2f write: %.2f fork: %.2f join: %.2f err: %.2f M/s.\n", thread_id,
-            //        c->stat_req_rx_tot * Ki(1) / (ns), c->stat_req_alloc_tot * Ki(1) / (ns), c->stat_req_free_tot * Ki(1) / (ns),
-            //        c->stat_req_read_tot * Ki(1) / (ns), c->stat_req_write_tot * Ki(1) / (ns), c->stat_req_fork_tot * Ki(1) / (ns),
-            //        c->stat_req_join_tot * Ki(1) / (ns), c->stat_req_error_tot * Ki(1) / (ns));
+             printf("thread %zu: total %.2f alloc: %.2f free: %.2f read: %.2f write: %.2f fork: %.2f join: %.2f err: %.2f M/s.\n", thread_id,
+                    c->stat_req_rx_tot * Ki(1) / (ns), c->stat_req_alloc_tot * Ki(1) / (ns), c->stat_req_free_tot * Ki(1) / (ns),
+                    c->stat_req_read_tot * Ki(1) / (ns), c->stat_req_write_tot * Ki(1) / (ns), c->stat_req_fork_tot * Ki(1) / (ns),
+                    c->stat_req_join_tot * Ki(1) / (ns), c->stat_req_error_tot * Ki(1) / (ns));
             if (ctrl_c_pressed == 1)
             {
                 break;
             }
+            c->reset_stat();
         }
     }
 }

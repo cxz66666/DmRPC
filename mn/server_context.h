@@ -31,6 +31,16 @@ namespace rmem
         size_t stat_req_join_tot;
         size_t stat_req_error_tot;
 
+        void reset_stat(){
+            stat_req_rx_tot= 0;
+            stat_req_alloc_tot= 0;
+            stat_req_free_tot= 0;
+            stat_req_read_tot= 0;
+            stat_req_write_tot= 0;
+            stat_req_fork_tot= 0;
+            stat_req_join_tot= 0;
+            stat_req_error_tot= 0;
+        }
         // key = session_num
         phmap::flat_hash_map<uint16_t, mm_struct *> mm_struct_map_;
         static mm_struct *find_target_mm(uint16_t tid, uint16_t sid);
