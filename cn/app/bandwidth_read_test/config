@@ -1,0 +1,12 @@
+--test_loop 10
+--block_size 4096
+--concurrency 64
+--numa_0_ports 0
+--numa_1_ports 1
+--numa_node 0
+--numa_node_user_thread 1
+--client_index 0
+--server_index 1
+--client_thread_num 1
+--server_thread_num 12
+--alloc_size 48

@@ -5,7 +5,7 @@
 #include <app_helpers.h>
 #include <api.h>
 
-DEFINE_uint64(test_ms, 0, "Test milliseconds");
+DEFINE_uint64(test_loop, 10, "Test loop");
 DEFINE_uint64(block_size, 0, "Block size for each request");
 DEFINE_uint64(concurrency, 0, "Concurrency for each request, 1 means sync methods, >1 means async methods");
 
@@ -27,9 +27,9 @@ void ctrl_c_handler(int) { ctrl_c_pressed = 1; }
 
 void check_common_gflags()
 {
-    if (FLAGS_test_ms == 0)
+    if (FLAGS_test_loop == 0)
     {
-        throw std::runtime_error("test_ms must be set");
+        throw std::runtime_error("test_loop must be set");
     }
     if (FLAGS_block_size == 0)
     {

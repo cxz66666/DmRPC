@@ -1,4 +1,4 @@
-#include "apps_commons.h"
+#include <apps_commons.h>
 #include <api.h>
 #include <app_helpers.h>
 #include <page.h>
@@ -6,6 +6,11 @@
 #include <hs_clock.h>
 // do we need it ?
 DEFINE_uint64(alloc_size, 0, "Alloc size for each request, unit is GB");
+DEFINE_string(result_file,"/tmp/abc", "Output result to special file");
+
+std::vector<rmem::Timer>timers;
+
+double total_speed=0;
 
 void client_func(size_t thread_id)
 {
@@ -36,15 +41,14 @@ void client_func(size_t thread_id)
         c.ctx->rmem_write_sync(buf, i + raddr, strlen(buf));
     }
     int *res_buffer= new int[FLAGS_concurrency];
-    int loop_num=0;
-    char msg_buffer[100];
 
-    while(!ctrl_c_pressed) {
-        rmem::Timer timer;
+    rmem::Timer &timer=timers[thread_id];
+
+    size_t loop=FLAGS_test_loop;
+    while(!ctrl_c_pressed && loop--) {
         size_t begin_addr=0;
         size_t now_resp=0;
         size_t total_resp=GB(FLAGS_alloc_size)/FLAGS_block_size;
-        loop_num++;
         timer.tic();
 
         for(size_t i=0;i<FLAGS_concurrency;i++,begin_addr+=FLAGS_block_size){
@@ -61,8 +65,7 @@ void client_func(size_t thread_id)
                 begin_addr+=FLAGS_block_size;
             }
         }
-        sprintf(msg_buffer,"thread %ld, loop num %d\n",thread_id,loop_num);
-        timer.toc(msg_buffer);
+        timer.toc(thread_id);
 
     }
 
@@ -81,6 +84,7 @@ void client_func(size_t thread_id)
     }
     delete c.ctx;
 
+    total_speed+=FLAGS_alloc_size*8*1e6/timer.get_average_time();
 }
 
 int main(int argc, char **argv)
@@ -98,6 +102,7 @@ int main(int argc, char **argv)
 
     FLAGS_alloc_size/=FLAGS_client_thread_num;
 
+    timers.resize(FLAGS_client_thread_num);
     std::vector<std::thread> threads(FLAGS_client_thread_num);
 
     threads[0] = std::thread(client_func, 0);
@@ -114,4 +119,16 @@ int main(int argc, char **argv)
     {
         t.join();
     }
+    if(FLAGS_result_file.empty()){
+        printf("%f\n",total_speed);
+    } else {
+        std::ofstream out(FLAGS_result_file);
+        if(out.is_open()){
+            out<<std::fixed<<total_speed<<std::endl;
+        } else {
+            printf("%f\n",total_speed);
+        }
+        out.close();
+    }
+
 }

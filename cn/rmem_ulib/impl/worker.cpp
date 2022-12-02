@@ -378,7 +378,6 @@ namespace rmem
         WorkerTag *worker_tag = static_cast<WorkerTag *>(_tag);
         WorkerStore *ws = worker_tag->ws;
         size_t req_number = worker_tag->req_number;
-
         rt_assert(ws != nullptr, "worker store must not be empty!");
 
         if (unlikely(ws->sended_req.count(req_number) == 0))
@@ -394,13 +393,14 @@ namespace rmem
 
         rt_assert(resp_buffer.get_data_size() == sizeof(WriteResp));
 
-        ws->async_received_req[req_number] = resp->resp.status;
 
         // if this buffer is alloced by rmem_get_msg_buffer, don't free it!
         if (likely(ctx->alloc_buffer.count(req_buffer.buf_ + sizeof(WriteReq)) == 0))
         {
             ctx->rpc_->free_msg_buffer(req_buffer);
         }
+        ws->async_received_req[req_number] = resp->resp.status;
+
         ctx->rpc_->free_msg_buffer(resp_buffer);
         ws->sended_req.erase(req_number);
 
