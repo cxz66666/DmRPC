@@ -159,6 +159,8 @@ set(LIBRARIES ${LIBRARIES} gflags pthread)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/eRPC)
 
+add_subdirectory(third_party/HdrHistogram_c)
+
 # Compile the library
 add_library(rmem ${LIBSOURCES})
 
