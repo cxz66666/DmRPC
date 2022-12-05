@@ -10,6 +10,7 @@ namespace rmem
 
 #define RETURN_IF_ERROR(ERRNO, RESP_STRUCT, CTX, REQ_HANDLER, REQ)                             \
     {                                                                                          \
+        RMEM_WARN("error response %ld, status %d\n", REQ.req_number, ERRNO);                   \
         new (REQ_HANDLER->pre_resp_msgbuf_.buf_) RESP_STRUCT(REQ.type, REQ.req_number, ERRNO); \
         CTX->rpc_->resize_msg_buffer(&REQ_HANDLER->pre_resp_msgbuf_, sizeof(RESP_STRUCT));     \
         CTX->rpc_->enqueue_response(REQ_HANDLER, &REQ_HANDLER->pre_resp_msgbuf_);              \
