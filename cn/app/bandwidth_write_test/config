@@ -1,4 +1,4 @@
---test_loop 10
+--test_loop 5
 --block_size 4096
 --concurrency 64
 --numa_0_ports 0

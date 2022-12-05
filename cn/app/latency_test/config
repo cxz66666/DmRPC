@@ -1,5 +1,5 @@
---test_loop 5
---block_size 2097152
+--test_loop 10000
+--block_size 4096
 --concurrency 1
 --numa_0_ports 0
 --numa_1_ports 1
@@ -9,4 +9,4 @@
 --server_index 1
 --client_thread_num 1
 --server_thread_num 12
---alloc_size 1
+--alloc_size 8

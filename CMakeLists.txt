@@ -42,6 +42,9 @@ include_directories(${CMAKE_SOURCE_DIR}/third_party/atomic_queue/include)
 # Common sub-projects: parallel_hashmap
 include_directories(${CMAKE_SOURCE_DIR}/third_party/parallel_hashmap)
 
+# Common sub-projects: HdrHistogram_c
+include_directories(${CMAKE_SOURCE_DIR}/third_party/HdrHistogram_c/include)
+
 
 # Add additional compilation flags only after adding subprojects
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DALLOW_EXPERIMENTAL_API -std=c++11 -march=native -Wall -Wextra -Werror -pedantic")
@@ -154,7 +157,7 @@ set(
 # --export-dynamic used for backtrace_symbols()
 
 set(LIBRARIES ${LIBRARIES} -Wl,--export-dynamic -Wl,--whole-archive -Wl,--as-needed rte_node rte_graph rte_bpf rte_flow_classify rte_pipeline rte_table rte_port rte_fib rte_ipsec rte_vhost rte_stack rte_security rte_sched rte_reorder rte_rib rte_regexdev rte_rawdev rte_pdump rte_power rte_member rte_lpm rte_latencystats rte_kni rte_jobstats rte_ip_frag rte_gso rte_gro rte_eventdev rte_efd rte_distributor rte_cryptodev rte_compressdev rte_cfgfile rte_bitratestats rte_bbdev rte_acl rte_timer rte_hash rte_metrics rte_cmdline rte_pci rte_ethdev rte_meter rte_net rte_mbuf rte_mempool rte_rcu rte_ring rte_eal rte_telemetry rte_kvargs -Wl,--no-whole-archive numa dl ibverbs mlx5)
-set(LIBRARIES ${LIBRARIES} gflags pthread)
+set(LIBRARIES ${LIBRARIES} gflags pthread hdr_histogram_static)
 
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/eRPC)

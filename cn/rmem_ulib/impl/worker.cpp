@@ -91,6 +91,10 @@ namespace rmem
     }
     bool handler_read_sync(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
+        if (!ctx->rpc_->is_session_not_full(ctx->concurrent_store_->get_session_num()))
+        {
+            return false;
+        }
         size_t req_number = ws->generate_next_num();
         erpc::MsgBuffer req = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ReadReq));
 
@@ -110,10 +114,15 @@ namespace rmem
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
                                    callback_read_sync, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
 
-        return ctx->rpc_->is_session_not_full(ctx->concurrent_store_->get_session_num());
+        return true;
     }
     bool handler_read_async(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
+        if (!ctx->rpc_->is_session_not_full(ctx->concurrent_store_->get_session_num()))
+        {
+            printf("session is full, req is %ld\n", ws->get_send_number());
+            return false;
+        }
         size_t req_number = ws->generate_next_num();
         erpc::MsgBuffer req = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ReadReq));
         erpc::MsgBuffer resp;
@@ -129,16 +138,20 @@ namespace rmem
         new (req.buf_) ReadReq(RPC_TYPE::RPC_READ, req_number, el.rw.rw_buffer, el.rw.rw_addr, el.rw.rw_size);
         ws->sended_req[req_number] = {req, resp};
         ws->async_received_req[req_number] = INT_MAX;
-        ws->async_received_req_max=max_(ws->async_received_req_max,req_number);
+        ws->async_received_req_max = max_(ws->async_received_req_max, req_number);
 
         ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_READ),
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
                                    callback_read_async, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
 
-        return ctx->rpc_->is_session_not_full(ctx->concurrent_store_->get_session_num());
+        return true;
     }
     bool handler_write_sync(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
+        if (!ctx->rpc_->is_session_not_full(ctx->concurrent_store_->get_session_num()))
+        {
+            return false;
+        }
         size_t req_number = ws->generate_next_num();
         erpc::MsgBuffer req;
 
@@ -160,10 +173,14 @@ namespace rmem
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
                                    callback_write_sync, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
 
-        return ctx->rpc_->is_session_not_full(ctx->concurrent_store_->get_session_num());
+        return true;
     }
     bool handler_write_async(Context *ctx, WorkerStore *ws, const RingBufElement &el)
     {
+        if (!ctx->rpc_->is_session_not_full(ctx->concurrent_store_->get_session_num()))
+        {
+            return false;
+        }
         size_t req_number = ws->generate_next_num();
         erpc::MsgBuffer req;
 
@@ -183,12 +200,12 @@ namespace rmem
 
         ws->sended_req[req_number] = {req, resp};
         ws->async_received_req[req_number] = INT_MAX;
-        ws->async_received_req_max=max_(ws->async_received_req_max,req_number);
+        ws->async_received_req_max = max_(ws->async_received_req_max, req_number);
 
         ctx->rpc_->enqueue_request(ctx->concurrent_store_->get_session_num(), static_cast<uint8_t>(RPC_TYPE::RPC_WRITE),
                                    &ws->sended_req[req_number].first, &ws->sended_req[req_number].second,
                                    callback_write_async, reinterpret_cast<void *>(new WorkerTag{ws, req_number}));
-        return ctx->rpc_->is_session_not_full(ctx->concurrent_store_->get_session_num());
+        return true;
     }
 
     bool handler_fork(Context *ctx, WorkerStore *ws, const RingBufElement &el)
@@ -222,16 +239,24 @@ namespace rmem
     }
     inline void enqueue_async_req(Context *ctx, WorkerStore *ws)
     {
-        while(ws->async_received_req_min<=ws->async_received_req_max){
-            if(!ws->async_received_req.contains(ws->async_received_req_min)){
+        while (ws->async_received_req_min <= ws->async_received_req_max)
+        {
+            if (!ws->async_received_req.contains(ws->async_received_req_min))
+            {
                 ws->async_received_req_min++;
-            } else {
-                int status=ws->async_received_req[ws->async_received_req_min];
-                if(status==INT_MAX){
+            }
+            else
+            {
+                int status = ws->async_received_req[ws->async_received_req_min];
+                if (status == INT_MAX)
+                {
                     break;
-                } else {
-                    while(unlikely(!ctx->concurrent_store_->spsc_queue->try_push(status))){
-                        RMEM_INFO("push into spsc_queue error, req number %ld\n",ws->async_received_req_min);
+                }
+                else
+                {
+                    while (unlikely(!ctx->concurrent_store_->spsc_queue->try_push(status)))
+                    {
+                        RMEM_INFO("push into spsc_queue error, req number %ld\n", ws->async_received_req_min);
                     }
                     ws->async_received_req.erase(ws->async_received_req_min++);
                 }
@@ -316,10 +341,10 @@ namespace rmem
 
         erpc::MsgBuffer req_buffer = ws->sended_req[req_number].first;
         erpc::MsgBuffer resp_buffer = ws->sended_req[req_number].second;
-    
+
         ReadResp *resp = reinterpret_cast<ReadResp *>(resp_buffer.buf_);
 
-//        rt_assert(resp_buffer.get_data_size() == sizeof(ReadResp) + sizeof(char) * resp->rsize);
+        //        rt_assert(resp_buffer.get_data_size() == sizeof(ReadResp) + sizeof(char) * resp->rsize);
 
         // TODO enhance this copy!
         if (likely(ctx->alloc_buffer.count(resp_buffer.buf_ + sizeof(ReadResp)) == 0))
@@ -338,7 +363,7 @@ namespace rmem
         {
             ctx->condition_resp_->notify_waiter(ws->get_async_req(), "");
         }
-        enqueue_async_req(ctx,ws);
+        enqueue_async_req(ctx, ws);
     }
     void callback_read_sync(void *_context, void *_tag)
     {
@@ -359,7 +384,7 @@ namespace rmem
 
         ReadResp *resp = reinterpret_cast<ReadResp *>(resp_buffer.buf_);
 
-//        rt_assert(resp_buffer.get_data_size() == sizeof(ReadResp) + sizeof(char) * resp->rsize);
+        //        rt_assert(resp_buffer.get_data_size() == sizeof(ReadResp) + sizeof(char) * resp->rsize);
 
         if (likely(ctx->alloc_buffer.count(resp_buffer.buf_ + sizeof(ReadResp)) == 0))
         {
@@ -393,7 +418,6 @@ namespace rmem
 
         rt_assert(resp_buffer.get_data_size() == sizeof(WriteResp));
 
-
         // if this buffer is alloced by rmem_get_msg_buffer, don't free it!
         if (likely(ctx->alloc_buffer.count(req_buffer.buf_ + sizeof(WriteReq)) == 0))
         {
@@ -409,7 +433,7 @@ namespace rmem
         {
             ctx->condition_resp_->notify_waiter(ws->get_async_req(), "");
         }
-        enqueue_async_req(ctx,ws);
+        enqueue_async_req(ctx, ws);
     }
     void callback_write_sync(void *_context, void *_tag)
     {

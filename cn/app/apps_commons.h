@@ -4,6 +4,7 @@
 #include <commons.h>
 #include <app_helpers.h>
 #include <api.h>
+#include <hdr/hdr_histogram.h>
 
 DEFINE_uint64(test_loop, 10, "Test loop");
 DEFINE_uint64(block_size, 0, "Block size for each request");
@@ -17,8 +18,8 @@ DEFINE_uint64(numa_node_user_thread, 1, "NUMA node for tested user thread");
 DEFINE_uint64(client_index, 0, "Client index line for app_process_file, 0 means line 1 represent status");
 DEFINE_uint64(server_index, 1, "Server index line for app_process_file, 1 means line 2 represent status");
 
-DEFINE_uint64(client_thread_num,1,"client thread num, must >0 and <DPDK_QUEUE_NUM");
-DEFINE_uint64(server_thread_num,4,"server thread num, must >0 and <DPDK_QUEUE_NUM");
+DEFINE_uint64(client_thread_num, 1, "client thread num, must >0 and <DPDK_QUEUE_NUM");
+DEFINE_uint64(server_thread_num, 4, "server thread num, must >0 and <DPDK_QUEUE_NUM");
 static constexpr size_t kAppMaxConcurrency = 256; // Outstanding reqs per thread
 
 // Globals
@@ -59,11 +60,11 @@ void check_common_gflags()
     {
         throw std::runtime_error("client_index and server_index must be different");
     }
-    if (FLAGS_client_thread_num==0)
+    if (FLAGS_client_thread_num == 0)
     {
         throw std::runtime_error("client_thread_num must >0");
     }
-    if(FLAGS_server_thread_num==0)
+    if (FLAGS_server_thread_num == 0)
     {
         throw std::runtime_error("server_thread_num must >0");
     }
@@ -91,6 +92,30 @@ std::vector<size_t> flags_get_numa_ports(size_t numa_node)
 class AppContext
 {
 public:
+    // range from 1 us to 10s, Three significant digits
+    AppContext()
+    {
+        int ret = hdr_init(1, 1000 * 1000 * 10, 3,
+                           &latency_hist_);
+        rmem::rt_assert(ret == 0, "hdr_init failed");
+    }
+    ~AppContext()
+    {
+        hdr_close(latency_hist_);
+    }
+    bool write_latency_and_reset(std::string filename)
+    {
+
+        FILE *fp = fopen(filename.c_str(), "w");
+        if (fp == nullptr)
+        {
+            return false;
+        }
+        hdr_percentiles_print(latency_hist_, fp, 5, 10, CLASSIC);
+        fclose(fp);
+        hdr_reset(latency_hist_);
+        return true;
+    }
     rmem::Rmem *ctx;
     size_t thread_id_;
     size_t stat_rx_bytes_tot = 0; // Total bytes received
@@ -98,4 +123,5 @@ public:
 
     void *req_msgbuf[kAppMaxConcurrency];
     void *resp_msgbuf[kAppMaxConcurrency];
+    hdr_histogram *latency_hist_;
 };

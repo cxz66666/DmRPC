@@ -89,20 +89,21 @@ RingBufCtr RingBuf_num_free(RingBuf *const me)
 }
 
 /*..........................................................................*/
-void RingBuf_process_all(RingBuf *const me, const RingBufHandler& handler)
+void RingBuf_process_all(RingBuf *const me, const RingBufHandler &handler)
 {
     RingBufCtr tail = me->tail;
     while (me->head != tail)
     { /* ring buffer NOT empty? */
         bool res = handler(me->buf[tail]);
+        if (unlikely(!res))
+        {
+            break;
+        }
         ++tail;
         if (tail == me->end)
         {
             tail = 0U;
         }
         me->tail = tail; /* update the tail to a *valid* index */
-        if(unlikely(!res)){
-            break;
-        }
     }
 }

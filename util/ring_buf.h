@@ -41,7 +41,7 @@
  * In practice, most C compilers should provide such natural alignment
  * (by inserting some padding into the struct, if necessary).
  */
-typedef uint32_t RingBufCtr;
+typedef uint16_t RingBufCtr;
 
 /*! Ring buffer element type
  *
