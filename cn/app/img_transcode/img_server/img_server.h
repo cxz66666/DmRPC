@@ -3,10 +3,12 @@
 #include "atomic_queue/atomic_queue.h"
 #include "../img_transcode_commons.h"
 
+DEFINE_string(img_servers_index, "", "load balance servers index in app_process_file");
+
 class ClientContext : public BasicContext
 {
 public:
-    ClientContext(size_t cid, size_t sid, size_t rid) : client_id_(cid), server_sender_id_(sid), server_receiver_id_(rid)
+    ClientContext(size_t cid, size_t sid, size_t rid) : client_id_(cid), server_sender_id_(sid), server_receiver_id_(rid), backward_session_num_(-1)
     {
         forward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>(FLAGS_concurrency);
         backward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false>(FLAGS_concurrency);
@@ -25,6 +27,8 @@ public:
     size_t client_id_;
     size_t server_sender_id_;
     size_t server_receiver_id_;
+
+    int backward_session_num_;
 
     atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *forward_spsc_queue;
     atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false> *backward_spsc_queue;
@@ -113,3 +117,16 @@ public:
 
     hdr_histogram *latency_hist_;
 };
+
+std::vector<size_t> flags_get_img_servers_index()
+{
+    rmem::rt_assert(FLAGS_img_servers_index.size() > 0, "please set at least one load balance server");
+    std::vector<size_t> ret;
+    std::vector<std::string> split_vec = rmem::split(FLAGS_img_servers_index, ',');
+    rmem::rt_assert(split_vec.size() > 0);
+
+    for (auto &s : split_vec)
+        ret.push_back(std::stoull(s)); // stoull trims ' '
+
+    return ret;
+}

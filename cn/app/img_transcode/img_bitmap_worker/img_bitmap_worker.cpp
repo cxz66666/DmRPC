@@ -1,7 +1,7 @@
 #include <thread>
 #include "numautil.h"
 #include "spinlock_mutex.h"
-#include "firewall.h"
+#include "img_bitmap_worker.h"
 
 size_t get_bind_core(size_t numa)
 {
@@ -27,17 +27,14 @@ size_t get_bind_core(size_t numa)
 
 void connect_sessions(ClientContext *c)
 {
-    std::string remote_uri = rmem::get_uri_for_process(FLAGS_server_forward_index);
+
+    // connect to backward server
+    std::string remote_uri = rmem::get_uri_for_process(FLAGS_server_backward_index);
     int session_num_forward = c->rpc_->create_session(remote_uri, c->server_sender_id_);
     rmem::rt_assert(session_num_forward >= 0, "Failed to create session");
     c->session_num_vec_.push_back(session_num_forward);
 
-    remote_uri = rmem::get_uri_for_process(FLAGS_server_backward_index);
-    int session_num_backward = c->rpc_->create_session(remote_uri, c->server_receiver_id_);
-    rmem::rt_assert(session_num_backward >= 0, "Failed to create session");
-    c->session_num_vec_.push_back(session_num_backward);
-
-    while (c->num_sm_resps_ != 2)
+    while (c->num_sm_resps_ != 1)
     {
         c->rpc_->run_event_loop(kAppEvLoopMs);
         if (unlikely(ctrl_c_pressed == 1))
@@ -67,25 +64,6 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 }
 
-void ping_resp_handler(erpc::ReqHandle *req_handle, void *_context)
-{
-    ServerContext *ctx = static_cast<ServerContext *>(_context);
-    ctx->stat_req_ping_resp_tot++;
-    auto *req_msgbuf = req_handle->get_req_msgbuf();
-    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(PingReq), "data size not match");
-
-    auto *req = reinterpret_cast<PingReq *>(req_msgbuf->buf_);
-
-    new (req_handle->pre_resp_msgbuf_.buf_) PingResp(req->req.type, req->req.req_number, req->timestamp);
-    ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(PingResp));
-
-    ctx->backward_spsc_queue->push(*req_msgbuf);
-
-    req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
-
-    ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
-}
-
 void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 {
     ServerContext *ctx = static_cast<ServerContext *>(_context);
@@ -106,65 +84,6 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
     req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
 
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
-}
-
-void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
-{
-    ServerContext *ctx = static_cast<ServerContext *>(_context);
-    ctx->stat_req_tc_req_tot++;
-    auto *req_msgbuf = req_handle->get_req_msgbuf();
-
-    auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf->buf_);
-    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq) + req->extra.length, "data size not match");
-
-    printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
-
-    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, req->extra.length);
-
-    ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
-
-    ctx->backward_spsc_queue->push(*req_msgbuf);
-
-    req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
-
-    ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
-}
-
-void callback_ping(void *_context, void *_tag)
-{
-    auto *req_id_ptr = reinterpret_cast<uint32_t *>(_tag);
-    uint32_t req_id = *req_id_ptr;
-    ClientContext *ctx = static_cast<ClientContext *>(_context);
-
-    erpc::MsgBuffer &req_msgbuf = ctx->req_forward_msgbuf[req_id];
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req_id];
-
-    rmem::rt_assert(resp_msgbuf.get_data_size() == sizeof(PingResp), "data size not match");
-
-    // PingResp *resp = reinterpret_cast<PingResp *>(resp_msgbuf.buf_);
-
-    // 如果返回值不为0，则认为后续不会有响应，直接将请求号和错误码放入队列
-    // 如果返回值为0，则认为后续将有响应，不care
-    // if (resp->resp.status != 0)
-    // {
-    // TODO
-    // }
-
-    // TODO check
-    ctx->rpc_->free_msg_buffer(req_msgbuf);
-}
-
-void handler_ping(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
-{
-    PingReq *req = reinterpret_cast<PingReq *>(req_msgbuf.buf_);
-
-    ctx->req_forward_msgbuf[req->req.req_number % kAppMaxConcurrency] = req_msgbuf;
-
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req.req_number % kAppMaxConcurrency];
-
-    ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_PING),
-                               &req_msgbuf, &resp_msgbuf,
-                               callback_ping, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
 }
 
 void callback_ping_resp(void *_context, void *_tag)
@@ -200,45 +119,9 @@ void handler_ping_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
-    ctx->rpc_->enqueue_request(ctx->session_num_vec_[1], static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP),
+    ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP),
                                &req_msgbuf, &resp_msgbuf,
                                callback_ping_resp, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
-}
-
-void callback_tc(void *_context, void *_tag)
-{
-    auto *req_id_ptr = reinterpret_cast<uint32_t *>(_tag);
-    uint32_t req_id = *req_id_ptr;
-    ClientContext *ctx = static_cast<ClientContext *>(_context);
-
-    erpc::MsgBuffer &req_msgbuf = ctx->req_forward_msgbuf[req_id];
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req_id];
-
-    rmem::rt_assert(resp_msgbuf.get_data_size() == sizeof(TranscodeResp), "data size not match");
-
-    // PingResp *resp = reinterpret_cast<PingResp *>(resp_msgbuf.buf_);
-
-    // 如果返回值不为0，则认为后续不会有响应，直接将请求号和错误码放入队列
-    // 如果返回值为0，则认为后续将有响应，不care
-    // if (resp->resp.status != 0)
-    // {
-    // TODO
-    // }
-
-    // TODO check
-    ctx->rpc_->free_msg_buffer(req_msgbuf);
-}
-void handler_tc(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
-{
-    TranscodeReq *req = reinterpret_cast<TranscodeReq *>(req_msgbuf.buf_);
-
-    ctx->req_forward_msgbuf[req->req.req_number % kAppMaxConcurrency] = req_msgbuf;
-
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req.req_number % kAppMaxConcurrency];
-
-    ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
-                               &req_msgbuf, &resp_msgbuf,
-                               callback_tc, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
 }
 
 void callback_tc_resp(void *_context, void *_tag)
@@ -261,7 +144,6 @@ void callback_tc_resp(void *_context, void *_tag)
     // TODO
     // }
 
-    // TODO check
     ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
@@ -273,7 +155,7 @@ void handler_tc_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
-    ctx->rpc_->enqueue_request(ctx->session_num_vec_[1], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE_RESP),
+    ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE_RESP),
                                &req_msgbuf, &resp_msgbuf,
                                callback_tc_resp, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
 }
@@ -291,34 +173,30 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     for (size_t i = 0; i < FLAGS_concurrency; i++)
     {
         // TODO
-        ctx->resp_forward_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeResp));
         ctx->resp_backward_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeResp));
     }
 
     connect_sessions(ctx);
 
     using FUNC_HANDLER = std::function<void(ClientContext *, erpc::MsgBuffer)>;
-    FUNC_HANDLER handlers[] = {handler_ping, handler_ping_resp, handler_tc, handler_tc_resp};
+    FUNC_HANDLER handlers[] = {nullptr, handler_ping_resp, nullptr, handler_tc_resp};
 
     while (1)
     {
         // only can have ping and tc in forward
-        unsigned size = ctx->forward_spsc_queue->was_size();
-        for (unsigned i = 0; i < size; i++)
-        {
-            erpc::MsgBuffer req_msg = ctx->forward_spsc_queue->pop();
-            CommonReq *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
-            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_TRANSCODE, "only ping and tc in forward queue");
-            handlers[static_cast<uint8_t>(req->type)](ctx, req_msg);
-        }
-
-        size = ctx->backward_spsc_queue->was_size();
+        unsigned size = ctx->backward_spsc_queue->was_size();
         for (unsigned i = 0; i < size; i++)
         {
             erpc::MsgBuffer req_msg = ctx->backward_spsc_queue->pop();
             CommonReq *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
-            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP || req->type == RPC_TYPE::RPC_TRANSCODE_RESP, "only ping_resp and tc_resp in forward queue");
-            handlers[static_cast<uint8_t>(req->type)](ctx, req_msg);
+            if (req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_TRANSCODE)
+            {
+                ctx->rpc_->free_msg_buffer(req_msg);
+            }
+            else
+            {
+                handlers[static_cast<uint8_t>(req->type)](ctx, req_msg);
+            }
         }
         ctx->rpc_->run_event_loop_once();
         if (ctrl_c_pressed)
@@ -356,19 +234,47 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
         }
     }
 }
+
+void worker_thread_func(size_t thread_id, SPSC_QUEUE *producer, SPSC_QUEUE *consumer)
+{
+    _unused(thread_id);
+    while (true)
+    {
+        unsigned size = producer->was_size();
+        for (unsigned i = 0; i < size; i++)
+        {
+            erpc::MsgBuffer req_msg = producer->pop();
+
+            TranscodeReq *req = reinterpret_cast<TranscodeReq *>(req_msg.buf_);
+            rmem::rt_assert(req->req.type == RPC_TYPE::RPC_TRANSCODE || req->req.type == RPC_TYPE::RPC_PING, "req type error");
+            if (req->req.type == RPC_TYPE::RPC_TRANSCODE)
+            {
+                req->req.type = RPC_TYPE::RPC_TRANSCODE_RESP;
+            }
+            else
+            {
+                req->req.type = RPC_TYPE::RPC_PING_RESP;
+            }
+            consumer->push(req_msg);
+        }
+        if (ctrl_c_pressed == 1)
+        {
+            break;
+        }
+    }
+}
 void leader_thread_func()
 {
     erpc::Nexus nexus(rmem::get_uri_for_process(FLAGS_server_index),
                       FLAGS_numa_server_node, 0);
 
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING), ping_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP), ping_resp_handler);
 
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE), transcode_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE_RESP), transcode_resp_handler);
 
     std::vector<std::thread> clients(FLAGS_client_num);
     std::vector<std::thread> servers(FLAGS_server_num);
+    std::vector<std::thread> workers(FLAGS_client_num);
 
     AppContext *context = new AppContext();
 
@@ -388,6 +294,13 @@ void leader_thread_func()
 
         rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node));
     }
+
+    for (size_t i = 0; i < FLAGS_client_num; i++)
+    {
+        workers[i] = std::thread(worker_thread_func, i, context->client_contexts_[i]->forward_spsc_queue, context->client_contexts_[i]->backward_spsc_queue);
+        rmem::bind_to_core(workers[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node));
+    }
+
     sleep(10);
 
     // TODO
@@ -398,6 +311,11 @@ void leader_thread_func()
     for (size_t i = 0; i < FLAGS_server_num; i++)
     {
         servers[i].join();
+    }
+
+    for (size_t i = 0; i < FLAGS_client_num; i++)
+    {
+        workers[i].join();
     }
 }
 

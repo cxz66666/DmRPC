@@ -27,17 +27,23 @@ size_t get_bind_core(size_t numa)
 
 void connect_sessions(ClientContext *c)
 {
-    std::string remote_uri = rmem::get_uri_for_process(FLAGS_server_forward_index);
-    int session_num_forward = c->rpc_->create_session(remote_uri, c->server_sender_id_);
-    rmem::rt_assert(session_num_forward >= 0, "Failed to create session");
-    c->session_num_vec_.push_back(session_num_forward);
+    // connect to image server
+    std::vector<size_t> forward_server_ports = flags_get_balance_servers_index();
 
-    remote_uri = rmem::get_uri_for_process(FLAGS_server_backward_index);
-    int session_num_backward = c->rpc_->create_session(remote_uri, c->server_receiver_id_);
-    rmem::rt_assert(session_num_backward >= 0, "Failed to create session");
-    c->session_num_vec_.push_back(session_num_backward);
+    for (auto m : forward_server_ports)
+    {
+        std::string remote_uri = rmem::get_uri_for_process(m);
+        int session_num_forward = c->rpc_->create_session(remote_uri, c->server_sender_id_);
+        rmem::rt_assert(session_num_forward >= 0, "Failed to create session");
+        c->session_num_vec_.push_back(session_num_forward);
+    }
 
-    while (c->num_sm_resps_ != 2)
+    // connect to backward server
+    std::string remote_uri = rmem::get_uri_for_process(FLAGS_server_backward_index);
+    c->backward_session_num_ = c->rpc_->create_session(remote_uri, c->server_receiver_id_);
+    rmem::rt_assert(c->backward_session_num_ >= 0, "Failed to create session");
+
+    while (c->num_sm_resps_ != forward_server_ports.size() + 1)
     {
         c->rpc_->run_event_loop(kAppEvLoopMs);
         if (unlikely(ctrl_c_pressed == 1))
@@ -132,7 +138,8 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 
 void callback_ping(void *_context, void *_tag)
 {
-    uint32_t req_id = reinterpret_cast<uint32_t>(_tag);
+    auto *req_id_ptr = reinterpret_cast<uint32_t *>(_tag);
+    uint32_t req_id = *req_id_ptr;
     ClientContext *ctx = static_cast<ClientContext *>(_context);
 
     erpc::MsgBuffer &req_msgbuf = ctx->req_forward_msgbuf[req_id];
@@ -161,6 +168,7 @@ void handler_ping(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
+    // TODO load balance?
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_PING),
                                &req_msgbuf, &resp_msgbuf,
                                callback_ping, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
@@ -168,7 +176,8 @@ void handler_ping(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
 
 void callback_ping_resp(void *_context, void *_tag)
 {
-    uint32_t req_id = reinterpret_cast<uint32_t>(_tag);
+    auto *req_id_ptr = reinterpret_cast<uint32_t *>(_tag);
+    uint32_t req_id = *req_id_ptr;
     ClientContext *ctx = static_cast<ClientContext *>(_context);
 
     erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
@@ -198,14 +207,15 @@ void handler_ping_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
-    ctx->rpc_->enqueue_request(ctx->session_num_vec_[1], static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP),
+    ctx->rpc_->enqueue_request(ctx->backward_session_num_, static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP),
                                &req_msgbuf, &resp_msgbuf,
                                callback_ping_resp, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
 }
 
 void callback_tc(void *_context, void *_tag)
 {
-    uint32_t req_id = reinterpret_cast<uint32_t>(_tag);
+    auto *req_id_ptr = reinterpret_cast<uint32_t *>(_tag);
+    uint32_t req_id = *req_id_ptr;
     ClientContext *ctx = static_cast<ClientContext *>(_context);
 
     erpc::MsgBuffer &req_msgbuf = ctx->req_forward_msgbuf[req_id];
@@ -233,6 +243,7 @@ void handler_tc(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
+    // TODO load balance?
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
                                &req_msgbuf, &resp_msgbuf,
                                callback_tc, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
@@ -240,7 +251,8 @@ void handler_tc(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
 
 void callback_tc_resp(void *_context, void *_tag)
 {
-    uint32_t req_id = reinterpret_cast<uint32_t>(_tag);
+    auto *req_id_ptr = reinterpret_cast<uint32_t *>(_tag);
+    uint32_t req_id = *req_id_ptr;
     ClientContext *ctx = static_cast<ClientContext *>(_context);
 
     erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
@@ -269,7 +281,7 @@ void handler_tc_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
-    ctx->rpc_->enqueue_request(ctx->session_num_vec_[1], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE_RESP),
+    ctx->rpc_->enqueue_request(ctx->backward_session_num_, static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE_RESP),
                                &req_msgbuf, &resp_msgbuf,
                                callback_tc_resp, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
 }
@@ -280,7 +292,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
-                                    static_cast<uint8_t>(thread_id),
+                                    static_cast<uint8_t>(thread_id + FLAGS_server_num),
                                     basic_sm_handler, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
@@ -317,6 +329,10 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
             handlers[static_cast<uint8_t>(req->type)](ctx, req_msg);
         }
         ctx->rpc_->run_event_loop_once();
+        if (ctrl_c_pressed)
+        {
+            break;
+        }
     }
 }
 
@@ -337,8 +353,8 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
         start.reset();
         rpc.run_event_loop(kAppEvLoopMs);
         const double seconds = start.get_sec();
-        printf("thread %zu: %.2f M/s. ping_req : %.3lf, tc : %.3f, tc_req : %.3f \n", thread_id,
-               ctx->stat_req_ping_tot / (seconds * Mi(1)), ctx->stat_req_tc_tot / (seconds * Mi(1)), ctx->stat_req_tc_req_tot / (seconds * Mi(1)));
+        printf("thread %zu: ping_req : %.2f, ping_resp : %.2f, tc : %.2f, tc_req : %.2f \n", thread_id,
+               ctx->stat_req_ping_tot / seconds, ctx->stat_req_ping_resp_tot / seconds, ctx->stat_req_tc_tot / seconds, ctx->stat_req_tc_req_tot / seconds);
 
         ctx->rpc_->reset_dpath_stats();
         // more handler
@@ -364,19 +380,21 @@ void leader_thread_func()
 
     AppContext *context = new AppContext();
 
-    clients[0] = std::thread(client_thread_func, 0, context->client_contexts_[0]);
+    clients[0] = std::thread(client_thread_func, 0, context->client_contexts_[0], &nexus);
     sleep(2);
     rmem::bind_to_core(clients[0], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node));
 
     for (size_t i = 1; i < FLAGS_client_num; i++)
     {
-        clients[i] = std::thread(client_thread_func, i, context->client_contexts_[i]);
+        clients[i] = std::thread(client_thread_func, i, context->client_contexts_[i], &nexus);
+
         rmem::bind_to_core(clients[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node));
     }
 
     for (size_t i = 0; i < FLAGS_server_num; i++)
     {
-        servers[i] = std::thread(server_thread_func, i, context->server_contexts_[i]);
+        servers[i] = std::thread(server_thread_func, i, context->server_contexts_[i], &nexus);
+
         rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node));
     }
     sleep(10);

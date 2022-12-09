@@ -1,7 +1,7 @@
 #include <thread>
 #include "numautil.h"
 #include "spinlock_mutex.h"
-#include "firewall.h"
+#include "img_server.h"
 
 size_t get_bind_core(size_t numa)
 {
@@ -27,17 +27,23 @@ size_t get_bind_core(size_t numa)
 
 void connect_sessions(ClientContext *c)
 {
-    std::string remote_uri = rmem::get_uri_for_process(FLAGS_server_forward_index);
-    int session_num_forward = c->rpc_->create_session(remote_uri, c->server_sender_id_);
-    rmem::rt_assert(session_num_forward >= 0, "Failed to create session");
-    c->session_num_vec_.push_back(session_num_forward);
+    // connect to image server
+    std::vector<size_t> forward_server_ports = flags_get_img_servers_index();
 
-    remote_uri = rmem::get_uri_for_process(FLAGS_server_backward_index);
-    int session_num_backward = c->rpc_->create_session(remote_uri, c->server_receiver_id_);
-    rmem::rt_assert(session_num_backward >= 0, "Failed to create session");
-    c->session_num_vec_.push_back(session_num_backward);
+    for (auto m : forward_server_ports)
+    {
+        std::string remote_uri = rmem::get_uri_for_process(m);
+        int session_num_forward = c->rpc_->create_session(remote_uri, c->server_sender_id_);
+        rmem::rt_assert(session_num_forward >= 0, "Failed to create session");
+        c->session_num_vec_.push_back(session_num_forward);
+    }
 
-    while (c->num_sm_resps_ != 2)
+    // connect to backward server
+    std::string remote_uri = rmem::get_uri_for_process(FLAGS_server_backward_index);
+    c->backward_session_num_ = c->rpc_->create_session(remote_uri, c->server_receiver_id_);
+    rmem::rt_assert(c->backward_session_num_ >= 0, "Failed to create session");
+
+    while (c->num_sm_resps_ != forward_server_ports.size() + 1)
     {
         c->rpc_->run_event_loop(kAppEvLoopMs);
         if (unlikely(ctrl_c_pressed == 1))
@@ -162,6 +168,7 @@ void handler_ping(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
+    // TODO load balance?
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_PING),
                                &req_msgbuf, &resp_msgbuf,
                                callback_ping, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
@@ -200,7 +207,7 @@ void handler_ping_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
-    ctx->rpc_->enqueue_request(ctx->session_num_vec_[1], static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP),
+    ctx->rpc_->enqueue_request(ctx->backward_session_num_, static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP),
                                &req_msgbuf, &resp_msgbuf,
                                callback_ping_resp, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
 }
@@ -236,6 +243,7 @@ void handler_tc(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
+    // TODO load balance?
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
                                &req_msgbuf, &resp_msgbuf,
                                callback_tc, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
@@ -273,7 +281,7 @@ void handler_tc_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
-    ctx->rpc_->enqueue_request(ctx->session_num_vec_[1], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE_RESP),
+    ctx->rpc_->enqueue_request(ctx->backward_session_num_, static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE_RESP),
                                &req_msgbuf, &resp_msgbuf,
                                callback_tc_resp, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
 }

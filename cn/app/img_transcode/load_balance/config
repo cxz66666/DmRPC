@@ -1,0 +1,14 @@
+--test_loop 10000
+--concurrency 16
+--numa_0_ports 0
+--numa_1_ports 1
+--numa_client_node 0
+--numa_server_node 0
+--server_forward_index 0
+--server_backward_index 1
+--server_index 2
+--client_num 1
+--server_forward_num 1 
+--server_backward_num 1
+--server_num 1
+--load_balance_servers_index 3

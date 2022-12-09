@@ -104,7 +104,8 @@ void handler_ping(ClientContext *ctx, REQ_MSG req_msg)
 
 void callback_tc(void *_context, void *_tag)
 {
-    uint32_t req_id = reinterpret_cast<uint32_t>(_tag);
+    auto *req_id_ptr = reinterpret_cast<uint32_t *>(_tag);
+    uint32_t req_id = *req_id_ptr;
     ClientContext *ctx = static_cast<ClientContext *>(_context);
 
     TranscodeResp *resp = reinterpret_cast<TranscodeResp *>(ctx->req_msgbuf[req_id % kAppMaxConcurrency].buf_);
@@ -132,15 +133,15 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
-                                    static_cast<uint8_t>(thread_id),
+                                    static_cast<uint8_t>(thread_id + FLAGS_server_num),
                                     basic_sm_handler, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
     for (size_t i = 0; i < FLAGS_concurrency; i++)
     {
         // TODO
-        ctx->req_msgbuf[i] = rpc.alloc_msg_buffer_or_die(0);
-        ctx->resp_msgbuf[i] = rpc.alloc_msg_buffer_or_die(0);
+        ctx->req_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeReq) + FLAGS_test_block_size);
+        ctx->resp_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeResp));
     }
     ctx->ping_msgbuf = rpc.alloc_msg_buffer_or_die(sizeof(PingReq));
     ctx->ping_resp_msgbuf = rpc.alloc_msg_buffer_or_die(sizeof(PingResp));
@@ -159,6 +160,10 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
             handlers[static_cast<uint8_t>(req_msg.req_type)](ctx, req_msg);
         }
         ctx->rpc_->run_event_loop_once();
+        if (ctrl_c_pressed)
+        {
+            break;
+        }
     }
 }
 
@@ -179,8 +184,8 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
         start.reset();
         rpc.run_event_loop(kAppEvLoopMs);
         const double seconds = start.get_sec();
-        printf("thread %zu: %.2f M/s. ping_req : %.3lf, tc : %.3f, tc_req : %.3f \n", thread_id,
-               ctx->stat_req_ping_tot / (seconds * Mi(1)), ctx->stat_req_tc_tot / (seconds * Mi(1)), ctx->stat_req_tc_req_tot / (seconds * Mi(1)));
+        printf("thread %zu: ping_req : %.2f, ping_resp : %.2f, tc : %.2f, tc_req : %.2f \n", thread_id,
+               ctx->stat_req_ping_tot / seconds, ctx->stat_req_ping_resp_tot / seconds, ctx->stat_req_tc_tot / seconds, ctx->stat_req_tc_req_tot / seconds);
 
         ctx->rpc_->reset_dpath_stats();
         // more handler
@@ -203,19 +208,20 @@ void leader_thread_func()
 
     AppContext *context = new AppContext();
 
-    clients[0] = std::thread(client_thread_func, 0, context->client_contexts_[0]);
+    clients[0] = std::thread(client_thread_func, 0, context->client_contexts_[0], &nexus);
     sleep(2);
     rmem::bind_to_core(clients[0], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node));
 
     for (size_t i = 1; i < FLAGS_client_num; i++)
     {
-        clients[i] = std::thread(client_thread_func, i, context->client_contexts_[i]);
+        clients[i] = std::thread(client_thread_func, i, context->client_contexts_[i], &nexus);
         rmem::bind_to_core(clients[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node));
     }
 
     for (size_t i = 0; i < FLAGS_server_num; i++)
     {
-        servers[i] = std::thread(server_thread_func, i, context->server_contexts_[i]);
+        servers[i] = std::thread(server_thread_func, i, context->server_contexts_[i], &nexus);
+
         rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node));
     }
     sleep(10);
