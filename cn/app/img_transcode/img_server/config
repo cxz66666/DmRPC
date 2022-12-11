@@ -12,3 +12,4 @@
 --server_backward_num 1
 --server_num 1
 --img_servers_index 4
+--bind_core_offset 7

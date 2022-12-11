@@ -1,5 +1,5 @@
 --test_loop 10000
---concurrency 16
+--concurrency 64
 --numa_0_ports 0
 --numa_1_ports 1
 --numa_client_node 0
@@ -12,3 +12,4 @@
 --server_backward_num 1
 --server_num 1
 --test_block_size 4096
+--bind_core_offset 0

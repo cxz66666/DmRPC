@@ -51,11 +51,11 @@ void ping_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 
     auto *req = reinterpret_cast<PingReq *>(req_msgbuf->buf_);
 
-    new (req_handle->pre_resp_msgbuf_.buf_) PingResp(req->req.type, req->req.req_number, req->timestamp);
+    new (req_handle->pre_resp_msgbuf_.buf_) PingResp(req->req.type, req->req.req_number, 0, req->timestamp);
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(PingResp));
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 
-    ctx->spsc_queue->push(RESP_MSG{req->req.req_number, 0});
+    ctx->resp_spsc_queue->push(RESP_MSG{req->req.req_number, 0});
 }
 
 void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
@@ -67,15 +67,15 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf->buf_);
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq) + req->extra.length, "data size not match");
 
-    printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
+    // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
-    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, req->extra.length);
+    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
 
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
 
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 
-    ctx->spsc_queue->push(RESP_MSG{req->req.req_number, 0});
+    ctx->resp_spsc_queue->push(RESP_MSG{req->req.req_number, 0});
 }
 
 void callback_ping(void *_context, void *_tag)
@@ -89,6 +89,7 @@ void callback_ping(void *_context, void *_tag)
     // 如果返回值为0，则认为后续将有响应，不care
     if (resp->resp.status != 0)
     {
+        printf("ping resp status is %d\n", resp->resp.status);
         ctx->resp_spsc_queue->push(RESP_MSG{resp->resp.req_number, resp->resp.status});
     }
 }
@@ -104,11 +105,11 @@ void handler_ping(ClientContext *ctx, REQ_MSG req_msg)
 
 void callback_tc(void *_context, void *_tag)
 {
-    auto *req_id_ptr = reinterpret_cast<uint32_t *>(_tag);
-    uint32_t req_id = *req_id_ptr;
+    auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
+    uint32_t req_id = req_id_ptr;
     ClientContext *ctx = static_cast<ClientContext *>(_context);
 
-    TranscodeResp *resp = reinterpret_cast<TranscodeResp *>(ctx->req_msgbuf[req_id % kAppMaxConcurrency].buf_);
+    TranscodeResp *resp = reinterpret_cast<TranscodeResp *>(ctx->resp_msgbuf[req_id % kAppMaxConcurrency].buf_);
 
     if (resp->resp.status != 0)
     {
@@ -134,10 +135,11 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
                                     static_cast<uint8_t>(thread_id + FLAGS_server_num),
-                                    basic_sm_handler, phy_port);
+                                    basic_sm_handler_client, phy_port);
+    printf("client %p\n", reinterpret_cast<void *>(ctx));
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
-    for (size_t i = 0; i < FLAGS_concurrency; i++)
+    for (size_t i = 0; i < kAppMaxConcurrency; i++)
     {
         // TODO
         ctx->req_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeReq) + FLAGS_test_block_size);
@@ -149,14 +151,16 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     connect_sessions(ctx);
 
     using FUNC_HANDLER = std::function<void(ClientContext *, REQ_MSG)>;
-    FUNC_HANDLER handlers[] = {handler_ping, handler_tc, nullptr};
+    FUNC_HANDLER handlers[] = {handler_ping, nullptr, handler_tc, nullptr};
 
+    printf("begin to worke \n");
     while (1)
     {
         unsigned size = ctx->spsc_queue->was_size();
         for (unsigned i = 0; i < size; i++)
         {
             REQ_MSG req_msg = ctx->spsc_queue->pop();
+
             handlers[static_cast<uint8_t>(req_msg.req_type)](ctx, req_msg);
         }
         ctx->rpc_->run_event_loop_once();
@@ -174,9 +178,11 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
                                     static_cast<uint8_t>(thread_id),
-                                    basic_sm_handler, phy_port);
+                                    basic_sm_handler_server, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
+    printf("server %p\n", reinterpret_cast<void *>(ctx));
+
     while (true)
     {
         ctx->reset_stat();
@@ -210,19 +216,19 @@ void leader_thread_func()
 
     clients[0] = std::thread(client_thread_func, 0, context->client_contexts_[0], &nexus);
     sleep(2);
-    rmem::bind_to_core(clients[0], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node));
+    rmem::bind_to_core(clients[0], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
 
     for (size_t i = 1; i < FLAGS_client_num; i++)
     {
         clients[i] = std::thread(client_thread_func, i, context->client_contexts_[i], &nexus);
-        rmem::bind_to_core(clients[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node));
+        rmem::bind_to_core(clients[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
     }
 
     for (size_t i = 0; i < FLAGS_server_num; i++)
     {
         servers[i] = std::thread(server_thread_func, i, context->server_contexts_[i], &nexus);
 
-        rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node));
+        rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node) + FLAGS_bind_core_offset);
     }
     sleep(10);
 
@@ -233,8 +239,9 @@ void leader_thread_func()
     for (size_t i = 0; i < FLAGS_server_num; i++)
     {
         // connect success
-        RESP_MSG msg = context->server_contexts_[i]->spsc_queue->pop();
-        rmem::rt_assert(msg.status == 0 && msg.req_id == 0);
+        RESP_MSG msg = context->server_contexts_[i]->resp_spsc_queue->pop();
+        // printf("server %zu: status %d, req_id %u\n", i, msg.status, msg.req_id);
+        rmem::rt_assert(msg.status == 0 && msg.req_id == 0, "server connect failed");
     }
 
     for (size_t i = 0; i < FLAGS_client_num; i++)
@@ -250,15 +257,20 @@ void leader_thread_func()
         for (size_t i = 0; i < FLAGS_server_num; i++)
         {
             // connect success
-            unsigned now_size = context->server_contexts_[i]->spsc_queue->was_size();
+            unsigned now_size = context->server_contexts_[i]->resp_spsc_queue->was_size();
             while (now_size--)
             {
-                RESP_MSG msg = context->server_contexts_[i]->spsc_queue->pop();
-                printf("server %zu: status %d, req_id %u\n", i, msg.status, msg.req_id);
+                RESP_MSG msg = context->server_contexts_[i]->resp_spsc_queue->pop();
+                _unused(msg);
+                // printf("server %zu: status %d, req_id %u\n", i, msg.status, msg.req_id);
 
                 // TODO maybe this i is not equal
                 context->client_contexts_[i]->PushNextTCReq();
             }
+        }
+        if (unlikely(ctrl_c_pressed))
+        {
+            break;
         }
     }
 }

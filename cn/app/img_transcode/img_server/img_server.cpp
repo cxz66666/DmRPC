@@ -42,6 +42,7 @@ void connect_sessions(ClientContext *c)
     std::string remote_uri = rmem::get_uri_for_process(FLAGS_server_backward_index);
     c->backward_session_num_ = c->rpc_->create_session(remote_uri, c->server_receiver_id_);
     rmem::rt_assert(c->backward_session_num_ >= 0, "Failed to create session");
+    c->session_num_vec_.push_back(c->backward_session_num_);
 
     while (c->num_sm_resps_ != forward_server_ports.size() + 1)
     {
@@ -63,7 +64,7 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
 
     auto *req = reinterpret_cast<PingReq *>(req_msgbuf->buf_);
 
-    new (req_handle->pre_resp_msgbuf_.buf_) PingResp(req->req.type, req->req.req_number, req->timestamp);
+    new (req_handle->pre_resp_msgbuf_.buf_) PingResp(req->req.type, req->req.req_number, 0, req->timestamp);
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(PingResp));
 
     ctx->forward_spsc_queue->push(*req_msgbuf);
@@ -82,7 +83,7 @@ void ping_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 
     auto *req = reinterpret_cast<PingReq *>(req_msgbuf->buf_);
 
-    new (req_handle->pre_resp_msgbuf_.buf_) PingResp(req->req.type, req->req.req_number, req->timestamp);
+    new (req_handle->pre_resp_msgbuf_.buf_) PingResp(req->req.type, req->req.req_number, 0, req->timestamp);
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(PingResp));
 
     ctx->backward_spsc_queue->push(*req_msgbuf);
@@ -101,9 +102,9 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf->buf_);
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq) + req->extra.length, "data size not match");
 
-    printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
+    // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
-    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, req->extra.length);
+    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
 
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
 
@@ -123,9 +124,9 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf->buf_);
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq) + req->extra.length, "data size not match");
 
-    printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
+    // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
-    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, req->extra.length);
+    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
 
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
 
@@ -138,8 +139,8 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 
 void callback_ping(void *_context, void *_tag)
 {
-    auto *req_id_ptr = reinterpret_cast<uint32_t *>(_tag);
-    uint32_t req_id = *req_id_ptr;
+    auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
+    uint32_t req_id = req_id_ptr;
     ClientContext *ctx = static_cast<ClientContext *>(_context);
 
     erpc::MsgBuffer &req_msgbuf = ctx->req_forward_msgbuf[req_id];
@@ -170,14 +171,14 @@ void handler_ping(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
 
     // TODO load balance?
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_PING),
-                               &req_msgbuf, &resp_msgbuf,
+                               &ctx->req_forward_msgbuf[req->req.req_number % kAppMaxConcurrency], &resp_msgbuf,
                                callback_ping, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
 }
 
 void callback_ping_resp(void *_context, void *_tag)
 {
-    auto *req_id_ptr = reinterpret_cast<uint32_t *>(_tag);
-    uint32_t req_id = *req_id_ptr;
+    auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
+    uint32_t req_id = req_id_ptr;
     ClientContext *ctx = static_cast<ClientContext *>(_context);
 
     erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
@@ -208,14 +209,14 @@ void handler_ping_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
     ctx->rpc_->enqueue_request(ctx->backward_session_num_, static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP),
-                               &req_msgbuf, &resp_msgbuf,
+                               &ctx->req_backward_msgbuf[req->req.req_number % kAppMaxConcurrency], &resp_msgbuf,
                                callback_ping_resp, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
 }
 
 void callback_tc(void *_context, void *_tag)
 {
-    auto *req_id_ptr = reinterpret_cast<uint32_t *>(_tag);
-    uint32_t req_id = *req_id_ptr;
+    auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
+    uint32_t req_id = req_id_ptr;
     ClientContext *ctx = static_cast<ClientContext *>(_context);
 
     erpc::MsgBuffer &req_msgbuf = ctx->req_forward_msgbuf[req_id];
@@ -245,14 +246,14 @@ void handler_tc(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
 
     // TODO load balance?
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
-                               &req_msgbuf, &resp_msgbuf,
+                               &ctx->req_forward_msgbuf[req->req.req_number % kAppMaxConcurrency], &resp_msgbuf,
                                callback_tc, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
 }
 
 void callback_tc_resp(void *_context, void *_tag)
 {
-    auto *req_id_ptr = reinterpret_cast<uint32_t *>(_tag);
-    uint32_t req_id = *req_id_ptr;
+    auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
+    uint32_t req_id = req_id_ptr;
     ClientContext *ctx = static_cast<ClientContext *>(_context);
 
     erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
@@ -282,7 +283,7 @@ void handler_tc_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
     ctx->rpc_->enqueue_request(ctx->backward_session_num_, static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE_RESP),
-                               &req_msgbuf, &resp_msgbuf,
+                               &ctx->req_backward_msgbuf[req->req.req_number % kAppMaxConcurrency], &resp_msgbuf,
                                callback_tc_resp, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
 }
 
@@ -293,10 +294,10 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
                                     static_cast<uint8_t>(thread_id + FLAGS_server_num),
-                                    basic_sm_handler, phy_port);
+                                    basic_sm_handler_client, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
-    for (size_t i = 0; i < FLAGS_concurrency; i++)
+    for (size_t i = 0; i < kAppMaxConcurrency; i++)
     {
         // TODO
         ctx->resp_forward_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeResp));
@@ -343,7 +344,7 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
                                     static_cast<uint8_t>(thread_id),
-                                    basic_sm_handler, phy_port);
+                                    basic_sm_handler_server, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
     while (true)
@@ -382,19 +383,19 @@ void leader_thread_func()
 
     clients[0] = std::thread(client_thread_func, 0, context->client_contexts_[0], &nexus);
     sleep(2);
-    rmem::bind_to_core(clients[0], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node));
+    rmem::bind_to_core(clients[0], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
 
     for (size_t i = 1; i < FLAGS_client_num; i++)
     {
         clients[i] = std::thread(client_thread_func, i, context->client_contexts_[i], &nexus);
-        rmem::bind_to_core(clients[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node));
+        rmem::bind_to_core(clients[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
     }
 
     for (size_t i = 0; i < FLAGS_server_num; i++)
     {
         servers[i] = std::thread(server_thread_func, i, context->server_contexts_[i], &nexus);
 
-        rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node));
+        rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node) + FLAGS_bind_core_offset);
     }
     sleep(10);
 

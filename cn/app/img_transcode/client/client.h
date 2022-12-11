@@ -47,7 +47,7 @@ public:
     size_t server_receiver_id_;
     uint32_t req_id_;
     atomic_queue::AtomicQueueB2<REQ_MSG, std::allocator<REQ_MSG>, true, false, true> *spsc_queue;
-    atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, false> *resp_spsc_queue;
+    atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, true> *resp_spsc_queue;
 };
 
 class ServerContext : public BasicContext
@@ -55,11 +55,11 @@ class ServerContext : public BasicContext
 public:
     ServerContext(size_t sid) : server_id_(sid), stat_req_ping_tot(0), stat_req_ping_resp_tot(0), stat_req_tc_tot(0), stat_req_tc_req_tot(0), stat_req_err_tot(0)
     {
-        spsc_queue = new atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, false>(FLAGS_concurrency);
+        resp_spsc_queue = new atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, true>(FLAGS_concurrency);
     }
     ~ServerContext()
     {
-        delete spsc_queue;
+        delete resp_spsc_queue;
     }
 
     size_t server_id_;
@@ -72,12 +72,13 @@ public:
     void reset_stat()
     {
         stat_req_ping_tot = 0;
+        stat_req_ping_resp_tot = 0;
         stat_req_tc_tot = 0;
         stat_req_tc_req_tot = 0;
         stat_req_err_tot = 0;
     }
 
-    atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, false> *spsc_queue;
+    atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, true> *resp_spsc_queue;
 };
 
 class AppContext
@@ -98,7 +99,7 @@ public:
         }
         for (size_t i = 0; i < FLAGS_client_num; i++)
         {
-            client_contexts_[i]->resp_spsc_queue = server_contexts_[i % FLAGS_server_num]->spsc_queue;
+            client_contexts_[i]->resp_spsc_queue = server_contexts_[i % FLAGS_server_num]->resp_spsc_queue;
         }
     }
     ~AppContext()

@@ -32,6 +32,8 @@ DEFINE_uint64(server_backward_num, 1, "Server(backward usage) thread num, must >
 // this node
 DEFINE_uint64(server_num, 1, "Server(self) thread num, must >0 and <DPDK_QUEUE_NUM");
 
+DEFINE_uint64(bind_core_offset, 0, "Bind core offset, used for local test to bind different processes to different cores");
+
 static constexpr size_t kAppMaxConcurrency = 256; // Outstanding reqs per thread
 static constexpr size_t kAppEvLoopMs = 1000;      // Duration of event loop
 
@@ -104,13 +106,18 @@ public:
 };
 
 /// A basic session management handler that expects successful responses
-void basic_sm_handler(int session_num, int remote_session_num, erpc::SmEventType sm_event_type,
-                      erpc::SmErrType sm_err_type, void *_context)
+/// used for client side
+void basic_sm_handler_client(int session_num, int remote_session_num, erpc::SmEventType sm_event_type,
+                             erpc::SmErrType sm_err_type, void *_context)
 {
     _unused(remote_session_num);
+    printf("client sm_handler receive: session_num:%d\n", session_num);
     auto *c = static_cast<BasicContext *>(_context);
     c->num_sm_resps_++;
-
+    for (auto m : c->session_num_vec_)
+    {
+        printf("session_num_vec_:%d\n", m);
+    }
     rmem::rt_assert(
         sm_err_type == erpc::SmErrType::kNoError,
         "SM response with error " + erpc::sm_err_type_str(sm_err_type));
@@ -128,7 +135,30 @@ void basic_sm_handler(int session_num, int remote_session_num, erpc::SmEventType
         if (c->session_num_vec_[i] == session_num)
             session_idx = i;
     }
-
     rmem::rt_assert(session_idx < c->session_num_vec_.size(),
                     "SM callback for invalid session number.");
+}
+
+/// A basic session management handler that expects successful responses
+/// used for server side
+void basic_sm_handler_server(int session_num, int remote_session_num, erpc::SmEventType sm_event_type,
+                             erpc::SmErrType sm_err_type, void *_context)
+{
+    _unused(remote_session_num);
+
+    auto *c = static_cast<BasicContext *>(_context);
+    c->num_sm_resps_++;
+
+    rmem::rt_assert(
+        sm_err_type == erpc::SmErrType::kNoError,
+        "SM response with error " + erpc::sm_err_type_str(sm_err_type));
+
+    if (!(sm_event_type == erpc::SmEventType::kConnected ||
+          sm_event_type == erpc::SmEventType::kDisconnected))
+    {
+        throw std::runtime_error("Received unexpected SM event.");
+    }
+
+    c->session_num_vec_.push_back(session_num);
+    printf("Server id %" PRIu8 ": Got session %d\n", c->rpc_->get_rpc_id(), session_num);
 }
