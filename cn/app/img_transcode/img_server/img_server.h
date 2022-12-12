@@ -10,8 +10,8 @@ class ClientContext : public BasicContext
 public:
     ClientContext(size_t cid, size_t sid, size_t rid) : client_id_(cid), server_sender_id_(sid), server_receiver_id_(rid), backward_session_num_(-1)
     {
-        forward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>(FLAGS_concurrency);
-        backward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false>(FLAGS_concurrency);
+        forward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>(kAppMaxConcurrency);
+        backward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false>(kAppMaxConcurrency);
     }
     ~ClientContext()
     {
@@ -61,6 +61,9 @@ public:
 
     atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *forward_spsc_queue;
     atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false> *backward_spsc_queue;
+
+    erpc::MsgBuffer *req_forward_msgbuf_ptr;
+    erpc::MsgBuffer *req_backward_msgbuf_ptr;
 };
 
 class AppContext
@@ -77,10 +80,12 @@ public:
         }
         for (size_t i = 0; i < FLAGS_server_num; i++)
         {
-            server_contexts_.push_back(new ServerContext(i));
-            // init queue
-            server_contexts_[i]->forward_spsc_queue = client_contexts_[i]->forward_spsc_queue;
-            server_contexts_[i]->backward_spsc_queue = client_contexts_[i]->backward_spsc_queue;
+            ServerContext *ctx = new ServerContext(i);
+            ctx->forward_spsc_queue = client_contexts_[i]->forward_spsc_queue;
+            ctx->backward_spsc_queue = client_contexts_[i]->backward_spsc_queue;
+            ctx->req_forward_msgbuf_ptr = client_contexts_[i]->req_forward_msgbuf;
+            ctx->req_backward_msgbuf_ptr = client_contexts_[i]->req_backward_msgbuf;
+            server_contexts_.push_back(ctx);
         }
     }
     ~AppContext()

@@ -12,4 +12,4 @@
 --server_backward_num 1
 --server_num 1
 --load_balance_servers_index 3
---bind_core_offset 5
+--bind_core_offset 4

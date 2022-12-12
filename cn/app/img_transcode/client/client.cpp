@@ -75,7 +75,7 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 
-    ctx->resp_spsc_queue->push(RESP_MSG{req->req.req_number, 0});
+    ctx->spsc_queue->push(REQ_MSG{static_cast<uint32_t>(req->req.req_number + FLAGS_concurrency), RPC_TYPE::RPC_TRANSCODE});
 }
 
 void callback_ping(void *_context, void *_tag)
@@ -230,7 +230,7 @@ void leader_thread_func()
 
         rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node) + FLAGS_bind_core_offset);
     }
-    sleep(10);
+    sleep(5);
 
     for (size_t i = 0; i < FLAGS_client_num; i++)
     {
@@ -252,26 +252,14 @@ void leader_thread_func()
             context->client_contexts_[i]->PushNextTCReq();
         }
     }
-    while (1)
-    {
-        for (size_t i = 0; i < FLAGS_server_num; i++)
-        {
-            // connect success
-            unsigned now_size = context->server_contexts_[i]->resp_spsc_queue->was_size();
-            while (now_size--)
-            {
-                RESP_MSG msg = context->server_contexts_[i]->resp_spsc_queue->pop();
-                _unused(msg);
-                // printf("server %zu: status %d, req_id %u\n", i, msg.status, msg.req_id);
 
-                // TODO maybe this i is not equal
-                context->client_contexts_[i]->PushNextTCReq();
-            }
-        }
-        if (unlikely(ctrl_c_pressed))
-        {
-            break;
-        }
+    for (size_t i = 0; i < FLAGS_client_num; i++)
+    {
+        clients[i].join();
+    }
+    for (size_t i = 0; i < FLAGS_server_num; i++)
+    {
+        servers[i].join();
     }
 }
 
@@ -284,6 +272,6 @@ int main(int argc, char **argv)
     check_common_gflags();
 
     std::thread leader_thread(leader_thread_func);
-    rmem::bind_to_core(leader_thread, 1, get_bind_core(1));
+    // rmem::bind_to_core(leader_thread, 1, get_bind_core(1));
     leader_thread.join();
 }

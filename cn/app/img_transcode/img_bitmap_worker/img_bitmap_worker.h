@@ -11,8 +11,8 @@ class ClientContext : public BasicContext
 public:
     ClientContext(size_t cid, size_t sid, size_t rid) : client_id_(cid), server_sender_id_(sid), server_receiver_id_(rid)
     {
-        forward_spsc_queue = new SPSC_QUEUE(FLAGS_concurrency);
-        backward_spsc_queue = new SPSC_QUEUE(FLAGS_concurrency);
+        forward_spsc_queue = new SPSC_QUEUE(kAppMaxConcurrency);
+        backward_spsc_queue = new SPSC_QUEUE(kAppMaxConcurrency);
     }
     ~ClientContext()
     {
@@ -57,6 +57,7 @@ public:
     }
 
     atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *forward_spsc_queue;
+    erpc::MsgBuffer *req_backward_msgbuf_ptr;
 };
 
 class AppContext
@@ -73,9 +74,10 @@ public:
         }
         for (size_t i = 0; i < FLAGS_server_num; i++)
         {
-            server_contexts_.push_back(new ServerContext(i));
-            // init queue
-            server_contexts_[i]->forward_spsc_queue = client_contexts_[i]->forward_spsc_queue;
+            ServerContext *ctx = new ServerContext(i);
+            ctx->forward_spsc_queue = client_contexts_[i]->forward_spsc_queue;
+            ctx->req_backward_msgbuf_ptr = client_contexts_[i]->req_backward_msgbuf;
+            server_contexts_.push_back(ctx);
         }
     }
     ~AppContext()

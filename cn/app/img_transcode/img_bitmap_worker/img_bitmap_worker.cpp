@@ -67,7 +67,7 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
 void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 {
     ServerContext *ctx = static_cast<ServerContext *>(_context);
-    ctx->stat_req_tc_req_tot++;
+    ctx->stat_req_tc_tot++;
     auto *req_msgbuf = req_handle->get_req_msgbuf();
 
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf->buf_);
@@ -78,6 +78,11 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
     new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
 
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
+
+    if (ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency].buf_ != nullptr)
+    {
+        ctx->rpc_->free_msg_buffer(ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency]);
+    }
 
     ctx->forward_spsc_queue->push(*req_msgbuf);
 
@@ -92,7 +97,7 @@ void callback_ping_resp(void *_context, void *_tag)
     uint32_t req_id = req_id_ptr;
     ClientContext *ctx = static_cast<ClientContext *>(_context);
 
-    erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
+    // erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req_id];
 
     rmem::rt_assert(resp_msgbuf.get_data_size() == sizeof(PingResp), "data size not match");
@@ -107,7 +112,7 @@ void callback_ping_resp(void *_context, void *_tag)
     // }
 
     // TODO check
-    ctx->rpc_->free_msg_buffer(req_msgbuf);
+    // ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
 void handler_ping_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
@@ -130,7 +135,7 @@ void callback_tc_resp(void *_context, void *_tag)
     uint32_t req_id = req_id_ptr;
     ClientContext *ctx = static_cast<ClientContext *>(_context);
 
-    erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
+    // erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req_id];
 
     rmem::rt_assert(resp_msgbuf.get_data_size() == sizeof(TranscodeResp), "data size not match");
@@ -144,7 +149,7 @@ void callback_tc_resp(void *_context, void *_tag)
     // TODO
     // }
 
-    ctx->rpc_->free_msg_buffer(req_msgbuf);
+    // ctx->server_rpc_->free_msg_buffer(req_msgbuf);
 }
 
 void handler_tc_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
@@ -191,6 +196,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
             CommonReq *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
             if (req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_TRANSCODE)
             {
+                printf("WARN : receive ping or tc in backward queue, req number is %u", req->req_number);
                 ctx->rpc_->free_msg_buffer(req_msg);
             }
             else
