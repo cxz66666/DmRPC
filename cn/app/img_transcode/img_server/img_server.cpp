@@ -29,6 +29,7 @@ void connect_sessions(ClientContext *c)
 {
     // connect to image server
     std::vector<size_t> forward_server_ports = flags_get_img_servers_index();
+    c->servers_num_ = forward_server_ports.size();
 
     for (auto m : forward_server_ports)
     {
@@ -108,7 +109,7 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
 
-    if (ctx->req_forward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency].buf_ != nullptr)
+    if (likely(ctx->req_forward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency].buf_ != nullptr))
     {
         ctx->rpc_->free_msg_buffer(ctx->req_forward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency]);
     }
@@ -255,7 +256,7 @@ void handler_tc(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
     // TODO load balance?
-    ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
+    ctx->rpc_->enqueue_request(ctx->session_num_vec_[req->req.req_number % ctx->servers_num_], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
                                &ctx->req_forward_msgbuf[req->req.req_number % kAppMaxConcurrency], &resp_msgbuf,
                                callback_tc, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
 }

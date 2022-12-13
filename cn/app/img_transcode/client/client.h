@@ -2,8 +2,9 @@
 #include <hdr/hdr_histogram.h>
 #include "atomic_queue/atomic_queue.h"
 #include "../img_transcode_commons.h"
+#include <hs_clock.h>
 
-DEFINE_uint64(test_block_size, 4096, "test block size");
+DEFINE_string(test_bitmap_file, "", "test file path for bitmap image");
 
 struct REQ_MSG
 {
@@ -88,9 +89,6 @@ class AppContext
 public:
     AppContext()
     {
-        int ret = hdr_init(1, 1000 * 1000 * 10, 3,
-                           &latency_hist_);
-        rmem::rt_assert(ret == 0, "hdr_init failed");
         for (size_t i = 0; i < FLAGS_client_num; i++)
         {
             client_contexts_.push_back(new ClientContext(i, i % FLAGS_server_forward_num, i % FLAGS_server_num));
@@ -107,7 +105,6 @@ public:
     }
     ~AppContext()
     {
-        hdr_close(latency_hist_);
 
         for (auto &ctx : client_contexts_)
         {
@@ -118,24 +115,9 @@ public:
             delete ctx;
         }
     }
-    bool write_latency_and_reset(std::string filename)
-    {
-
-        FILE *fp = fopen(filename.c_str(), "w");
-        if (fp == nullptr)
-        {
-            return false;
-        }
-        hdr_percentiles_print(latency_hist_, fp, 5, 10, CLASSIC);
-        fclose(fp);
-        hdr_reset(latency_hist_);
-        return true;
-    }
 
     uint32_t req_number_;
 
     std::vector<ClientContext *> client_contexts_;
     std::vector<ServerContext *> server_contexts_;
-
-    hdr_histogram *latency_hist_;
 };

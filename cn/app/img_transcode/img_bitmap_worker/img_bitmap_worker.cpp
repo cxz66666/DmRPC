@@ -79,10 +79,10 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
 
-    if (ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency].buf_ != nullptr)
-    {
-        ctx->rpc_->free_msg_buffer(ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency]);
-    }
+    // if (ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency].buf_ != nullptr)
+    // {
+    //     ctx->rpc_->free_msg_buffer(ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency]);
+    // }
 
     ctx->forward_spsc_queue->push(*req_msgbuf);
 
@@ -135,7 +135,7 @@ void callback_tc_resp(void *_context, void *_tag)
     uint32_t req_id = req_id_ptr;
     ClientContext *ctx = static_cast<ClientContext *>(_context);
 
-    // erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
+    erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req_id];
 
     rmem::rt_assert(resp_msgbuf.get_data_size() == sizeof(TranscodeResp), "data size not match");
@@ -149,7 +149,7 @@ void callback_tc_resp(void *_context, void *_tag)
     // TODO
     // }
 
-    // ctx->server_rpc_->free_msg_buffer(req_msgbuf);
+    ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
 void handler_tc_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
@@ -196,7 +196,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
             CommonReq *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
             if (req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_TRANSCODE)
             {
-                printf("WARN : receive ping or tc in backward queue, req number is %u", req->req_number);
+                printf("WARN : receive ping or tc in backward queue, req number is %u\n", req->req_number);
                 ctx->rpc_->free_msg_buffer(req_msg);
             }
             else
@@ -241,7 +241,7 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
     }
 }
 
-void worker_thread_func(size_t thread_id, SPSC_QUEUE *producer, SPSC_QUEUE *consumer)
+void worker_thread_func(size_t thread_id, SPSC_QUEUE *producer, SPSC_QUEUE *consumer, erpc::Rpc<erpc::CTransport> *rpc_, erpc::Rpc<erpc::CTransport> *server_rpc_)
 {
     _unused(thread_id);
     while (true)
@@ -255,13 +255,14 @@ void worker_thread_func(size_t thread_id, SPSC_QUEUE *producer, SPSC_QUEUE *cons
             rmem::rt_assert(req->req.type == RPC_TYPE::RPC_TRANSCODE || req->req.type == RPC_TYPE::RPC_PING, "req type error");
             if (req->req.type == RPC_TYPE::RPC_TRANSCODE)
             {
-                req->req.type = RPC_TYPE::RPC_TRANSCODE_RESP;
+                resize_bitmap(req_msg.buf_, rpc_, consumer);
+                server_rpc_->free_msg_buffer(req_msg);
             }
             else
             {
                 req->req.type = RPC_TYPE::RPC_PING_RESP;
+                consumer->push(req_msg);
             }
-            consumer->push(req_msg);
         }
         if (ctrl_c_pressed == 1)
         {
@@ -300,10 +301,12 @@ void leader_thread_func()
 
         rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node) + FLAGS_bind_core_offset);
     }
-
+    // wait for server rpc init
+    sleep(3);
     for (size_t i = 0; i < FLAGS_client_num; i++)
     {
-        workers[i] = std::thread(worker_thread_func, i, context->client_contexts_[i]->forward_spsc_queue, context->client_contexts_[i]->backward_spsc_queue);
+        rmem::rt_assert(context->server_contexts_[i]->rpc_ != nullptr, "server rpc is null");
+        workers[i] = std::thread(worker_thread_func, i, context->client_contexts_[i]->forward_spsc_queue, context->client_contexts_[i]->backward_spsc_queue, context->client_contexts_[i]->rpc_, context->server_contexts_[i]->rpc_);
         rmem::bind_to_core(workers[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
     }
 
@@ -332,7 +335,11 @@ int main(int argc, char **argv)
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     check_common_gflags();
-
+    if (FLAGS_resize_factor <= 0 || FLAGS_resize_factor > 1)
+    {
+        printf("resize factor must be in (0,1]\n");
+        exit(1);
+    }
     std::thread leader_thread(leader_thread_func);
     rmem::bind_to_core(leader_thread, 1, get_bind_core(1));
     leader_thread.join();

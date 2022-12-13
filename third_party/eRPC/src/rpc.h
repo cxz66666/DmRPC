@@ -19,7 +19,7 @@
 #include "util/rand.h"
 #include "util/timer.h"
 #include "util/udp_client.h"
-
+#include "util/spin_lock_mutex.h"
 
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wsign-conversion"
@@ -150,10 +150,10 @@ namespace erpc
       // This function avoids division for small data sizes
       size_t max_num_pkts = data_size_to_num_pkts(max_data_size);
 
-      lock_cond(&huge_alloc_lock_);
+      huge_alloc_lock_.lock();
       Buffer buffer =
           huge_alloc_->alloc(max_data_size + (max_num_pkts * sizeof(pkthdr_t)));
-      unlock_cond(&huge_alloc_lock_);
+      huge_alloc_lock_.unlock();
 
       if (unlikely(buffer.buf_ == nullptr))
       {
@@ -192,9 +192,9 @@ namespace erpc
     /// background threads (TS).
     inline void free_msg_buffer(MsgBuffer msg_buffer)
     {
-      lock_cond(&huge_alloc_lock_);
+      huge_alloc_lock_.lock();
       huge_alloc_->free_buf(msg_buffer.buffer_);
-      unlock_cond(&huge_alloc_lock_);
+      huge_alloc_lock_.unlock();
     }
 
     /**
@@ -359,9 +359,9 @@ namespace erpc
     /// Return the total amount of huge page memory allocated to the user
     inline size_t get_stat_user_alloc_tot()
     {
-      lock_cond(&huge_alloc_lock_);
+      huge_alloc_lock_.lock();
       size_t ret = huge_alloc_->get_stat_user_alloc_tot();
-      unlock_cond(&huge_alloc_lock_);
+      huge_alloc_lock_.unlock();
       return ret;
     }
 
@@ -471,14 +471,16 @@ namespace erpc
      */
     void fault_inject_set_pkt_drop_prob_st(double pkt_drop_prob);
 
-    inline bool is_session_not_full(int session_num) const {
-//        if(unlikely(session_num<0|| session_num>=session_vec_.size()||session_vec_[session_num]== nullptr)) {
-//            return false;
-//        }
-        if(unlikely(session_vec_[session_num]== nullptr)){
-            return true;
-        }
-        return !session_vec_[session_num]->is_full();
+    inline bool is_session_not_full(int session_num) const
+    {
+      //        if(unlikely(session_num<0|| session_num>=session_vec_.size()||session_vec_[session_num]== nullptr)) {
+      //            return false;
+      //        }
+      if (unlikely(session_vec_[session_num] == nullptr))
+      {
+        return true;
+      }
+      return !session_vec_[session_num]->is_full();
     }
 
   private:
@@ -1000,18 +1002,18 @@ namespace erpc
     }
 
     /// Lock the mutex if the Rpc is accessible from multiple threads
-    inline void lock_cond(std::mutex *mutex)
-    {
-      if (unlikely(multi_threaded_))
-        mutex->lock();
-    }
+    // inline void lock_cond(std::mutex *mutex)
+    // {
+    //   if (unlikely(multi_threaded_))
+    //     mutex->lock();
+    // }
 
     /// Unlock the mutex if the Rpc is accessible from multiple threads
-    inline void unlock_cond(std::mutex *mutex)
-    {
-      if (unlikely(multi_threaded_))
-        mutex->unlock();
-    }
+    // inline void unlock_cond(std::mutex *mutex)
+    // {
+    //   if (unlikely(multi_threaded_))
+    //     mutex->unlock();
+    // }
 
     /**
      * @brief Perform a Timely rate update on receiving the explict CR or response
@@ -1110,7 +1112,7 @@ namespace erpc
 
     // Allocator
     HugeAlloc *huge_alloc_ = nullptr; ///< This thread's hugepage allocator
-    std::mutex huge_alloc_lock_;      ///< A lock to guard the huge allocator
+    spin_lock_mutex huge_alloc_lock_; ///< A lock to guard the huge allocator
 
     MsgBuffer ctrl_msgbufs_[2 * TTr::kUnsigBatch]; ///< Buffers for RFR/CR
     size_t ctrl_msgbuf_head_ = 0;

@@ -3,6 +3,12 @@
 #include "spinlock_mutex.h"
 #include "client.h"
 
+std::streamsize file_size;
+uint8_t *file_buf;
+
+std::vector<rmem::Timer> timers;
+hdr_histogram *latency_hist_;
+
 size_t get_bind_core(size_t numa)
 {
     static size_t numa0_core = 0;
@@ -65,6 +71,10 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
     auto *req_msgbuf = req_handle->get_req_msgbuf();
 
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf->buf_);
+
+    hdr_record_value(latency_hist_,
+                     static_cast<int64_t>(timers[req->req.req_number % FLAGS_concurrency].toc() * 10));
+
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq) + req->extra.length, "data size not match");
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
@@ -123,6 +133,8 @@ void handler_tc(ClientContext *ctx, REQ_MSG req_msg)
     // TODO don't know length, a hack method
     new (req_msgbuf.buf_) TranscodeReq(RPC_TYPE::RPC_TRANSCODE, req_msg.req_id, req_msgbuf.get_data_size() - sizeof(TranscodeReq));
 
+    timers[req_msg.req_id % FLAGS_concurrency].tic();
+
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
                                &req_msgbuf, &resp_msgbuf,
                                callback_tc, reinterpret_cast<void *>(req_msg.req_id));
@@ -142,7 +154,8 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     for (size_t i = 0; i < kAppMaxConcurrency; i++)
     {
         // TODO
-        ctx->req_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeReq) + FLAGS_test_block_size);
+        ctx->req_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeReq) + file_size);
+        memcpy(ctx->req_msgbuf[i].buf_ + sizeof(TranscodeReq), file_buf, file_size);
         ctx->resp_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeResp));
     }
     ctx->ping_msgbuf = rpc.alloc_msg_buffer_or_die(sizeof(PingReq));
@@ -190,8 +203,8 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
         start.reset();
         rpc.run_event_loop(kAppEvLoopMs);
         const double seconds = start.get_sec();
-        printf("thread %zu: ping_req : %.2f, ping_resp : %.2f, tc : %.2f, tc_req : %.2f \n", thread_id,
-               ctx->stat_req_ping_tot / seconds, ctx->stat_req_ping_resp_tot / seconds, ctx->stat_req_tc_tot / seconds, ctx->stat_req_tc_req_tot / seconds);
+        printf("thread %zu: ping_req : %.2f, ping_resp : %.2f, tc : %.2f, tc_req : %.2f GB \n", thread_id,
+               ctx->stat_req_ping_tot / seconds, ctx->stat_req_ping_resp_tot / seconds, ctx->stat_req_tc_tot / seconds, ctx->stat_req_tc_req_tot * 8 * file_size / (GB(1) * seconds));
 
         ctx->rpc_->reset_dpath_stats();
         // more handler
@@ -263,6 +276,20 @@ void leader_thread_func()
     }
 }
 
+bool write_latency_and_reset(std::string filename)
+{
+
+    FILE *fp = fopen(filename.c_str(), "w");
+    if (fp == nullptr)
+    {
+        return false;
+    }
+    hdr_percentiles_print(latency_hist_, fp, 5, 10, CLASSIC);
+    fclose(fp);
+    hdr_reset(latency_hist_);
+    return true;
+}
+
 int main(int argc, char **argv)
 {
     signal(SIGINT, ctrl_c_handler);
@@ -271,7 +298,32 @@ int main(int argc, char **argv)
 
     check_common_gflags();
 
+    if (FLAGS_test_bitmap_file.size() == 0)
+    {
+        printf("please set bitmap file\n");
+        exit(0);
+    }
+
+    std::ifstream file(FLAGS_test_bitmap_file, std::ios::binary | std::ios::ate);
+    if (file.is_open() == false)
+    {
+        printf("open file %s failed\n", FLAGS_test_bitmap_file.c_str());
+        exit(0);
+    }
+    file_size = file.tellg();
+    file.seekg(0, std::ios::beg);
+    file_buf = new uint8_t[file_size];
+    file.read(reinterpret_cast<char *>(file_buf), file_size);
+
+    timers.resize(FLAGS_concurrency);
+    int ret = hdr_init(1, 1000 * 1000 * 10, 3,
+                       &latency_hist_);
+    rmem::rt_assert(ret == 0, "hdr_init failed");
+
     std::thread leader_thread(leader_thread_func);
     // rmem::bind_to_core(leader_thread, 1, get_bind_core(1));
     leader_thread.join();
+
+    write_latency_and_reset("latency.txt");
+    hdr_close(latency_hist_);
 }

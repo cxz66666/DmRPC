@@ -101,7 +101,7 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
 
-    if (ctx->req_forward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency].buf_ != nullptr)
+    if (likely(ctx->req_forward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency].buf_ != nullptr))
     {
         ctx->rpc_->free_msg_buffer(ctx->req_forward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency]);
     }

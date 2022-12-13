@@ -2,8 +2,10 @@
 #include <hdr/hdr_histogram.h>
 #include "atomic_queue/atomic_queue.h"
 #include "../img_transcode_commons.h"
-
+#include "bmp.h"
 using SPSC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>;
+
+DEFINE_double(resize_factor, 0.5, "the resize factor, must be between 0 and 1");
 
 class ClientContext : public BasicContext
 {
@@ -114,3 +116,85 @@ public:
 
     hdr_histogram *latency_hist_;
 };
+
+void resize_bitmap(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, SPSC_QUEUE *consumer)
+{
+    TranscodeReq *req = static_cast<TranscodeReq *>(buf_);
+    void *img_begin_ptr = req + 1;
+    BITMAPFILEHEADER *bf = static_cast<BITMAPFILEHEADER *>(img_begin_ptr);
+    img_begin_ptr = bf + 1;
+    BITMAPINFOHEADER *bi = static_cast<BITMAPINFOHEADER *>(img_begin_ptr);
+    img_begin_ptr = bi + 1;
+
+    if (bf->bfType != 0x4d42 || bf->bfOffBits != 54 || bi->biSize != 40 ||
+        bi->biBitCount != 24 || bi->biCompression != 0)
+    {
+        printf("req %u: invalid bitmap file\n", req->req.req_number);
+
+        erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(TranscodeReq));
+        new (resp_buf.buf_) TranscodeReq(RPC_TYPE::RPC_TRANSCODE_RESP, req->req.req_number, 0);
+        consumer->push(resp_buf);
+        return;
+    }
+    LONG resize_biWidth = bi->biWidth * FLAGS_resize_factor;
+    LONG resize_biHeight = bi->biHeight * FLAGS_resize_factor;
+    int padding = bi->biWidth % 4;
+    int padding_resize = resize_biWidth % 4;
+
+    LONG resize_size = (resize_biWidth * sizeof(RGBTRIPLE) + padding_resize) * resize_biHeight + sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+    erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(TranscodeReq) + resize_size);
+
+    TranscodeReq *resp = new (resp_buf.buf_) TranscodeReq(RPC_TYPE::RPC_TRANSCODE_RESP, req->req.req_number, resize_size);
+
+    void *resize_img_begin_ptr = resp + 1;
+    BITMAPFILEHEADER *bf_resize = static_cast<BITMAPFILEHEADER *>(resize_img_begin_ptr);
+    resize_img_begin_ptr = bf_resize + 1;
+
+    BITMAPINFOHEADER *bi_resize = static_cast<BITMAPINFOHEADER *>(resize_img_begin_ptr);
+    resize_img_begin_ptr = bi_resize + 1;
+
+    BYTE *pix = static_cast<BYTE *>(img_begin_ptr);
+    BYTE *resize_pix = static_cast<BYTE *>(resize_img_begin_ptr);
+
+    *bf_resize = *bf;
+    *bi_resize = *bi;
+
+    bi_resize->biWidth = resize_biWidth;
+    bi_resize->biHeight = resize_biHeight;
+
+    bi_resize->biSizeImage = (resize_biWidth * sizeof(RGBTRIPLE) + padding_resize) * resize_biHeight;
+    bf_resize->bfSize = resize_size;
+
+    int width_length = bi->biWidth * sizeof(RGBTRIPLE) + padding;
+    int resize_width_length = resize_biWidth * sizeof(RGBTRIPLE) + padding_resize;
+    // temporary storage
+    for (int i = 0; i < bi_resize->biHeight; i++)
+    {
+        for (int j = 0; j < bi_resize->biWidth; j++)
+        {
+            // calculate the corresponding coorinates in the original image
+            int m = (i / FLAGS_resize_factor + 0.5); // +0.5 for rounding
+            if (m > bi->biHeight - 1)
+            { // limit the value
+                m = bi->biHeight - 1;
+            }
+            int n = (j / FLAGS_resize_factor + 0.5);
+            if (n > bi->biWidth - 1)
+            {
+                n = bi->biWidth - 1;
+            }
+            // pick the pixel value at the coordinate
+            int tmp = m * width_length + n * sizeof(RGBTRIPLE);
+            int tmp_size = i * resize_width_length + j * sizeof(RGBTRIPLE);
+
+            resize_pix[tmp_size] = pix[tmp];
+            resize_pix[tmp_size + 1] = pix[tmp + 1];
+            resize_pix[tmp_size + 2] = pix[tmp + 2];
+        }
+        for (int j = 0; j < padding_resize; j++)
+        {
+            resize_pix[i * resize_width_length + bi_resize->biWidth * sizeof(RGBTRIPLE) + j] = 0;
+        }
+    }
+    consumer->push(resp_buf);
+}

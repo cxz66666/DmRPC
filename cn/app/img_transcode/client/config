@@ -11,5 +11,5 @@
 --server_forward_num 1
 --server_backward_num 1
 --server_num 1
---test_block_size 4096
 --bind_core_offset 0
+--test_bitmap_file ../scripts/echo/test_4k.bmp
