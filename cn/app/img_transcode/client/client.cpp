@@ -5,8 +5,8 @@
 
 size_t get_bind_core(size_t numa)
 {
-    static size_t numa0_core;
-    static size_t numa1_core;
+    static size_t numa0_core = 0;
+    static size_t numa1_core = 0;
     static spinlock_mutex lock;
     size_t res;
     lock.lock();
