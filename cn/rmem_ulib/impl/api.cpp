@@ -255,7 +255,7 @@ namespace rmem
         return res.second;
     }
 
-    int Rmem::rmem_join(unsigned long addr, uint16_t thread_id, uint16_t session_id)
+    unsigned long Rmem::rmem_join(unsigned long addr, uint16_t thread_id, uint16_t session_id)
     {
         rt_assert(concurrent_store_->get_session_num() != -1, "don't use disconnect_session twice before connect!");
         if (!IS_PAGE_ALIGN(addr))

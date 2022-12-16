@@ -32,7 +32,7 @@ namespace rmem
 
         unsigned long rmem_fork(unsigned long addr, size_t size);
 
-        int rmem_join(unsigned long addr, uint16_t thread_id, uint16_t session_id);
+        unsigned long rmem_join(unsigned long addr, uint16_t thread_id, uint16_t session_id);
 
         int rmem_poll(int *results, int max_num);
 
