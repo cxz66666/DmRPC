@@ -30,7 +30,7 @@ public:
 
     int backward_session_num_;
 
-    int servers_num_;
+    int servers_num_{};
 
     atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *forward_spsc_queue;
     atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false> *backward_spsc_queue;
@@ -39,12 +39,11 @@ public:
 class ServerContext : public BasicContext
 {
 public:
-    ServerContext(size_t sid) : server_id_(sid), stat_req_ping_tot(0), stat_req_ping_resp_tot(0), stat_req_tc_tot(0), stat_req_tc_req_tot(0), stat_req_err_tot(0)
+    explicit ServerContext(size_t sid) : server_id_(sid), stat_req_ping_tot(0), stat_req_ping_resp_tot(0), stat_req_tc_tot(0), stat_req_tc_req_tot(0), stat_req_err_tot(0)
     {
     }
     ~ServerContext()
-    {
-    }
+    = default;
     size_t server_id_;
     size_t stat_req_ping_tot;
     size_t stat_req_ping_resp_tot;
@@ -61,11 +60,11 @@ public:
         stat_req_err_tot = 0;
     }
 
-    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *forward_spsc_queue;
-    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false> *backward_spsc_queue;
+    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *forward_spsc_queue{};
+    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false> *backward_spsc_queue{};
 
-    erpc::MsgBuffer *req_forward_msgbuf_ptr;
-    erpc::MsgBuffer *req_backward_msgbuf_ptr;
+    erpc::MsgBuffer *req_forward_msgbuf_ptr{};
+    erpc::MsgBuffer *req_backward_msgbuf_ptr{};
 };
 
 class AppContext
@@ -82,7 +81,7 @@ public:
         }
         for (size_t i = 0; i < FLAGS_server_num; i++)
         {
-            ServerContext *ctx = new ServerContext(i);
+            auto *ctx = new ServerContext(i);
             ctx->forward_spsc_queue = client_contexts_[i]->forward_spsc_queue;
             ctx->backward_spsc_queue = client_contexts_[i]->backward_spsc_queue;
             ctx->req_forward_msgbuf_ptr = client_contexts_[i]->req_forward_msgbuf;
@@ -103,7 +102,8 @@ public:
             delete ctx;
         }
     }
-    bool write_latency_and_reset(std::string filename)
+
+    [[maybe_unused]] [[nodiscard]] bool write_latency_and_reset(const std::string& filename) const
     {
 
         FILE *fp = fopen(filename.c_str(), "w");
@@ -117,20 +117,18 @@ public:
         return true;
     }
 
-    uint32_t req_number_;
-
     std::vector<ClientContext *> client_contexts_;
     std::vector<ServerContext *> server_contexts_;
 
-    hdr_histogram *latency_hist_;
+    hdr_histogram *latency_hist_{};
 };
 
 std::vector<size_t> flags_get_img_servers_index()
 {
-    rmem::rt_assert(FLAGS_img_servers_index.size() > 0, "please set at least one load balance server");
+    rmem::rt_assert(!FLAGS_img_servers_index.empty(), "please set at least one load balance server");
     std::vector<size_t> ret;
     std::vector<std::string> split_vec = rmem::split(FLAGS_img_servers_index, ',');
-    rmem::rt_assert(split_vec.size() > 0);
+    rmem::rt_assert(!split_vec.empty());
 
     for (auto &s : split_vec)
         ret.push_back(std::stoull(s)); // stoull trims ' '

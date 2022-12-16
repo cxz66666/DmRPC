@@ -82,7 +82,7 @@ public:
         }
         for (size_t i = 0; i < FLAGS_server_num; i++)
         {
-            ServerContext *ctx = new ServerContext(i);
+            auto *ctx = new ServerContext(i);
             ctx->forward_spsc_queue = client_contexts_[i]->forward_spsc_queue;
             ctx->backward_spsc_queue = client_contexts_[i]->backward_spsc_queue;
             ctx->req_forward_msgbuf_ptr = client_contexts_[i]->req_forward_msgbuf;
@@ -103,7 +103,7 @@ public:
             delete ctx;
         }
     }
-    bool write_latency_and_reset(std::string filename)
+    bool write_latency_and_reset(const std::string& filename)
     {
 
         FILE *fp = fopen(filename.c_str(), "w");
@@ -117,20 +117,19 @@ public:
         return true;
     }
 
-    uint32_t req_number_;
 
     std::vector<ClientContext *> client_contexts_;
     std::vector<ServerContext *> server_contexts_;
 
-    hdr_histogram *latency_hist_;
+    hdr_histogram *latency_hist_{};
 };
 
 std::vector<size_t> flags_get_balance_servers_index()
 {
-    rmem::rt_assert(FLAGS_load_balance_servers_index.size() > 0, "please set at least one load balance server");
+    rmem::rt_assert(!FLAGS_load_balance_servers_index.empty(), "please set at least one load balance server");
     std::vector<size_t> ret;
     std::vector<std::string> split_vec = rmem::split(FLAGS_load_balance_servers_index, ',');
-    rmem::rt_assert(split_vec.size() > 0);
+    rmem::rt_assert(!split_vec.empty());
 
     for (auto &s : split_vec)
         ret.push_back(std::stoull(s)); // stoull trims ' '

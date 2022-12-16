@@ -1,6 +1,6 @@
 project(img_transcode)
 
-set(PROGRAMS client firewall img_bitmap_worker img_server load_balance)
+set(PROGRAMS client_rmem client_erpc firewall img_bitmap_worker img_server load_balance)
 
 
 foreach(project_name IN LISTS PROGRAMS)

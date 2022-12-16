@@ -1,13 +1,9 @@
 #include <thread>
 #include "numautil.h"
 #include "spinlock_mutex.h"
-#include "client.h"
+#include "client_rmem.h"
 
-std::streamsize file_size;
-uint8_t *file_buf;
 
-std::vector<rmem::Timer> timers;
-hdr_histogram *latency_hist_;
 
 size_t get_bind_core(size_t numa)
 {
@@ -50,7 +46,7 @@ void connect_sessions(ClientContext *c)
 
 void ping_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 {
-    ServerContext *ctx = static_cast<ServerContext *>(_context);
+    auto *ctx = static_cast<ServerContext *>(_context);
     ctx->stat_req_ping_resp_tot++;
     auto *req_msgbuf = req_handle->get_req_msgbuf();
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(PingReq), "data size not match");
@@ -66,34 +62,34 @@ void ping_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 
 void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 {
-    ServerContext *ctx = static_cast<ServerContext *>(_context);
+    auto *ctx = static_cast<ServerContext *>(_context);
     ctx->stat_req_tc_req_tot++;
     auto *req_msgbuf = req_handle->get_req_msgbuf();
 
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf->buf_);
 
-    hdr_record_value(latency_hist_,
-                     static_cast<int64_t>(timers[req->req.req_number % FLAGS_concurrency].toc() * 10));
-
-    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq) + req->extra.length, "data size not match");
+//    hdr_record_value(latency_hist_,
+//                     static_cast<int64_t>(timers[req->req.req_number % FLAGS_concurrency].toc() * 10));
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
-    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
+    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
 
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
 
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 
-    ctx->spsc_queue->push(REQ_MSG{static_cast<uint32_t>(req->req.req_number + FLAGS_concurrency), RPC_TYPE::RPC_TRANSCODE});
+    uint32_t next_rpc_id = (req->extra.worker_flag>>32)*FLAGS_rmem_session_num+ (req->extra.worker_flag & 0xffffffff);
+    ctx->spsc_queue->push(REQ_MSG{next_rpc_id, RPC_TYPE::RPC_TRANSCODE});
 }
 
 void callback_ping(void *_context, void *_tag)
 {
-    _unused(_tag);
-    ClientContext *ctx = static_cast<ClientContext *>(_context);
+    auto rpc_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
+    uint32_t rpc_id = rpc_id_ptr;
+    auto *ctx = static_cast<ClientContext *>(_context);
 
-    PingResp *resp = reinterpret_cast<PingResp *>(ctx->ping_resp_msgbuf.buf_);
+    auto *resp = reinterpret_cast<PingResp *>(ctx->ping_resp_msgbuf[rpc_id].buf_);
 
     // 如果返回值不为0，则认为后续不会有响应，直接将请求号和错误码放入队列
     // 如果返回值为0，则认为后续将有响应，不care
@@ -106,20 +102,23 @@ void callback_ping(void *_context, void *_tag)
 
 void handler_ping(ClientContext *ctx, REQ_MSG req_msg)
 {
+    uint32_t rpc_id=req_msg.req_id;
+    RmemParam& param = ctx->rmem_params_[rpc_id];
 
-    new (ctx->ping_msgbuf.buf_) PingReq(RPC_TYPE::RPC_PING, req_msg.req_id, SIZE_MAX);
+    new (ctx->ping_msgbuf[rpc_id].buf_) PingReq(RPC_TYPE::RPC_PING, req_msg.req_id, SIZE_MAX, param);
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_PING),
-                               &ctx->ping_msgbuf, &ctx->ping_resp_msgbuf,
-                               callback_ping, nullptr);
+                               &ctx->ping_msgbuf[rpc_id], &ctx->ping_resp_msgbuf[rpc_id],
+                               callback_ping, reinterpret_cast<void *>(rpc_id));
 }
 
 void callback_tc(void *_context, void *_tag)
 {
     auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
+    uint32_t rpc_id = req_id_ptr>>32;
     uint32_t req_id = req_id_ptr;
-    ClientContext *ctx = static_cast<ClientContext *>(_context);
+    auto *ctx = static_cast<ClientContext *>(_context);
 
-    TranscodeResp *resp = reinterpret_cast<TranscodeResp *>(ctx->resp_msgbuf[req_id % kAppMaxConcurrency].buf_);
+    auto *resp = reinterpret_cast<TranscodeResp *>(ctx->resp_msgbuf[rpc_id][req_id % kAppMaxConcurrency].buf_);
 
     if (resp->resp.status != 0)
     {
@@ -128,16 +127,20 @@ void callback_tc(void *_context, void *_tag)
 }
 void handler_tc(ClientContext *ctx, REQ_MSG req_msg)
 {
-    erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[req_msg.req_id % kAppMaxConcurrency];
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[req_msg.req_id % kAppMaxConcurrency];
-    // TODO don't know length, a hack method
-    new (req_msgbuf.buf_) TranscodeReq(RPC_TYPE::RPC_TRANSCODE, req_msg.req_id, req_msgbuf.get_data_size() - sizeof(TranscodeReq));
+    uint32_t rpc_id=req_msg.req_id;
+    uint32_t req_id=ctx->rmem_req_ids_[rpc_id]++;
 
-    timers[req_msg.req_id % FLAGS_concurrency].tic();
+    erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[rpc_id][req_id];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[rpc_id][req_id];
+    // TODO don't know length, a hack method
+    new (req_msgbuf.buf_) TranscodeReq(RPC_TYPE::RPC_TRANSCODE, req_msg.req_id, file_size, req_id*file_size_aligned, ctx->rmem_flags_[rpc_id]);
+
+//    timers[req_msg.req_id % FLAGS_concurrency].tic();
+
 
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
                                &req_msgbuf, &resp_msgbuf,
-                               callback_tc, reinterpret_cast<void *>(req_msg.req_id));
+                               callback_tc, reinterpret_cast<void *>(static_cast<uint64_t>(rpc_id)<<32 | req_id));
 }
 
 void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus)
@@ -151,15 +154,17 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     printf("client %p\n", reinterpret_cast<void *>(ctx));
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
-    for (size_t i = 0; i < kAppMaxConcurrency; i++)
-    {
-        // TODO
-        ctx->req_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeReq) + file_size);
-        memcpy(ctx->req_msgbuf[i].buf_ + sizeof(TranscodeReq), file_buf, file_size);
-        ctx->resp_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeResp));
+    for(size_t i=0;i< kAppMaxRPC;i++){
+        ctx->ping_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(PingReq));
+        ctx->ping_resp_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(PingResp));
+        for (size_t j = 0; j < kAppMaxConcurrency; j++)
+        {
+            // TODO
+            ctx->req_msgbuf[i][j] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeReq));
+            ctx->resp_msgbuf[i][j] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeResp));
+        }
+
     }
-    ctx->ping_msgbuf = rpc.alloc_msg_buffer_or_die(sizeof(PingReq));
-    ctx->ping_resp_msgbuf = rpc.alloc_msg_buffer_or_die(sizeof(PingResp));
 
     connect_sessions(ctx);
 
@@ -167,7 +172,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     FUNC_HANDLER handlers[] = {handler_ping, nullptr, handler_tc, nullptr};
 
     printf("begin to worke \n");
-    while (1)
+    while (true)
     {
         unsigned size = ctx->spsc_queue->was_size();
         for (unsigned i = 0; i < size; i++)
@@ -225,7 +230,8 @@ void leader_thread_func()
     std::vector<std::thread> clients(FLAGS_client_num);
     std::vector<std::thread> servers(FLAGS_server_num);
 
-    AppContext *context = new AppContext();
+
+    auto *context = new AppContext();
 
     clients[0] = std::thread(client_thread_func, 0, context->client_contexts_[0], &nexus);
     sleep(2);
@@ -247,14 +253,18 @@ void leader_thread_func()
 
     for (size_t i = 0; i < FLAGS_client_num; i++)
     {
-        context->client_contexts_[i]->spsc_queue->push(REQ_MSG{0, RPC_TYPE::RPC_PING});
+        context->client_contexts_[i]->PushPingReq();
     }
     for (size_t i = 0; i < FLAGS_server_num; i++)
     {
-        // connect success
-        RESP_MSG msg = context->server_contexts_[i]->resp_spsc_queue->pop();
-        // printf("server %zu: status %d, req_id %u\n", i, msg.status, msg.req_id);
-        rmem::rt_assert(msg.status == 0 && msg.req_id == 0, "server connect failed");
+        size_t total_ping_size=context->client_contexts_[i]->rmem_params_.size();
+        while(total_ping_size--){
+            // connect success
+            RESP_MSG msg = context->server_contexts_[i]->resp_spsc_queue->pop();
+            printf("server %zu: status %d, req_id %u\n", i, msg.status, msg.req_id);
+            rmem::rt_assert(msg.status == 0, "server connect failed");
+
+        }
     }
 
     for (size_t i = 0; i < FLAGS_client_num; i++)
@@ -276,7 +286,7 @@ void leader_thread_func()
     }
 }
 
-bool write_latency_and_reset(std::string filename)
+bool write_latency_and_reset(const std::string& filename)
 {
 
     FILE *fp = fopen(filename.c_str(), "w");
@@ -297,23 +307,32 @@ int main(int argc, char **argv)
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     check_common_gflags();
+    rmem::rt_assert(FLAGS_client_num == 1, "client num must be 1");
+    rmem::rt_assert(FLAGS_server_num == 1, "server num must be 1");
 
-    if (FLAGS_test_bitmap_file.size() == 0)
+
+    if (FLAGS_test_bitmap_file.empty())
     {
         printf("please set bitmap file\n");
         exit(0);
     }
 
     std::ifstream file(FLAGS_test_bitmap_file, std::ios::binary | std::ios::ate);
-    if (file.is_open() == false)
+    if (!file.is_open())
     {
         printf("open file %s failed\n", FLAGS_test_bitmap_file.c_str());
         exit(0);
     }
     file_size = file.tellg();
+    file_size_aligned= ((static_cast<unsigned long>(file_size) + ((1<<12) - 1)) & (~((1<<12) - 1)));
+
     file.seekg(0, std::ios::beg);
     file_buf = new uint8_t[file_size];
     file.read(reinterpret_cast<char *>(file_buf), file_size);
+    file.close();
+
+    rmem::rmem_init(rmem::get_uri_for_process(FLAGS_rmem_self_index), FLAGS_numa_client_node);
+
 
     timers.resize(FLAGS_concurrency);
     int ret = hdr_init(1, 1000 * 1000 * 10, 3,
@@ -324,6 +343,7 @@ int main(int argc, char **argv)
     // rmem::bind_to_core(leader_thread, 1, get_bind_core(1));
     leader_thread.join();
 
+    delete []file_buf;
     write_latency_and_reset("latency.txt");
     hdr_close(latency_hist_);
 }

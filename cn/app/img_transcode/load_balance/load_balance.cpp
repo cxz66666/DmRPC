@@ -58,7 +58,7 @@ void connect_sessions(ClientContext *c)
 
 void ping_handler(erpc::ReqHandle *req_handle, void *_context)
 {
-    ServerContext *ctx = static_cast<ServerContext *>(_context);
+    auto *ctx = static_cast<ServerContext *>(_context);
     ctx->stat_req_ping_tot++;
     auto *req_msgbuf = req_handle->get_req_msgbuf();
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(PingReq), "data size not match");
@@ -77,7 +77,7 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
 
 void ping_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 {
-    ServerContext *ctx = static_cast<ServerContext *>(_context);
+    auto *ctx = static_cast<ServerContext *>(_context);
     ctx->stat_req_ping_resp_tot++;
     auto *req_msgbuf = req_handle->get_req_msgbuf();
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(PingReq), "data size not match");
@@ -96,7 +96,7 @@ void ping_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 
 void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 {
-    ServerContext *ctx = static_cast<ServerContext *>(_context);
+    auto *ctx = static_cast<ServerContext *>(_context);
     ctx->stat_req_tc_tot++;
     auto *req_msgbuf = req_handle->get_req_msgbuf();
 
@@ -105,8 +105,15 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
+#if defined(ERPC_PROGERAM)
     new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
+#elif defined(RMEM_PROGRAM)
+    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length,req->extra.offset, req->extra.worker_flag);
 
+#elif defined(CXL_PROGRAM)
+    #else
+    static_assert(false, "program type not defined");
+#endif
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
 
     if (likely(ctx->req_forward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency].buf_ != nullptr))
@@ -123,7 +130,7 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 
 void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 {
-    ServerContext *ctx = static_cast<ServerContext *>(_context);
+    auto *ctx = static_cast<ServerContext *>(_context);
     ctx->stat_req_tc_req_tot++;
     auto *req_msgbuf = req_handle->get_req_msgbuf();
 
@@ -132,8 +139,15 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
+#if defined(ERPC_PROGERAM)
     new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
+#elif defined(RMEM_PROGRAM)
+    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length,req->extra.offset, req->extra.worker_flag);
 
+#elif defined(CXL_PROGRAM)
+    #else
+    static_assert(false, "program type not defined");
+#endif
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
 
     if (ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency].buf_ != nullptr)
@@ -152,7 +166,7 @@ void callback_ping(void *_context, void *_tag)
 {
     auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
     uint32_t req_id = req_id_ptr;
-    ClientContext *ctx = static_cast<ClientContext *>(_context);
+    auto *ctx = static_cast<ClientContext *>(_context);
 
     // erpc::MsgBuffer &req_msgbuf = ctx->req_forward_msgbuf[req_id];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req_id];
@@ -172,9 +186,9 @@ void callback_ping(void *_context, void *_tag)
     // ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
-void handler_ping(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
+void handler_ping(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
 {
-    PingReq *req = reinterpret_cast<PingReq *>(req_msgbuf.buf_);
+    auto *req = reinterpret_cast<PingReq *>(req_msgbuf.buf_);
 
     ctx->req_forward_msgbuf[req->req.req_number % kAppMaxConcurrency] = req_msgbuf;
 
@@ -190,7 +204,7 @@ void callback_ping_resp(void *_context, void *_tag)
 {
     auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
     uint32_t req_id = req_id_ptr;
-    ClientContext *ctx = static_cast<ClientContext *>(_context);
+    auto *ctx = static_cast<ClientContext *>(_context);
 
     // erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req_id];
@@ -210,10 +224,10 @@ void callback_ping_resp(void *_context, void *_tag)
     // ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
-void handler_ping_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
+void handler_ping_resp(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
 {
 
-    PingReq *req = reinterpret_cast<PingReq *>(req_msgbuf.buf_);
+    auto *req = reinterpret_cast<PingReq *>(req_msgbuf.buf_);
 
     ctx->req_backward_msgbuf[req->req.req_number % kAppMaxConcurrency] = req_msgbuf;
 
@@ -228,7 +242,7 @@ void callback_tc(void *_context, void *_tag)
 {
     auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
     uint32_t req_id = req_id_ptr;
-    ClientContext *ctx = static_cast<ClientContext *>(_context);
+    auto *ctx = static_cast<ClientContext *>(_context);
 
     // erpc::MsgBuffer &req_msgbuf = ctx->req_forward_msgbuf[req_id];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req_id];
@@ -247,9 +261,9 @@ void callback_tc(void *_context, void *_tag)
     // TODO check
     // ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
-void handler_tc(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
+void handler_tc(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
 {
-    TranscodeReq *req = reinterpret_cast<TranscodeReq *>(req_msgbuf.buf_);
+    auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf.buf_);
 
     ctx->req_forward_msgbuf[req->req.req_number % kAppMaxConcurrency] = req_msgbuf;
 
@@ -265,7 +279,7 @@ void callback_tc_resp(void *_context, void *_tag)
 {
     auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
     uint32_t req_id = req_id_ptr;
-    ClientContext *ctx = static_cast<ClientContext *>(_context);
+    auto *ctx = static_cast<ClientContext *>(_context);
 
     // erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req_id];
@@ -285,9 +299,9 @@ void callback_tc_resp(void *_context, void *_tag)
     // ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
-void handler_tc_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
+void handler_tc_resp(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
 {
-    TranscodeReq *req = reinterpret_cast<TranscodeReq *>(req_msgbuf.buf_);
+    auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf.buf_);
 
     ctx->req_backward_msgbuf[req->req.req_number % kAppMaxConcurrency] = req_msgbuf;
 
@@ -320,14 +334,14 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     using FUNC_HANDLER = std::function<void(ClientContext *, erpc::MsgBuffer)>;
     FUNC_HANDLER handlers[] = {handler_ping, handler_ping_resp, handler_tc, handler_tc_resp};
 
-    while (1)
+    while (true)
     {
         // only can have ping and tc in forward
         unsigned size = ctx->forward_spsc_queue->was_size();
         for (unsigned i = 0; i < size; i++)
         {
             erpc::MsgBuffer req_msg = ctx->forward_spsc_queue->pop();
-            CommonReq *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
+            auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
             rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_TRANSCODE, "only ping and tc in forward queue");
             handlers[static_cast<uint8_t>(req->type)](ctx, req_msg);
         }
@@ -336,7 +350,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
         for (unsigned i = 0; i < size; i++)
         {
             erpc::MsgBuffer req_msg = ctx->backward_spsc_queue->pop();
-            CommonReq *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
+            auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
             if (req->type != RPC_TYPE::RPC_PING_RESP && req->type != RPC_TYPE::RPC_TRANSCODE_RESP)
                 printf("req->type=%u\n", static_cast<uint32_t>(req->type));
             rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP || req->type == RPC_TYPE::RPC_TRANSCODE_RESP, "only ping_resp and tc_resp in backward queue");
@@ -393,7 +407,7 @@ void leader_thread_func()
     std::vector<std::thread> clients(FLAGS_client_num);
     std::vector<std::thread> servers(FLAGS_server_num);
 
-    AppContext *context = new AppContext();
+    auto *context = new AppContext();
 
     clients[0] = std::thread(client_thread_func, 0, context->client_contexts_[0], &nexus);
     sleep(2);
@@ -412,7 +426,7 @@ void leader_thread_func()
 
         rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node) + FLAGS_bind_core_offset);
     }
-    sleep(10);
+    sleep(5);
 
     // TODO
     for (size_t i = 0; i < FLAGS_client_num; i++)

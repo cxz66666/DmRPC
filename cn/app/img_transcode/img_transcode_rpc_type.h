@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define RMEM_PROGRAM
 enum class RPC_TYPE : uint8_t
 {
     RPC_PING = 0,
@@ -28,6 +29,7 @@ public:
     int status;
 } __attribute__((packed));
 
+#if defined(ERPC_PROGERAM)
 // TODO
 class ExtraReqMsg
 {
@@ -77,3 +79,79 @@ public:
     TranscodeResp(RPC_TYPE t, uint32_t num, int s) : resp{t, num, s}, extra{0} {}
     TranscodeResp(RPC_TYPE t, uint32_t num, int s, size_t len) : resp{t, num, s}, extra{len} {}
 } __attribute__((packed));
+
+#elif defined(RMEM_PROGRAM)
+
+class ExtraReqMsg
+{
+public:
+    size_t length;
+    uint64_t offset;
+    // high 32 bit used for select worker node, low 32 bit used for select worker thread
+    size_t worker_flag;
+
+};
+
+class ExtraRespMsg
+{
+public:
+    size_t length;
+    uint64_t offset;
+    // high 32 bit used for select worker node, low 32 bit used for select worker thread
+    size_t worker_flag;
+};
+class RmemParam
+{
+public:
+    char hosts[32];
+    uint64_t fork_rmem_addr_;
+    size_t fork_size;
+    int rmem_session_id_;
+    int rmem_thread_id_;
+};
+class PingReq
+{
+public:
+    CommonReq req;
+    size_t timestamp{};
+    RmemParam rmem_param;
+
+    PingReq(RPC_TYPE t, uint32_t num) : req{t, num} {}
+    PingReq(RPC_TYPE t, uint32_t num, size_t ts, RmemParam p) : req{t, num}, timestamp(ts), rmem_param(p) {}
+} __attribute__((packed));
+
+class PingResp
+{
+public:
+    CommonResp resp;
+    size_t timestamp;
+    PingResp(RPC_TYPE t, uint32_t num, int s) : resp{t, num, s} {}
+    PingResp(RPC_TYPE t, uint32_t num, int s, size_t ts) : resp{t, num, s}, timestamp(ts) {}
+} __attribute__((packed));
+
+class TranscodeReq
+{
+public:
+    CommonReq req;
+    ExtraReqMsg extra;
+    TranscodeReq(RPC_TYPE t, uint32_t num) : req{t, num}, extra{0,0,0} {}
+    TranscodeReq(RPC_TYPE t, uint32_t num, size_t len, uint64_t offset, size_t flag) : req{t, num}, extra{len, offset,flag} {}
+
+} __attribute__((packed));
+
+class TranscodeResp
+{
+public:
+    CommonResp resp;
+    ExtraRespMsg extra;
+    TranscodeResp(RPC_TYPE t, uint32_t num, int s) : resp{t, num, s}, extra{0,0,0} {}
+    TranscodeResp(RPC_TYPE t, uint32_t num, int s, size_t len, uint64_t offset, size_t flag) : resp{t, num, s}, extra{len, offset,flag} {}
+} __attribute__((packed));
+
+#elif defined(CXL_PROGRAM)
+
+#else
+
+static_assert(false, "please set at least one type")
+
+#endif

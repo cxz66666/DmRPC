@@ -47,7 +47,7 @@ void connect_sessions(ClientContext *c)
 
 void ping_handler(erpc::ReqHandle *req_handle, void *_context)
 {
-    ServerContext *ctx = static_cast<ServerContext *>(_context);
+    auto *ctx = static_cast<ServerContext *>(_context);
     ctx->stat_req_ping_tot++;
     auto *req_msgbuf = req_handle->get_req_msgbuf();
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(PingReq), "data size not match");
@@ -66,7 +66,7 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
 
 void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 {
-    ServerContext *ctx = static_cast<ServerContext *>(_context);
+    auto *ctx = static_cast<ServerContext *>(_context);
     ctx->stat_req_tc_tot++;
     auto *req_msgbuf = req_handle->get_req_msgbuf();
 
@@ -95,7 +95,7 @@ void callback_ping_resp(void *_context, void *_tag)
 {
     auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
     uint32_t req_id = req_id_ptr;
-    ClientContext *ctx = static_cast<ClientContext *>(_context);
+    auto *ctx = static_cast<ClientContext *>(_context);
 
     // erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req_id];
@@ -115,10 +115,10 @@ void callback_ping_resp(void *_context, void *_tag)
     // ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
-void handler_ping_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
+void handler_ping_resp(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
 {
 
-    PingReq *req = reinterpret_cast<PingReq *>(req_msgbuf.buf_);
+    auto *req = reinterpret_cast<PingReq *>(req_msgbuf.buf_);
 
     ctx->req_backward_msgbuf[req->req.req_number % kAppMaxConcurrency] = req_msgbuf;
 
@@ -133,7 +133,7 @@ void callback_tc_resp(void *_context, void *_tag)
 {
     auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
     uint32_t req_id = req_id_ptr;
-    ClientContext *ctx = static_cast<ClientContext *>(_context);
+    auto *ctx = static_cast<ClientContext *>(_context);
 
     erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req_id];
@@ -152,9 +152,9 @@ void callback_tc_resp(void *_context, void *_tag)
     ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
-void handler_tc_resp(ClientContext *ctx, erpc::MsgBuffer req_msgbuf)
+void handler_tc_resp(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
 {
-    TranscodeReq *req = reinterpret_cast<TranscodeReq *>(req_msgbuf.buf_);
+    auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf.buf_);
 
     ctx->req_backward_msgbuf[req->req.req_number % kAppMaxConcurrency] = req_msgbuf;
 
@@ -175,10 +175,10 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
                                     basic_sm_handler_client, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
-    for (size_t i = 0; i < kAppMaxConcurrency; i++)
+    for (auto & i : ctx->resp_backward_msgbuf)
     {
         // TODO
-        ctx->resp_backward_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeResp));
+        i = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeResp));
     }
 
     connect_sessions(ctx);
@@ -186,14 +186,14 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     using FUNC_HANDLER = std::function<void(ClientContext *, erpc::MsgBuffer)>;
     FUNC_HANDLER handlers[] = {nullptr, handler_ping_resp, nullptr, handler_tc_resp};
 
-    while (1)
+    while (true)
     {
         // only can have ping and tc in forward
         unsigned size = ctx->backward_spsc_queue->was_size();
         for (unsigned i = 0; i < size; i++)
         {
             erpc::MsgBuffer req_msg = ctx->backward_spsc_queue->pop();
-            CommonReq *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
+            auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
             if (req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_TRANSCODE)
             {
                 printf("WARN : receive ping or tc in backward queue, req number is %u\n", req->req_number);
@@ -251,7 +251,7 @@ void worker_thread_func(size_t thread_id, SPSC_QUEUE *producer, SPSC_QUEUE *cons
         {
             erpc::MsgBuffer req_msg = producer->pop();
 
-            TranscodeReq *req = reinterpret_cast<TranscodeReq *>(req_msg.buf_);
+            auto *req = reinterpret_cast<TranscodeReq *>(req_msg.buf_);
             rmem::rt_assert(req->req.type == RPC_TYPE::RPC_TRANSCODE || req->req.type == RPC_TYPE::RPC_PING, "req type error");
             if (req->req.type == RPC_TYPE::RPC_TRANSCODE)
             {
@@ -283,7 +283,7 @@ void leader_thread_func()
     std::vector<std::thread> servers(FLAGS_server_num);
     std::vector<std::thread> workers(FLAGS_client_num);
 
-    AppContext *context = new AppContext();
+    auto *context = new AppContext();
 
     clients[0] = std::thread(client_thread_func, 0, context->client_contexts_[0], &nexus);
     sleep(2);

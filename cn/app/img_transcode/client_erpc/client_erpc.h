@@ -46,15 +46,15 @@ public:
     size_t client_id_;
     size_t server_sender_id_;
     size_t server_receiver_id_;
-    uint32_t req_id_;
+    uint32_t req_id_{};
     atomic_queue::AtomicQueueB2<REQ_MSG, std::allocator<REQ_MSG>, true, false, true> *spsc_queue;
-    atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, true> *resp_spsc_queue;
+    atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, true> *resp_spsc_queue{};
 };
 
 class ServerContext : public BasicContext
 {
 public:
-    ServerContext(size_t sid) : server_id_(sid), stat_req_ping_tot(0), stat_req_ping_resp_tot(0), stat_req_tc_tot(0), stat_req_tc_req_tot(0), stat_req_err_tot(0)
+    explicit ServerContext(size_t sid) : server_id_(sid), stat_req_ping_tot(0), stat_req_ping_resp_tot(0), stat_req_tc_tot(0), stat_req_tc_req_tot(0), stat_req_err_tot(0)
     {
         resp_spsc_queue = new atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, true>(kAppMaxConcurrency);
     }
@@ -79,7 +79,7 @@ public:
         stat_req_err_tot = 0;
     }
     // used for tc send
-    atomic_queue::AtomicQueueB2<REQ_MSG, std::allocator<REQ_MSG>, true, false, true> *spsc_queue;
+    atomic_queue::AtomicQueueB2<REQ_MSG, std::allocator<REQ_MSG>, true, false, true> *spsc_queue{nullptr};
     // used for ping receive
     atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, true> *resp_spsc_queue;
 };
@@ -115,8 +115,6 @@ public:
             delete ctx;
         }
     }
-
-    uint32_t req_number_;
 
     std::vector<ClientContext *> client_contexts_;
     std::vector<ServerContext *> server_contexts_;
