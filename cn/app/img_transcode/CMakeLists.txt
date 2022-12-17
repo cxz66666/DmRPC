@@ -1,7 +1,20 @@
 project(img_transcode)
 
-set(PROGRAMS client_rmem client_erpc firewall img_bitmap_worker img_server load_balance)
+set(PROGRAMS firewall img_server load_balance)
 
+if(IMG_TRANSCODE_TYPE STREQUAL "erpc")
+    set(PROGRAMS ${PROGRAMS} client_erpc img_bitmap_worker)
+    add_definitions(-DERPC_PROGERAM)
+    message(STATUS "Using erpc for img_transcode")
+elseif(IMG_TRANSCODE_TYPE STREQUAL "rmem")
+    set(PROGRAMS ${PROGRAMS} client_rmem img_bitmap_worker_rmem)
+    add_definitions(-DRMEM_PROGRAM)
+    message(STATUS "Using rmem for img_transcode")
+elseif(IMG_TRANSCODE_TYPE STREQUAL "cxl")
+    message(STATUS "Using cxl for img_transcode")
+else()
+    message(STATUS "error for compile type")
+endif()
 
 foreach(project_name IN LISTS PROGRAMS)
     add_executable(${project_name} ${CMAKE_SOURCE_DIR}/cn/app/img_transcode/${project_name}/${project_name}.cpp ${APP_ADDITIONAL_SOURCES})

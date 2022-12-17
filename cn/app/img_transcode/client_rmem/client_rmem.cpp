@@ -105,7 +105,7 @@ void handler_ping(ClientContext *ctx, REQ_MSG req_msg)
     uint32_t rpc_id=req_msg.req_id;
     RmemParam& param = ctx->rmem_params_[rpc_id];
 
-    new (ctx->ping_msgbuf[rpc_id].buf_) PingReq(RPC_TYPE::RPC_PING, req_msg.req_id, SIZE_MAX, param);
+    new (ctx->ping_msgbuf[rpc_id].buf_) PingReq(RPC_TYPE::RPC_PING, 0, SIZE_MAX, param);
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_PING),
                                &ctx->ping_msgbuf[rpc_id], &ctx->ping_resp_msgbuf[rpc_id],
                                callback_ping, reinterpret_cast<void *>(rpc_id));
@@ -133,7 +133,7 @@ void handler_tc(ClientContext *ctx, REQ_MSG req_msg)
     erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[rpc_id][req_id];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[rpc_id][req_id];
     // TODO don't know length, a hack method
-    new (req_msgbuf.buf_) TranscodeReq(RPC_TYPE::RPC_TRANSCODE, req_msg.req_id, file_size, req_id*file_size_aligned, ctx->rmem_flags_[rpc_id]);
+    new (req_msgbuf.buf_) TranscodeReq(RPC_TYPE::RPC_TRANSCODE, req_id, file_size, req_id*file_size_aligned, ctx->rmem_flags_[rpc_id]);
 
 //    timers[req_msg.req_id % FLAGS_concurrency].tic();
 

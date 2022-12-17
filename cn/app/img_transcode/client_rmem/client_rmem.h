@@ -15,7 +15,6 @@ std::streamsize file_size;
 size_t file_size_aligned;
 
 uint8_t *file_buf;
-static constexpr size_t kAppMaxRPC = 16; // Outstanding rpcs per thread
 
 std::vector<rmem::Timer> timers;
 hdr_histogram *latency_hist_;
@@ -158,6 +157,7 @@ public:
                     RmemParam tmp_param{};
                     tmp_param.rmem_thread_id_=static_cast<int>(session_num);
                     tmp_param.rmem_session_id_=session_id;
+                    tmp_param.file_size = file_size_aligned;
                     memcpy(tmp_param.hosts, rmem::get_uri_for_process(s).c_str(), rmem::get_uri_for_process(s).size());
                     client_contexts_[i]->rmem_params_.push_back(tmp_param);
                     client_contexts_[i]->rmem_flags_.push_back(server_id<<32 | session_num);

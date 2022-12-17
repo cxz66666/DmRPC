@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define RMEM_PROGRAM
 enum class RPC_TYPE : uint8_t
 {
     RPC_PING = 0,
@@ -108,6 +107,7 @@ public:
     size_t fork_size;
     int rmem_session_id_;
     int rmem_thread_id_;
+    size_t file_size;
 };
 class PingReq
 {

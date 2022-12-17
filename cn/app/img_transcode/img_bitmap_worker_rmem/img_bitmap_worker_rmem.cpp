@@ -1,7 +1,7 @@
 #include <thread>
 #include "numautil.h"
 #include "spinlock_mutex.h"
-#include "img_bitmap_worker.h"
+#include "img_bitmap_worker_rmem.h"
 
 size_t get_bind_core(size_t numa)
 {
@@ -57,7 +57,8 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
     new (req_handle->pre_resp_msgbuf_.buf_) PingResp(req->req.type, req->req.req_number, 0, req->timestamp);
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(PingResp));
 
-    ctx->forward_spsc_queue->push(*req_msgbuf);
+    // What fuck
+    std::thread(worker_ping_thread, *req_msgbuf).detach();
 
     req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
 
@@ -71,20 +72,25 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
     auto *req_msgbuf = req_handle->get_req_msgbuf();
 
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf->buf_);
-    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq) + req->extra.length, "data size not match");
+
+    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq), "data size not match");
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
-    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
+    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
 
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
 
-    // if (ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency].buf_ != nullptr)
-    // {
-    //     ctx->rpc_->free_msg_buffer(ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency]);
-    // }
+    uint32_t rpc_id = req->extra.worker_flag;
+    uint32_t req_id = req->req.req_number % kAppMaxConcurrency;
 
-    ctx->forward_spsc_queue->push(*req_msgbuf);
+    if (ctx->req_backward_msgbuf_ptr[rpc_id][req_id].buf_ != nullptr)
+    {
+        ctx->rpc_->free_msg_buffer(ctx->req_backward_msgbuf_ptr[rpc_id][req_id]);
+    }
+
+    forward_spsc_queue[rpc_id]->push(*req_msgbuf);
+    rmems_[rpc_id]->rmem_read_async(rmem_req_msgbuf[rpc_id][req_id], rmem_base_addr[rpc_id] + req->extra.offset, req->extra.length);
 
     req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
 
@@ -93,12 +99,12 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 
 void callback_ping_resp(void *_context, void *_tag)
 {
-    auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
-    uint32_t req_id = req_id_ptr;
+    auto thread_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
+    uint32_t thread_id = thread_id_ptr;
     auto *ctx = static_cast<ClientContext *>(_context);
 
     // erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req_id];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[thread_id][0];
 
     rmem::rt_assert(resp_msgbuf.get_data_size() == sizeof(PingResp), "data size not match");
 
@@ -115,28 +121,29 @@ void callback_ping_resp(void *_context, void *_tag)
     // ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
-void handler_ping_resp(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
+void handler_ping_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 {
 
     auto *req = reinterpret_cast<PingReq *>(req_msgbuf.buf_);
 
-    ctx->req_backward_msgbuf[req->req.req_number % kAppMaxConcurrency] = req_msgbuf;
+    ctx->req_backward_msgbuf[req->rmem_param.rmem_thread_id_][0] = req_msgbuf;
 
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req.req_number % kAppMaxConcurrency];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->rmem_param.rmem_thread_id_][0];
 
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP),
-                               &ctx->req_backward_msgbuf[req->req.req_number % kAppMaxConcurrency], &resp_msgbuf,
-                               callback_ping_resp, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
+                               &ctx->req_backward_msgbuf[req->rmem_param.rmem_thread_id_][0], &resp_msgbuf,
+                               callback_ping_resp, reinterpret_cast<void *>(req->rmem_param.rmem_thread_id_));
 }
 
 void callback_tc_resp(void *_context, void *_tag)
 {
     auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
+    uint32_t rpc_id = req_id_ptr >> 32;
     uint32_t req_id = req_id_ptr;
     auto *ctx = static_cast<ClientContext *>(_context);
 
-    erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req_id];
+    // erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[rpc_id][req_id];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[rpc_id][req_id];
 
     rmem::rt_assert(resp_msgbuf.get_data_size() == sizeof(TranscodeResp), "data size not match");
 
@@ -149,20 +156,21 @@ void callback_tc_resp(void *_context, void *_tag)
     // TODO
     // }
 
-    ctx->rpc_->free_msg_buffer(req_msgbuf);
+    // ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
-void handler_tc_resp(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
+void handler_tc_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 {
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf.buf_);
+    uint32_t rpc_id = req->extra.worker_flag & 0xFFFFFFFF;
+    uint32_t req_id = req->req.req_number % kAppMaxConcurrency;
+    ctx->req_backward_msgbuf[rpc_id][req_id] = req_msgbuf;
 
-    ctx->req_backward_msgbuf[req->req.req_number % kAppMaxConcurrency] = req_msgbuf;
-
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req.req_number % kAppMaxConcurrency];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[rpc_id][req_id];
 
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE_RESP),
-                               &ctx->req_backward_msgbuf[req->req.req_number % kAppMaxConcurrency], &resp_msgbuf,
-                               callback_tc_resp, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
+                               &ctx->req_backward_msgbuf[rpc_id][req_id], &resp_msgbuf,
+                               callback_tc_resp, reinterpret_cast<void *>(static_cast<uint64_t>(rpc_id) << 32 | req_id));
 }
 
 void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus)
@@ -177,8 +185,10 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     ctx->rpc_ = &rpc;
     for (auto & i : ctx->resp_backward_msgbuf)
     {
-        // TODO
-        i = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeResp));
+        for (auto & j : i)
+        {
+            j = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeResp));
+        }
     }
 
     connect_sessions(ctx);
@@ -189,10 +199,10 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     while (true)
     {
         // only can have ping and tc in forward
-        unsigned size = ctx->backward_spsc_queue->was_size();
+        unsigned size = backward_spsc_queue->was_size();
         for (unsigned i = 0; i < size; i++)
         {
-            erpc::MsgBuffer req_msg = ctx->backward_spsc_queue->pop();
+            erpc::MsgBuffer req_msg = backward_spsc_queue->pop();
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
             if (req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_TRANSCODE)
             {
@@ -241,34 +251,42 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
     }
 }
 
-void worker_thread_func(size_t thread_id, SPSC_QUEUE *producer, SPSC_QUEUE *consumer, erpc::Rpc<erpc::CTransport> *rpc_, erpc::Rpc<erpc::CTransport> *server_rpc_)
+void worker_thread_func(size_t thread_id)
 {
-    _unused(thread_id);
+    int *results_buffer = new int[batch_size];
     while (true)
     {
-        unsigned size = producer->was_size();
-        for (unsigned i = 0; i < size; i++)
+        for (size_t i = thread_id; i < kAppMaxRPC; i += FLAGS_worker_num)
         {
-            erpc::MsgBuffer req_msg = producer->pop();
-
-            auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
-            rmem::rt_assert(req->type == RPC_TYPE::RPC_TRANSCODE || req->type == RPC_TYPE::RPC_PING, "req type error");
-            if (req->type == RPC_TYPE::RPC_TRANSCODE)
+            if (rmems_[i] == nullptr)
             {
-                resize_bitmap(req_msg.buf_, rpc_, consumer);
-                server_rpc_->free_msg_buffer(req_msg);
+                continue;
             }
-            else
+            size_t num = rmems_[i]->rmem_poll(results_buffer, batch_size);
+            for (size_t j = 0; j < num; j++)
             {
-                req->type = RPC_TYPE::RPC_PING_RESP;
-                consumer->push(req_msg);
+                erpc::MsgBuffer req_msg = forward_spsc_queue[i]->pop();
+                auto *req = reinterpret_cast<TranscodeReq *>(req_msg.buf_);
+
+                uint32_t rpc_id = req->extra.worker_flag;
+                uint32_t req_id = req->req.req_number;
+                if (unlikely(!resize_bitmap(rmem_req_msgbuf[rpc_id][req_id], rmem_resp_msgbuf[rpc_id][req_id])))
+                {
+                    req->extra.length = req->extra.offset = SIZE_MAX;
+                }
+                req->req.type = RPC_TYPE::RPC_TRANSCODE_RESP;
+                // TODO modify more fields
+                // Don't forget to free buffer
+                backward_spsc_queue->push(req_msg);
             }
         }
+
         if (ctrl_c_pressed == 1)
         {
             break;
         }
     }
+    delete []results_buffer;
 }
 void leader_thread_func()
 {
@@ -303,10 +321,10 @@ void leader_thread_func()
     }
     // wait for server rpc init
     sleep(3);
-    for (size_t i = 0; i < FLAGS_client_num; i++)
+    for (size_t i = 0; i < FLAGS_worker_num; i++)
     {
         rmem::rt_assert(context->server_contexts_[i]->rpc_ != nullptr, "server rpc is null");
-        workers[i] = std::thread(worker_thread_func, i, context->client_contexts_[i]->forward_spsc_queue, context->client_contexts_[i]->backward_spsc_queue, context->client_contexts_[i]->rpc_, context->server_contexts_[i]->rpc_);
+        workers[i] = std::thread(worker_thread_func, i);
         rmem::bind_to_core(workers[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
     }
 
@@ -335,6 +353,12 @@ int main(int argc, char **argv)
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     check_common_gflags();
+
+    rmem::rt_assert(FLAGS_client_num == 1, "client num must be 1");
+    rmem::rt_assert(FLAGS_server_num == 1, "server num must be 1");
+
+    rmem::rmem_init(rmem::get_uri_for_process(FLAGS_rmem_self_index), FLAGS_numa_client_node);
+
     if (FLAGS_resize_factor <= 0 || FLAGS_resize_factor > 1)
     {
         printf("resize factor must be in (0,1]\n");
