@@ -36,7 +36,7 @@ void connect_sessions(ClientContext *c)
     while (c->num_sm_resps_ != 1)
     {
         c->rpc_->run_event_loop(kAppEvLoopMs);
-        if (unlikely(ctrl_c_pressed == 1))
+        if (unlikely(ctrl_c_pressed))
         {
             printf("Ctrl-C pressed. Exiting\n");
             return;
@@ -118,7 +118,7 @@ void callback_tc(void *_context, void *_tag)
     uint32_t req_id = req_id_ptr;
     auto *ctx = static_cast<ClientContext *>(_context);
 
-    auto *resp = reinterpret_cast<TranscodeResp *>(ctx->resp_msgbuf[rpc_id][req_id % kAppMaxConcurrency].buf_);
+    auto *resp = reinterpret_cast<TranscodeResp *>(ctx->resp_msgbuf[rpc_id][req_id].buf_);
 
     if (resp->resp.status != 0)
     {
@@ -129,18 +129,18 @@ void handler_tc(ClientContext *ctx, REQ_MSG req_msg)
 {
     uint32_t rpc_id=req_msg.req_id;
     uint32_t req_id=ctx->rmem_req_ids_[rpc_id]++;
-
-    erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[rpc_id][req_id];
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[rpc_id][req_id];
+    uint32_t req_id_mod=req_id % kAppMaxConcurrency;
+    erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[rpc_id][req_id_mod];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[rpc_id][req_id_mod];
     // TODO don't know length, a hack method
-    new (req_msgbuf.buf_) TranscodeReq(RPC_TYPE::RPC_TRANSCODE, req_id, file_size, req_id*file_size_aligned, ctx->rmem_flags_[rpc_id]);
+    new (req_msgbuf.buf_) TranscodeReq(RPC_TYPE::RPC_TRANSCODE, req_id, file_size, (req_id%FLAGS_concurrency)*file_size_aligned, ctx->rmem_flags_[rpc_id]);
 
 //    timers[req_msg.req_id % FLAGS_concurrency].tic();
 
 
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
                                &req_msgbuf, &resp_msgbuf,
-                               callback_tc, reinterpret_cast<void *>(static_cast<uint64_t>(rpc_id)<<32 | req_id));
+                               callback_tc, reinterpret_cast<void *>(static_cast<uint64_t>(rpc_id)<<32 | req_id_mod));
 }
 
 void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus)
@@ -213,7 +213,7 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
 
         ctx->rpc_->reset_dpath_stats();
         // more handler
-        if (ctrl_c_pressed == 1)
+        if (ctrl_c_pressed)
         {
             break;
         }

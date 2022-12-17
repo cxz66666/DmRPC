@@ -252,6 +252,8 @@ namespace rmem
         auto res = condition_resp_->waiting_resp_extra(DefaultTimeoutMS);
 
         // TODO add extra check at here for res.first;
+        rt_assert(res.first==0, "join failed, res is"+ std::to_string(res.first));
+
         return res.second;
     }
 
@@ -273,6 +275,7 @@ namespace rmem
             ;
         auto res = condition_resp_->waiting_resp_extra(DefaultTimeoutMS);
 
+        rt_assert(res.first==0, "join failed, res is"+ std::to_string(res.first));
         // TODO add extra check at here for res.first;
         return res.second;
     }

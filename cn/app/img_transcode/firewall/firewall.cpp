@@ -40,7 +40,7 @@ void connect_sessions(ClientContext *c)
     while (c->num_sm_resps_ != 2)
     {
         c->rpc_->run_event_loop(kAppEvLoopMs);
-        if (unlikely(ctrl_c_pressed == 1))
+        if (unlikely(ctrl_c_pressed))
         {
             printf("Ctrl-C pressed. Exiting\n");
             return;
@@ -384,7 +384,7 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
 
         ctx->rpc_->reset_dpath_stats();
         // more handler
-        if (ctrl_c_pressed == 1)
+        if (ctrl_c_pressed)
         {
             break;
         }

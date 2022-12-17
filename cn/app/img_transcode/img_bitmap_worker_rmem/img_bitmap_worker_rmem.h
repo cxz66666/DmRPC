@@ -201,24 +201,26 @@ bool resize_bitmap(void *input_buf_, void *output_buf_)
 void create_session_and_join(PingReq *req_ping)
 {
     rmem::rt_assert(static_cast<size_t>(req_ping->rmem_param.rmem_thread_id_) < kAppMaxRPC, "rmem_thread_id_ out of range");
-    auto &rmem_now = rmems_[req_ping->rmem_param.rmem_thread_id_];
     RmemParam param = req_ping->rmem_param;
-    rmem::rt_assert(rmem_now == nullptr, "rmem already created");
-    rmem_now = new rmem::Rmem(0);
+    rmem::rt_assert(rmems_[req_ping->rmem_param.rmem_thread_id_] == nullptr, "rmem already created");
+    rmem::Rmem* rmem_now = new rmem::Rmem(0);
 
-    printf("hosts %s, thread_id %u\n",param.hosts, param.rmem_thread_id_);
-    rmem::rt_assert(rmem_now->connect_session(param.hosts, param.rmem_thread_id_) == 0, "connect session error");
+    printf("hosts %s, thread_id %u, session_id %u\n",param.hosts, param.rmem_thread_id_,param.rmem_session_id_);
+    std::string hosts(param.hosts);
+    if(unlikely(rmem_now->connect_session(hosts, param.rmem_thread_id_)) != 0){
+        printf("connect error\n");
+        exit(-1);
+    }
 
     rmem_base_addr[param.rmem_thread_id_] = rmem_now->rmem_join(param.fork_rmem_addr_, param.rmem_thread_id_, param.rmem_session_id_);
-
     printf("join success, based addr %ld\n", rmem_base_addr[param.rmem_thread_id_]);
+
     for (size_t i = 0; i < kAppMaxConcurrency; i++)
     {
         rmem_req_msgbuf[param.rmem_thread_id_][i] = rmem_now->rmem_get_msg_buffer(param.file_size);
         rmem_resp_msgbuf[param.rmem_thread_id_][i] = rmem_now->rmem_get_msg_buffer(param.file_size);
     }
-
-    return;
+    rmems_[req_ping->rmem_param.rmem_thread_id_] = rmem_now;
 }
 
 void worker_ping_thread(erpc::MsgBuffer req_msg)

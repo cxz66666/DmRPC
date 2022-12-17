@@ -90,6 +90,7 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
     }
 
     forward_spsc_queue[rpc_id]->push(*req_msgbuf);
+//    printf("rpcid %u, base_addr %lu, offset %lu, length %lu, req number %u, worker flag %lu\n", rpc_id, rmem_base_addr[rpc_id], req->extra.offset, req->extra.length, req->req.req_number, req->extra.worker_flag);
     rmems_[rpc_id]->rmem_read_async(rmem_req_msgbuf[rpc_id][req_id], rmem_base_addr[rpc_id] + req->extra.offset, req->extra.length);
 
     req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
@@ -269,7 +270,7 @@ void worker_thread_func(size_t thread_id)
                 auto *req = reinterpret_cast<TranscodeReq *>(req_msg.buf_);
 
                 uint32_t rpc_id = req->extra.worker_flag;
-                uint32_t req_id = req->req.req_number;
+                uint32_t req_id = req->req.req_number % kAppMaxConcurrency;
                 if (unlikely(!resize_bitmap(rmem_req_msgbuf[rpc_id][req_id], rmem_resp_msgbuf[rpc_id][req_id])))
                 {
                     req->extra.length = req->extra.offset = SIZE_MAX;
@@ -299,7 +300,7 @@ void leader_thread_func()
 
     std::vector<std::thread> clients(FLAGS_client_num);
     std::vector<std::thread> servers(FLAGS_server_num);
-    std::vector<std::thread> workers(FLAGS_client_num);
+    std::vector<std::thread> workers(FLAGS_worker_num);
 
     auto *context = new AppContext();
 
@@ -319,11 +320,8 @@ void leader_thread_func()
 
         rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node) + FLAGS_bind_core_offset);
     }
-    // wait for server rpc init
-    sleep(3);
     for (size_t i = 0; i < FLAGS_worker_num; i++)
     {
-        rmem::rt_assert(context->server_contexts_[i]->rpc_ != nullptr, "server rpc is null");
         workers[i] = std::thread(worker_thread_func, i);
         rmem::bind_to_core(workers[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
     }
@@ -340,7 +338,7 @@ void leader_thread_func()
         servers[i].join();
     }
 
-    for (size_t i = 0; i < FLAGS_client_num; i++)
+    for (size_t i = 0; i < FLAGS_worker_num; i++)
     {
         workers[i].join();
     }

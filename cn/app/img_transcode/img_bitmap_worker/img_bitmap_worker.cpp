@@ -37,7 +37,7 @@ void connect_sessions(ClientContext *c)
     while (c->num_sm_resps_ != 1)
     {
         c->rpc_->run_event_loop(kAppEvLoopMs);
-        if (unlikely(ctrl_c_pressed == 1))
+        if (unlikely(ctrl_c_pressed))
         {
             printf("Ctrl-C pressed. Exiting\n");
             return;
