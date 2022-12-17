@@ -179,7 +179,7 @@ public:
                 }
                 client_contexts_[c]->rmem_params_[i].fork_rmem_addr_= rmems_[i]->rmem_fork(base_addr,total_size);
                 client_contexts_[c]->rmem_params_[i].fork_size = total_size;
-                rmem::rt_assert(rmems_[i]->rmem_free(base_addr,total_size), "rmem free fail");
+                rmem::rt_assert(rmems_[i]->rmem_free(base_addr,total_size)==0, "rmem free fail");
 
                 // TODO want to free this session at now, but can't because worker don't use join!
             }

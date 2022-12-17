@@ -30,7 +30,7 @@ void connect_sessions(ClientContext *c)
 
     // connect to backward server
     std::string remote_uri = rmem::get_uri_for_process(FLAGS_server_backward_index);
-    int session_num_backwward = c->rpc_->create_session(remote_uri, c->server_sender_id_);
+    int session_num_backwward = c->rpc_->create_session(remote_uri, c->server_sender_id_ + kAppMaxRPC);
     rmem::rt_assert(session_num_backwward >= 0, "Failed to create session");
     c->session_num_vec_.push_back(session_num_backwward);
 
@@ -179,7 +179,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
-                                    static_cast<uint8_t>(thread_id + FLAGS_server_num),
+                                    static_cast<uint8_t>(thread_id + FLAGS_server_num + kAppMaxRPC),
                                     basic_sm_handler_client, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
@@ -228,7 +228,7 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
-                                    static_cast<uint8_t>(thread_id),
+                                    static_cast<uint8_t>(thread_id + kAppMaxRPC),
                                     basic_sm_handler_server, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;

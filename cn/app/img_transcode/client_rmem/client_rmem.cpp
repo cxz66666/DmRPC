@@ -30,7 +30,7 @@ size_t get_bind_core(size_t numa)
 void connect_sessions(ClientContext *c)
 {
     std::string remote_uri = rmem::get_uri_for_process(FLAGS_server_forward_index);
-    int session_num = c->rpc_->create_session(remote_uri, c->server_sender_id_);
+    int session_num = c->rpc_->create_session(remote_uri, c->server_sender_id_ + kAppMaxRPC);
     rmem::rt_assert(session_num >= 0, "Failed to create session");
     c->session_num_vec_.push_back(session_num);
     while (c->num_sm_resps_ != 1)
@@ -149,7 +149,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
-                                    static_cast<uint8_t>(thread_id + FLAGS_server_num),
+                                    static_cast<uint8_t>(thread_id + FLAGS_server_num + kAppMaxRPC),
                                     basic_sm_handler_client, phy_port);
     printf("client %p\n", reinterpret_cast<void *>(ctx));
     rpc.retry_connect_on_invalid_rpc_id_ = true;
@@ -195,7 +195,7 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
-                                    static_cast<uint8_t>(thread_id),
+                                    static_cast<uint8_t>(thread_id + kAppMaxRPC),
                                     basic_sm_handler_server, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
@@ -259,6 +259,9 @@ void leader_thread_func()
     {
         size_t total_ping_size=context->client_contexts_[i]->rmem_params_.size();
         while(total_ping_size--){
+            if(ctrl_c_pressed){
+                break;
+            }
             // connect success
             RESP_MSG msg = context->server_contexts_[i]->resp_spsc_queue->pop();
             printf("server %zu: status %d, req_id %u\n", i, msg.status, msg.req_id);

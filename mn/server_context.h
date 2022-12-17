@@ -20,16 +20,16 @@ namespace rmem
     class ServerContext : public BasicAppContext
     {
     public:
-        erpc::ChronoTimer tput_t0; // Start time for throughput measurement
+        erpc::ChronoTimer tput_t0{}; // Start time for throughput measurement
 
-        size_t stat_req_rx_tot;
-        size_t stat_req_alloc_tot;
-        size_t stat_req_free_tot;
-        size_t stat_req_read_tot;
-        size_t stat_req_write_tot;
-        size_t stat_req_fork_tot;
-        size_t stat_req_join_tot;
-        size_t stat_req_error_tot;
+        size_t stat_req_rx_tot{};
+        size_t stat_req_alloc_tot{};
+        size_t stat_req_free_tot{};
+        size_t stat_req_read_tot{};
+        size_t stat_req_write_tot{};
+        size_t stat_req_fork_tot{};
+        size_t stat_req_join_tot{};
+        size_t stat_req_error_tot{};
 
         void reset_stat(){
             stat_req_rx_tot= 0;

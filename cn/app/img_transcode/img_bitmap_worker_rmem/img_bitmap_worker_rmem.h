@@ -206,10 +206,12 @@ void create_session_and_join(PingReq *req_ping)
     rmem::rt_assert(rmem_now == nullptr, "rmem already created");
     rmem_now = new rmem::Rmem(0);
 
+    printf("hosts %s, thread_id %u\n",param.hosts, param.rmem_thread_id_);
     rmem::rt_assert(rmem_now->connect_session(param.hosts, param.rmem_thread_id_) == 0, "connect session error");
 
     rmem_base_addr[param.rmem_thread_id_] = rmem_now->rmem_join(param.fork_rmem_addr_, param.rmem_thread_id_, param.rmem_session_id_);
 
+    printf("join success, based addr %ld\n", rmem_base_addr[param.rmem_thread_id_]);
     for (size_t i = 0; i < kAppMaxConcurrency; i++)
     {
         rmem_req_msgbuf[param.rmem_thread_id_][i] = rmem_now->rmem_get_msg_buffer(param.file_size);
