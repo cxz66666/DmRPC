@@ -197,7 +197,16 @@ void handler_ping(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
     // TODO load balance?
-    ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_PING),
+
+    size_t session_num = 0;
+#if defined(ERPC_PROGRAM)
+    session_num = ctx->session_num_vec_[0];
+#elif defined(RMEM_PROGRAM)
+    session_num = req->req.req_number % ctx->servers_num_;
+#elif defined(CXL_PROGRAM)
+    session_num =  ctx->session_num_vec_[0];
+#endif
+    ctx->rpc_->enqueue_request(session_num, static_cast<uint8_t>(RPC_TYPE::RPC_PING),
                                &ctx->req_forward_msgbuf[req->req.req_number % kAppMaxConcurrency], &resp_msgbuf,
                                callback_ping, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
 }
@@ -271,8 +280,17 @@ void handler_tc(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req.req_number % kAppMaxConcurrency];
 
-    // TODO load balance?
-    ctx->rpc_->enqueue_request(ctx->session_num_vec_[req->req.req_number % ctx->servers_num_], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
+
+    size_t session_num = 0;
+#if defined(ERPC_PROGRAM)
+    session_num = ctx->session_num_vec_[req->req.req_number % ctx->servers_num_];
+#elif defined(RMEM_PROGRAM)
+    session_num = (req->extra.worker_flag>>32) % ctx->servers_num_;
+#elif defined(CXL_PROGRAM)
+    session_num =  ctx->session_num_vec_[req->req.req_number % ctx->servers_num_];
+#endif
+
+    ctx->rpc_->enqueue_request(session_num, static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
                                &ctx->req_forward_msgbuf[req->req.req_number % kAppMaxConcurrency], &resp_msgbuf,
                                callback_tc, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
 }
@@ -319,8 +337,17 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     ctx->client_id_ = thread_id;
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
+
+    uint8_t rpc_id=0;
+#if defined(ERPC_PROGRAM)
+    rpc_id = thread_id + FLAGS_server_num;
+#elif defined(RMEM_PROGRAM)
+    rpc_id = thread_id + FLAGS_server_num + kAppMaxRPC;
+#elif defined(CXL_PROGRAM)
+    rpc_id =  thread_id + FLAGS_server_num;
+#endif
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
-                                    static_cast<uint8_t>(thread_id + FLAGS_server_num),
+                                    rpc_id,
                                     basic_sm_handler_client, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
@@ -371,8 +398,17 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
     ctx->server_id_ = thread_id;
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
+
+    uint8_t rpc_id=0;
+#if defined(ERPC_PROGRAM)
+    rpc_id = thread_id;
+#elif defined(RMEM_PROGRAM)
+    rpc_id = thread_id + kAppMaxRPC;
+#elif defined(CXL_PROGRAM)
+    rpc_id =  thread_id;
+#endif
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
-                                    static_cast<uint8_t>(thread_id),
+                                    rpc_id,
                                     basic_sm_handler_server, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;

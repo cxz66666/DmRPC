@@ -321,8 +321,17 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     ctx->client_id_ = thread_id;
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
+
+    uint8_t rpc_id=0;
+#if defined(ERPC_PROGRAM)
+    rpc_id = thread_id + FLAGS_server_num;
+#elif defined(RMEM_PROGRAM)
+    rpc_id = thread_id + FLAGS_server_num + kAppMaxRPC;
+#elif defined(CXL_PROGRAM)
+    rpc_id =  thread_id + FLAGS_server_num;
+#endif
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
-                                    static_cast<uint8_t>(thread_id + FLAGS_server_num),
+                                    rpc_id,
                                     basic_sm_handler_client, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
@@ -373,8 +382,17 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
     ctx->server_id_ = thread_id;
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
+
+    uint8_t rpc_id=0;
+#if defined(ERPC_PROGRAM)
+    rpc_id = thread_id;
+#elif defined(RMEM_PROGRAM)
+    rpc_id = thread_id + kAppMaxRPC;
+#elif defined(CXL_PROGRAM)
+    rpc_id =  thread_id;
+#endif
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
-                                    static_cast<uint8_t>(thread_id),
+                                    rpc_id,
                                     basic_sm_handler_server, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
