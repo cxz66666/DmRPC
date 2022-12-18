@@ -94,8 +94,6 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf->buf_);
 
-
-
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 #if defined(ERPC_PROGERAM)
 
@@ -104,7 +102,7 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 #elif defined(RMEM_PROGRAM)
 
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq), "data size not match");
-    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length,req->extra.offset, req->extra.worker_flag);
+    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
 
 #elif defined(CXL_PROGRAM)
 #else
@@ -113,9 +111,9 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
 
-    if (likely(ctx->req_forward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency].buf_ != nullptr))
+    if (likely(ctx->req_forward_msgbuf_ptr[req->req.req_number % kAppMaxBuffer].buf_ != nullptr))
     {
-        ctx->rpc_->free_msg_buffer(ctx->req_forward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency]);
+        ctx->rpc_->free_msg_buffer(ctx->req_forward_msgbuf_ptr[req->req.req_number % kAppMaxBuffer]);
     }
 
     ctx->forward_spsc_queue->push(*req_msgbuf);
@@ -140,18 +138,18 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
     new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
 #elif defined(RMEM_PROGRAM)
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq), "data size not match");
-    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length,req->extra.offset, req->extra.worker_flag);
+    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
 
 #elif defined(CXL_PROGRAM)
-    #else
+#else
     static_assert(false, "program type not defined");
 #endif
 
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
 
-    if (ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency].buf_ != nullptr)
+    if (ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxBuffer].buf_ != nullptr)
     {
-        ctx->rpc_->free_msg_buffer(ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxConcurrency]);
+        ctx->rpc_->free_msg_buffer(ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxBuffer]);
     }
 
     ctx->backward_spsc_queue->push(*req_msgbuf);
@@ -185,17 +183,17 @@ void callback_ping(void *_context, void *_tag)
     // ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
-void handler_ping(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
+void handler_ping(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 {
     auto *req = reinterpret_cast<PingReq *>(req_msgbuf.buf_);
 
-    ctx->req_forward_msgbuf[req->req.req_number % kAppMaxConcurrency] = req_msgbuf;
+    ctx->req_forward_msgbuf[req->req.req_number % kAppMaxBuffer] = req_msgbuf;
 
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req.req_number % kAppMaxConcurrency];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req.req_number % kAppMaxBuffer];
 
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_PING),
-                               &ctx->req_forward_msgbuf[req->req.req_number % kAppMaxConcurrency], &resp_msgbuf,
-                               callback_ping, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
+                               &ctx->req_forward_msgbuf[req->req.req_number % kAppMaxBuffer], &resp_msgbuf,
+                               callback_ping, reinterpret_cast<void *>(req->req.req_number % kAppMaxBuffer));
 }
 
 void callback_ping_resp(void *_context, void *_tag)
@@ -222,18 +220,18 @@ void callback_ping_resp(void *_context, void *_tag)
     // ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
-void handler_ping_resp(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
+void handler_ping_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 {
 
     auto *req = reinterpret_cast<PingReq *>(req_msgbuf.buf_);
 
-    ctx->req_backward_msgbuf[req->req.req_number % kAppMaxConcurrency] = req_msgbuf;
+    ctx->req_backward_msgbuf[req->req.req_number % kAppMaxBuffer] = req_msgbuf;
 
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req.req_number % kAppMaxConcurrency];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req.req_number % kAppMaxBuffer];
 
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[1], static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP),
-                               &ctx->req_backward_msgbuf[req->req.req_number % kAppMaxConcurrency], &resp_msgbuf,
-                               callback_ping_resp, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
+                               &ctx->req_backward_msgbuf[req->req.req_number % kAppMaxBuffer], &resp_msgbuf,
+                               callback_ping_resp, reinterpret_cast<void *>(req->req.req_number % kAppMaxBuffer));
 }
 
 void callback_tc(void *_context, void *_tag)
@@ -259,17 +257,17 @@ void callback_tc(void *_context, void *_tag)
     // TODO check
     // ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
-void handler_tc(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
+void handler_tc(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 {
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf.buf_);
 
-    ctx->req_forward_msgbuf[req->req.req_number % kAppMaxConcurrency] = req_msgbuf;
+    ctx->req_forward_msgbuf[req->req.req_number % kAppMaxBuffer] = req_msgbuf;
 
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req.req_number % kAppMaxConcurrency];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req.req_number % kAppMaxBuffer];
 
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
-                               &ctx->req_forward_msgbuf[req->req.req_number % kAppMaxConcurrency], &resp_msgbuf,
-                               callback_tc, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
+                               &ctx->req_forward_msgbuf[req->req.req_number % kAppMaxBuffer], &resp_msgbuf,
+                               callback_tc, reinterpret_cast<void *>(req->req.req_number % kAppMaxBuffer));
 }
 
 void callback_tc_resp(void *_context, void *_tag)
@@ -296,17 +294,17 @@ void callback_tc_resp(void *_context, void *_tag)
     // ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
-void handler_tc_resp(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
+void handler_tc_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 {
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf.buf_);
 
-    ctx->req_backward_msgbuf[req->req.req_number % kAppMaxConcurrency] = req_msgbuf;
+    ctx->req_backward_msgbuf[req->req.req_number % kAppMaxBuffer] = req_msgbuf;
 
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req.req_number % kAppMaxConcurrency];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req.req_number % kAppMaxBuffer];
 
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[1], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE_RESP),
-                               &ctx->req_backward_msgbuf[req->req.req_number % kAppMaxConcurrency], &resp_msgbuf,
-                               callback_tc_resp, reinterpret_cast<void *>(req->req.req_number % kAppMaxConcurrency));
+                               &ctx->req_backward_msgbuf[req->req.req_number % kAppMaxBuffer], &resp_msgbuf,
+                               callback_tc_resp, reinterpret_cast<void *>(req->req.req_number % kAppMaxBuffer));
 }
 
 void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus)
@@ -315,20 +313,20 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
 
-    uint8_t rpc_id=0;
+    uint8_t rpc_id = 0;
 #if defined(ERPC_PROGRAM)
     rpc_id = thread_id + FLAGS_server_num;
 #elif defined(RMEM_PROGRAM)
     rpc_id = thread_id + FLAGS_server_num + kAppMaxRPC;
 #elif defined(CXL_PROGRAM)
-    rpc_id =  thread_id + FLAGS_server_num;
+    rpc_id = thread_id + FLAGS_server_num;
 #endif
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
                                     rpc_id,
                                     basic_sm_handler_client, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
-    for (size_t i = 0; i < kAppMaxConcurrency; i++)
+    for (size_t i = 0; i < kAppMaxBuffer; i++)
     {
         // TODO
         ctx->resp_forward_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeResp));
@@ -376,13 +374,13 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
 
-    uint8_t rpc_id=0;
+    uint8_t rpc_id = 0;
 #if defined(ERPC_PROGRAM)
     rpc_id = thread_id;
 #elif defined(RMEM_PROGRAM)
     rpc_id = thread_id + kAppMaxRPC;
 #elif defined(CXL_PROGRAM)
-    rpc_id =  thread_id;
+    rpc_id = thread_id;
 #endif
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
                                     rpc_id,

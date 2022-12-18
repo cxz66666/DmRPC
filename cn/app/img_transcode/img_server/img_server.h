@@ -10,19 +10,19 @@ class ClientContext : public BasicContext
 public:
     ClientContext(size_t cid, size_t sid, size_t rid) : client_id_(cid), server_sender_id_(sid), server_receiver_id_(rid), backward_session_num_(-1)
     {
-        forward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>(kAppMaxConcurrency);
-        backward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false>(kAppMaxConcurrency);
+        forward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>(kAppMaxBuffer);
+        backward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false>(kAppMaxBuffer);
     }
     ~ClientContext()
     {
         delete forward_spsc_queue;
         delete backward_spsc_queue;
     }
-    erpc::MsgBuffer req_forward_msgbuf[kAppMaxConcurrency];
-    erpc::MsgBuffer req_backward_msgbuf[kAppMaxConcurrency];
+    erpc::MsgBuffer req_forward_msgbuf[kAppMaxBuffer];
+    erpc::MsgBuffer req_backward_msgbuf[kAppMaxBuffer];
 
-    erpc::MsgBuffer resp_forward_msgbuf[kAppMaxConcurrency];
-    erpc::MsgBuffer resp_backward_msgbuf[kAppMaxConcurrency];
+    erpc::MsgBuffer resp_forward_msgbuf[kAppMaxBuffer];
+    erpc::MsgBuffer resp_backward_msgbuf[kAppMaxBuffer];
 
     size_t client_id_;
     size_t server_sender_id_;
@@ -42,8 +42,7 @@ public:
     explicit ServerContext(size_t sid) : server_id_(sid), stat_req_ping_tot(0), stat_req_ping_resp_tot(0), stat_req_tc_tot(0), stat_req_tc_req_tot(0), stat_req_err_tot(0)
     {
     }
-    ~ServerContext()
-    = default;
+    ~ServerContext() = default;
     size_t server_id_;
     size_t stat_req_ping_tot;
     size_t stat_req_ping_resp_tot;
@@ -80,7 +79,7 @@ public:
 #if defined(ERPC_PROGRAM)
             client_contexts_.push_back(new ClientContext(i, i % FLAGS_server_forward_num, i % FLAGS_server_backward_num));
 #elif defined(RMEM_PROGRAM)
-            client_contexts_.push_back(new ClientContext(i, (i % FLAGS_server_forward_num) + kAppMaxRPC , (i % FLAGS_server_backward_num) + kAppMaxRPC));
+            client_contexts_.push_back(new ClientContext(i, (i % FLAGS_server_forward_num) + kAppMaxRPC, (i % FLAGS_server_backward_num) + kAppMaxRPC));
 #elif defined(CXL_PROGRAM)
             client_contexts_.push_back(new ClientContext(i, i % FLAGS_server_forward_num, i % FLAGS_server_backward_num));
 #endif
@@ -109,7 +108,7 @@ public:
         }
     }
 
-    [[maybe_unused]] [[nodiscard]] bool write_latency_and_reset(const std::string& filename) const
+    [[maybe_unused]] [[nodiscard]] bool write_latency_and_reset(const std::string &filename) const
     {
 
         FILE *fp = fopen(filename.c_str(), "w");

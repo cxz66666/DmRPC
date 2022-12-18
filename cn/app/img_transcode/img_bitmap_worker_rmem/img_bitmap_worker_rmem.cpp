@@ -344,6 +344,14 @@ void leader_thread_func()
     {
         workers[i].join();
     }
+    for (size_t i = 0; i < kAppMaxRPC; i++)
+    {
+        if (rmems_[i] != nullptr)
+        {
+            rmems_[i]->disconnect_session();
+            delete rmems_[i];
+        }
+    }
 }
 
 int main(int argc, char **argv)
