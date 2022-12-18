@@ -4,6 +4,7 @@
 #include "../img_transcode_commons.h"
 #include "bmp.h"
 #include "api.h"
+#include "phmap.h"
 using SPSC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false>;
 
 DEFINE_double(resize_factor, 0.5, "the resize factor, must be between 0 and 1");
@@ -20,6 +21,8 @@ std::vector<rmem::Rmem *> rmems_(kAppMaxRPC, nullptr);
 std::vector<SPSC_QUEUE *> forward_spsc_queue(kAppMaxRPC, nullptr);
 SPSC_QUEUE *backward_spsc_queue;
 
+phmap::flat_hash_map<uint32_t, uint32_t> rpc_id_to_index;
+volatile uint32_t rpc_connect_number = 0;
 class ClientContext : public BasicContext
 {
 
@@ -200,27 +203,30 @@ bool resize_bitmap(void *input_buf_, void *output_buf_)
 
 void create_session_and_join(PingReq *req_ping)
 {
-    rmem::rt_assert(static_cast<size_t>(req_ping->rmem_param.rmem_thread_id_) < kAppMaxRPC, "rmem_thread_id_ out of range");
+    rmem::rt_assert(static_cast<size_t>(req_ping->req.req_number) < kAppMaxRPC, "rmem_thread_id_ out of range");
     RmemParam param = req_ping->rmem_param;
-    rmem::rt_assert(rmems_[req_ping->rmem_param.rmem_thread_id_] == nullptr, "rmem already created");
-    rmem::Rmem* rmem_now = new rmem::Rmem(0);
+    rmem::Rmem *rmem_now = new rmem::Rmem(0);
 
-    printf("hosts %s, thread_id %u, session_id %u\n",param.hosts, param.rmem_thread_id_,param.rmem_session_id_);
+    printf("hosts %s, thread_id %u, session_id %u\n", param.hosts, param.rmem_thread_id_, param.rmem_session_id_);
     std::string hosts(param.hosts);
-    if(unlikely(rmem_now->connect_session(hosts, param.rmem_thread_id_)) != 0){
+    if (unlikely(rmem_now->connect_session(hosts, param.rmem_thread_id_)) != 0)
+    {
         printf("connect error\n");
         exit(-1);
     }
 
-    rmem_base_addr[param.rmem_thread_id_] = rmem_now->rmem_join(param.fork_rmem_addr_, param.rmem_thread_id_, param.rmem_session_id_);
+    uint32_t now_connect_number = rpc_connect_number++;
+    rpc_id_to_index[req_ping->req.req_number] = now_connect_number;
+
+    rmem_base_addr[now_connect_number] = rmem_now->rmem_join(param.fork_rmem_addr_, param.rmem_thread_id_, param.rmem_session_id_);
     printf("join success, based addr %ld\n", rmem_base_addr[param.rmem_thread_id_]);
 
     for (size_t i = 0; i < kAppMaxConcurrency; i++)
     {
-        rmem_req_msgbuf[param.rmem_thread_id_][i] = rmem_now->rmem_get_msg_buffer(param.file_size);
-        rmem_resp_msgbuf[param.rmem_thread_id_][i] = rmem_now->rmem_get_msg_buffer(param.file_size);
+        rmem_req_msgbuf[now_connect_number][i] = rmem_now->rmem_get_msg_buffer(param.file_size);
+        rmem_resp_msgbuf[now_connect_number][i] = rmem_now->rmem_get_msg_buffer(param.file_size);
     }
-    rmems_[req_ping->rmem_param.rmem_thread_id_] = rmem_now;
+    rmems_[now_connect_number] = rmem_now;
 }
 
 void worker_ping_thread(erpc::MsgBuffer req_msg)

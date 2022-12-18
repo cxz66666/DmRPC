@@ -86,9 +86,9 @@ class ExtraReqMsg
 public:
     size_t length;
     uint64_t offset;
-    // high 32 bit used for select worker node, low 32 bit used for select worker thread
+    // high 32 bit is session id, used for select worker node
+    // low 32 bit is req_id for this session, used for select buffer
     size_t worker_flag;
-
 };
 
 class ExtraRespMsg
@@ -96,7 +96,8 @@ class ExtraRespMsg
 public:
     size_t length;
     uint64_t offset;
-    // high 32 bit used for select worker node, low 32 bit used for select worker thread
+    // high 32 bit is session id, used for select worker node
+    // low 32 bit is req_id for this session, used for select buffer
     size_t worker_flag;
 };
 class RmemParam
@@ -134,8 +135,8 @@ class TranscodeReq
 public:
     CommonReq req;
     ExtraReqMsg extra;
-    TranscodeReq(RPC_TYPE t, uint32_t num) : req{t, num}, extra{0,0,0} {}
-    TranscodeReq(RPC_TYPE t, uint32_t num, size_t len, uint64_t offset, size_t flag) : req{t, num}, extra{len, offset,flag} {}
+    TranscodeReq(RPC_TYPE t, uint32_t num) : req{t, num}, extra{0, 0, 0} {}
+    TranscodeReq(RPC_TYPE t, uint32_t num, size_t len, uint64_t offset, size_t flag) : req{t, num}, extra{len, offset, flag} {}
 
 } __attribute__((packed));
 
@@ -144,8 +145,8 @@ class TranscodeResp
 public:
     CommonResp resp;
     ExtraRespMsg extra;
-    TranscodeResp(RPC_TYPE t, uint32_t num, int s) : resp{t, num, s}, extra{0,0,0} {}
-    TranscodeResp(RPC_TYPE t, uint32_t num, int s, size_t len, uint64_t offset, size_t flag) : resp{t, num, s}, extra{len, offset,flag} {}
+    TranscodeResp(RPC_TYPE t, uint32_t num, int s) : resp{t, num, s}, extra{0, 0, 0} {}
+    TranscodeResp(RPC_TYPE t, uint32_t num, int s, size_t len, uint64_t offset, size_t flag) : resp{t, num, s}, extra{len, offset, flag} {}
 } __attribute__((packed));
 
 #elif defined(CXL_PROGRAM)

@@ -14,4 +14,4 @@
 --bind_core_offset 0
 --resize_factor 0.1
 --rmem_self_index 9
---worker_num 2
+--worker_num 1

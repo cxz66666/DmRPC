@@ -35,9 +35,19 @@ DEFINE_uint64(server_num, 1, "Server(self) thread num, must >0 and <DPDK_QUEUE_N
 DEFINE_uint64(bind_core_offset, 0, "Bind core offset, used for local test to bind different processes to different cores");
 
 static constexpr size_t kAppMaxConcurrency = 256; // Outstanding reqs per thread
-static constexpr size_t kAppMaxRPC = 16; // Outstanding rpcs per thread
+static constexpr size_t kAppMaxRPC = 16;          // Outstanding rpcs per thread
 
-static constexpr size_t kAppEvLoopMs = 1000;      // Duration of event loop
+#if defined(ERPC_PROGERAM)
+static constexpr size_t kAppMaxBuffer = kAppMaxConcurrency;
+#elif defined(RMEM_PROGRAM)
+static constexpr size_t kAppMaxBuffer = kAppMaxConcurrency * kAppMaxRPC;
+#elif defined(CXL_PROGRAM)
+static constexpr size_t kAppMaxBuffer = kAppMaxConcurrency;
+#else
+static_assert(false, "program type not defined");
+#endif
+
+static constexpr size_t kAppEvLoopMs = 1000; // Duration of event loop
 
 volatile sig_atomic_t ctrl_c_pressed = 0;
 void ctrl_c_handler(int) { ctrl_c_pressed = 1; }

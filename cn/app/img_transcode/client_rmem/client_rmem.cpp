@@ -79,7 +79,7 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 
-    uint32_t next_rpc_id = (req->extra.worker_flag>>32)*FLAGS_rmem_session_num+ (req->extra.worker_flag & 0xffffffff);
+    uint32_t next_rpc_id = req->extra.worker_flag>>32;
     ctx->spsc_queue->push(REQ_MSG{next_rpc_id, RPC_TYPE::RPC_TRANSCODE});
 }
 
@@ -105,7 +105,7 @@ void handler_ping(ClientContext *ctx, REQ_MSG req_msg)
     uint32_t rpc_id=req_msg.req_id;
     RmemParam& param = ctx->rmem_params_[rpc_id];
 
-    new (ctx->ping_msgbuf[rpc_id].buf_) PingReq(RPC_TYPE::RPC_PING, 0, SIZE_MAX, param);
+    new (ctx->ping_msgbuf[rpc_id].buf_) PingReq(RPC_TYPE::RPC_PING, rpc_id, SIZE_MAX, param);
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_PING),
                                &ctx->ping_msgbuf[rpc_id], &ctx->ping_resp_msgbuf[rpc_id],
                                callback_ping, reinterpret_cast<void *>(rpc_id));
@@ -133,14 +133,14 @@ void handler_tc(ClientContext *ctx, REQ_MSG req_msg)
     erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[rpc_id][req_id_mod];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[rpc_id][req_id_mod];
     // TODO don't know length, a hack method
-    new (req_msgbuf.buf_) TranscodeReq(RPC_TYPE::RPC_TRANSCODE, req_id, file_size, (req_id%FLAGS_concurrency)*file_size_aligned, ctx->rmem_flags_[rpc_id]);
+    new (req_msgbuf.buf_) TranscodeReq(RPC_TYPE::RPC_TRANSCODE, ctx->global_req_id_++, file_size, (req_id%FLAGS_concurrency)*file_size_aligned, ctx->rmem_flags_[rpc_id] | req_id);
 
 //    timers[req_msg.req_id % FLAGS_concurrency].tic();
 
 
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
                                &req_msgbuf, &resp_msgbuf,
-                               callback_tc, reinterpret_cast<void *>(static_cast<uint64_t>(rpc_id)<<32 | req_id_mod));
+                               callback_tc, reinterpret_cast<void *>( ctx->rmem_flags_[rpc_id] | req_id_mod));
 }
 
 void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus)
