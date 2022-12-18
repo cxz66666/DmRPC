@@ -9,7 +9,7 @@ public:
     ClientContext(size_t cid, size_t sid, size_t rid) : client_id_(cid), server_sender_id_(sid), server_receiver_id_(rid)
     {
         forward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>(kAppMaxBuffer);
-        backward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false>(kAppMaxBuffer);
+        backward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>(kAppMaxBuffer);
     }
     ~ClientContext()
     {
@@ -27,7 +27,7 @@ public:
     size_t server_receiver_id_;
 
     atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *forward_spsc_queue;
-    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false> *backward_spsc_queue;
+    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *backward_spsc_queue;
 };
 
 class ServerContext : public BasicContext
@@ -56,7 +56,7 @@ public:
     }
 
     atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *forward_spsc_queue;
-    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false> *backward_spsc_queue;
+    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *backward_spsc_queue;
 
     erpc::MsgBuffer *req_forward_msgbuf_ptr;
     erpc::MsgBuffer *req_backward_msgbuf_ptr;

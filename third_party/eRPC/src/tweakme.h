@@ -36,7 +36,8 @@ namespace erpc
     /// to a dynamically-allocated msgbuf. Enabling this optimization restricts
     /// ownership of single-packet request msgbufs at the server to the duration
     /// of the request handler.
-    static constexpr bool kZeroCopyRX = true;
+    // TODO
+    static constexpr bool kZeroCopyRX = false;
 
     static constexpr bool kDatapathStats = false;
 } // namespace erpc

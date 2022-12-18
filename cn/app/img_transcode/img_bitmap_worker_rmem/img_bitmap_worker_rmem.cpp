@@ -141,7 +141,7 @@ void handler_ping_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 void callback_tc_resp(void *_context, void *_tag)
 {
     auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
-    uint32_t rpc_id = req_id_ptr >> 32;
+    uint32_t rpc_id = rpc_id_to_index[req_id_ptr >> 32];
     uint32_t req_id = req_id_ptr % kAppMaxConcurrency;
     auto *ctx = static_cast<ClientContext *>(_context);
 
@@ -165,7 +165,7 @@ void callback_tc_resp(void *_context, void *_tag)
 void handler_tc_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 {
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf.buf_);
-    uint32_t rpc_id = req->extra.worker_flag >> 32;
+    uint32_t rpc_id = rpc_id_to_index[req->extra.worker_flag >> 32];
     uint32_t req_id = req->extra.worker_flag % kAppMaxConcurrency;
     ctx->req_backward_msgbuf[rpc_id][req_id] = req_msgbuf;
 
