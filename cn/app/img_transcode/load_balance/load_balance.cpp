@@ -104,7 +104,7 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
-#if defined(ERPC_PROGERAM)
+#if defined(ERPC_PROGRAM)
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq) + req->extra.length, "data size not match");
     new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
 #elif defined(RMEM_PROGRAM)
@@ -112,6 +112,8 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
     new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
 
 #elif defined(CXL_PROGRAM)
+    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq), "data size not match");
+    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
 #else
     static_assert(false, "program type not defined");
 #endif
@@ -139,7 +141,7 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
-#if defined(ERPC_PROGERAM)
+#if defined(ERPC_PROGRAM)
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq) + req->extra.length, "data size not match");
     new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
 #elif defined(RMEM_PROGRAM)
@@ -147,6 +149,8 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
     new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
 
 #elif defined(CXL_PROGRAM)
+    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq), "data size not match");
+    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
 #else
     static_assert(false, "program type not defined");
 #endif
@@ -204,7 +208,7 @@ void handler_ping(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 #elif defined(RMEM_PROGRAM)
     session_num = req->req.req_number % ctx->servers_num_;
 #elif defined(CXL_PROGRAM)
-    session_num = ctx->session_num_vec_[0];
+    session_num = req->req.req_number % ctx->servers_num_;
 #endif
     ctx->rpc_->enqueue_request(session_num, static_cast<uint8_t>(RPC_TYPE::RPC_PING),
                                &ctx->req_forward_msgbuf[req->req.req_number % kAppMaxBuffer], &resp_msgbuf,
@@ -286,7 +290,7 @@ void handler_tc(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 #elif defined(RMEM_PROGRAM)
     session_num = (req->extra.worker_flag >> 32) % ctx->servers_num_;
 #elif defined(CXL_PROGRAM)
-    session_num = ctx->session_num_vec_[req->req.req_number % ctx->servers_num_];
+    session_num = (req->extra.worker_flag >> 32) % ctx->servers_num_;
 #endif
 
     ctx->rpc_->enqueue_request(session_num, static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),

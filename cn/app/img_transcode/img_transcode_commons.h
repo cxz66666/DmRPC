@@ -34,15 +34,16 @@ DEFINE_uint64(server_num, 1, "Server(self) thread num, must >0 and <DPDK_QUEUE_N
 
 DEFINE_uint64(bind_core_offset, 0, "Bind core offset, used for local test to bind different processes to different cores");
 
-static constexpr size_t kAppMaxConcurrency = 256; // Outstanding reqs per thread
-static constexpr size_t kAppMaxRPC = 16;          // Outstanding rpcs per thread
+static constexpr size_t kAppMaxConcurrency = 256;       // Outstanding reqs per thread
+static constexpr size_t kAppMaxRPC = 16;                // Outstanding rpcs per thread, used for RMEM_BASED
+static constexpr size_t kAppMaxCXLSession = kAppMaxRPC; // Outstanding CXL sessions per thread
 
-#if defined(ERPC_PROGERAM)
+#if defined(ERPC_PROGRAM)
 static constexpr size_t kAppMaxBuffer = kAppMaxConcurrency;
 #elif defined(RMEM_PROGRAM)
 static constexpr size_t kAppMaxBuffer = kAppMaxConcurrency * kAppMaxRPC;
 #elif defined(CXL_PROGRAM)
-static constexpr size_t kAppMaxBuffer = kAppMaxConcurrency;
+static constexpr size_t kAppMaxBuffer = kAppMaxConcurrency * kAppMaxCXLSession;
 #else
 static_assert(false, "program type not defined");
 #endif

@@ -95,7 +95,7 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf->buf_);
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
-#if defined(ERPC_PROGERAM)
+#if defined(ERPC_PROGRAM)
 
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq) + req->extra.length, "data size not match");
     new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
@@ -105,6 +105,9 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
     new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
 
 #elif defined(CXL_PROGRAM)
+    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq), "data size not match");
+    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
+
 #else
     static_assert(false, "program type not defined");
 #endif
@@ -133,7 +136,7 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
-#if defined(ERPC_PROGERAM)
+#if defined(ERPC_PROGRAM)
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq) + req->extra.length, "data size not match");
     new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
 #elif defined(RMEM_PROGRAM)
@@ -141,6 +144,9 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
     new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
 
 #elif defined(CXL_PROGRAM)
+    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq), "data size not match");
+    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
+
 #else
     static_assert(false, "program type not defined");
 #endif
