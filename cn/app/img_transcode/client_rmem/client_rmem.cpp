@@ -179,7 +179,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
             handlers[static_cast<uint8_t>(req_msg.req_type)](ctx, req_msg);
         }
         ctx->rpc_->run_event_loop_once();
-        if (ctrl_c_pressed)
+        if (unlikely(ctrl_c_pressed))
         {
             break;
         }
@@ -210,7 +210,7 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
 
         ctx->rpc_->reset_dpath_stats();
         // more handler
-        if (ctrl_c_pressed)
+        if (unlikely(ctrl_c_pressed))
         {
             break;
         }
@@ -256,7 +256,7 @@ void leader_thread_func()
         size_t total_ping_size = context->client_contexts_[i]->rmem_params_.size();
         while (total_ping_size--)
         {
-            if (ctrl_c_pressed)
+            if (unlikely(ctrl_c_pressed))
             {
                 break;
             }

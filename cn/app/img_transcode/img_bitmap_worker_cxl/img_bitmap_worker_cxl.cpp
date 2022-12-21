@@ -216,7 +216,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
             }
         }
         ctx->rpc_->run_event_loop_once();
-        if (ctrl_c_pressed)
+        if (unlikely(ctrl_c_pressed))
         {
             break;
         }
@@ -328,7 +328,8 @@ void leader_thread_func()
     for (size_t i = 0; i < FLAGS_worker_num; i++)
     {
         workers[i] = std::thread(worker_thread_func, i);
-        rmem::bind_to_core(workers[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
+        uint64_t worker_offset = FLAGS_worker_bind_core_offset == UINT64_MAX ? FLAGS_bind_core_offset : FLAGS_worker_bind_core_offset;
+        rmem::bind_to_core(workers[i], FLAGS_numa_worker_node, get_bind_core(FLAGS_numa_worker_node) + worker_offset);
     }
 
     sleep(10);

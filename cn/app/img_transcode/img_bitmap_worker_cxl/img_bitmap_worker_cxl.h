@@ -10,7 +10,8 @@ using SPSC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<e
 
 DEFINE_double(resize_factor, 0.5, "the resize factor, must be between 0 and 1");
 DEFINE_uint64(worker_num, 1, "worker thread number");
-
+DEFINE_uint64(numa_worker_node, 0, "numa node for worker thread");
+DEFINE_uint64(worker_bind_core_offset, UINT64_MAX, "worker bind core offset, used for local test to bind different processes to different cores");
 const size_t batch_size = 4;
 
 void *cxl_req_msgbuf[kAppMaxCXLSession][kAppMaxConcurrency];

@@ -11,6 +11,8 @@
 --server_forward_num 1
 --server_backward_num 1
 --server_num 1
---bind_core_offset 2
+--bind_core_offset 12
 --resize_factor 0.1
---worker_num 2
+--worker_num 5
+--numa_worker_node 0
+--worker_bind_core_offset 0

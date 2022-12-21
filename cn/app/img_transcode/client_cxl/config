@@ -1,5 +1,5 @@
 --test_loop 10000
---concurrency 64
+--concurrency 32
 --numa_0_ports 0
 --numa_1_ports 1
 --numa_client_node 0
@@ -12,7 +12,7 @@
 --server_backward_num 1
 --server_num 1
 --bind_core_offset 0
---test_bitmap_file ../scripts/echo/test_32k.bmp
+--test_bitmap_file ../scripts/echo/test_64k.bmp
 --cxl_fake_folder /testcxl
---cxl_session_num 2
---cxl_concurrency_scale 1000
+--cxl_session_num 5
+--cxl_concurrency_scale 500
