@@ -307,7 +307,9 @@ void leader_thread_func()
     {
         rmem::rt_assert(context->server_contexts_[i]->rpc_ != nullptr, "server rpc is null");
         workers[i] = std::thread(worker_thread_func, i, context->client_contexts_[i]->forward_spsc_queue, context->client_contexts_[i]->backward_spsc_queue, context->client_contexts_[i]->rpc_, context->server_contexts_[i]->rpc_);
-        rmem::bind_to_core(workers[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
+        uint64_t worker_offset = FLAGS_worker_bind_core_offset == UINT64_MAX ? FLAGS_bind_core_offset : FLAGS_worker_bind_core_offset;
+
+        rmem::bind_to_core(workers[i], FLAGS_numa_worker_node, get_bind_core(FLAGS_numa_worker_node) + worker_offset);
     }
 
     sleep(2);
@@ -347,6 +349,5 @@ int main(int argc, char **argv)
         exit(1);
     }
     std::thread leader_thread(leader_thread_func);
-    rmem::bind_to_core(leader_thread, 1, get_bind_core(1));
     leader_thread.join();
 }

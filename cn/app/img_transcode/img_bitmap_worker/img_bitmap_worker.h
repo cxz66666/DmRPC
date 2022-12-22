@@ -6,6 +6,8 @@
 using SPSC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>;
 
 DEFINE_double(resize_factor, 0.5, "the resize factor, must be between 0 and 1");
+DEFINE_uint64(numa_worker_node, 0, "numa node for worker thread");
+DEFINE_uint64(worker_bind_core_offset, UINT64_MAX, "worker bind core offset, used for local test to bind different processes to different cores");
 
 class ClientContext : public BasicContext
 {

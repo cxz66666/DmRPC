@@ -14,3 +14,4 @@
 --bind_core_offset 4
 --resize_factor 0.1
 --timeout_second 50
+--numa_worker_node 0
