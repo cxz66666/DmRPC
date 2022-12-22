@@ -34,6 +34,11 @@ DEFINE_uint64(server_num, 1, "Server(self) thread num, must >0 and <DPDK_QUEUE_N
 
 DEFINE_uint64(bind_core_offset, 0, "Bind core offset, used for local test to bind different processes to different cores");
 
+DEFINE_uint64(timeout_second, UINT64_MAX, "Timeout second for each request, default(UINT64_MAX) means no timeout");
+
+DEFINE_string(latency_file, "latency.txt", "Latency file name");
+DEFINE_string(bandwidth_file, "bandwidth.txt", "Bandwidth file name");
+
 static constexpr size_t kAppMaxConcurrency = 256;       // Outstanding reqs per thread
 static constexpr size_t kAppMaxRPC = 16;                // Outstanding rpcs per thread, used for RMEM_BASED
 static constexpr size_t kAppMaxCXLSession = kAppMaxRPC; // Outstanding CXL sessions per thread

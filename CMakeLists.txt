@@ -65,7 +65,17 @@ option(PERF "Compile for performance" ON)
 set(PGO "none" CACHE STRING "Profile-guided optimization (generate/use/none)")
 set(RMEM_LOG_LEVEL "info" CACHE  STRING "Logging level (none/error/warn/info/reorder/trace/cc)") 
 
-set(IMG_TRANSCODE_TYPE "cxl" CACHE STRING "Image transcode type (erpc/rmem/cxl)")
+set(IMG_TRANSCODE_TYPE "rmem" CACHE STRING "Image transcode type (erpc/rmem/cxl)")
+if(EXISTS "${CMAKE_SOURCE_DIR}/cn/app/img_transcode/build_app")
+  file(STRINGS "${CMAKE_SOURCE_DIR}/cn/app/img_transcode/build_app" IMG_TRANSCODE_TYPE_FILE)
+  if(IMG_TRANSCODE_TYPE_FILE STREQUAL "erpc")
+    set(IMG_TRANSCODE_TYPE "erpc")
+  elseif(IMG_TRANSCODE_TYPE_FILE STREQUAL "rmem")
+    set(IMG_TRANSCODE_TYPE "rmem")
+  elseif(IMG_TRANSCODE_TYPE_FILE STREQUAL "cxl")
+    set(IMG_TRANSCODE_TYPE "cxl")
+  endif()
+endif()
 
 # Profile-guided optimization
 if(PGO STREQUAL "generate")

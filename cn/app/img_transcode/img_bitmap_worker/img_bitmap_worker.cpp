@@ -115,7 +115,7 @@ void callback_ping_resp(void *_context, void *_tag)
     // ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
-void handler_ping_resp(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
+void handler_ping_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 {
 
     auto *req = reinterpret_cast<PingReq *>(req_msgbuf.buf_);
@@ -152,7 +152,7 @@ void callback_tc_resp(void *_context, void *_tag)
     ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
-void handler_tc_resp(ClientContext *ctx, const erpc::MsgBuffer& req_msgbuf)
+void handler_tc_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 {
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf.buf_);
 
@@ -175,7 +175,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
                                     basic_sm_handler_client, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
-    for (auto & i : ctx->resp_backward_msgbuf)
+    for (auto &i : ctx->resp_backward_msgbuf)
     {
         // TODO
         i = rpc.alloc_msg_buffer_or_die(sizeof(TranscodeResp));
@@ -310,7 +310,13 @@ void leader_thread_func()
         rmem::bind_to_core(workers[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
     }
 
-    sleep(10);
+    sleep(2);
+
+    if (FLAGS_timeout_second != UINT64_MAX)
+    {
+        sleep(FLAGS_timeout_second);
+        ctrl_c_pressed = true;
+    }
 
     // TODO
     for (size_t i = 0; i < FLAGS_client_num; i++)

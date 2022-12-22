@@ -4,7 +4,7 @@ set(PROGRAMS firewall img_server load_balance)
 
 if(IMG_TRANSCODE_TYPE STREQUAL "erpc")
     set(PROGRAMS ${PROGRAMS} client_erpc img_bitmap_worker)
-    add_definitions(-DERPC_PROGERAM)
+    add_definitions(-DERPC_PROGRAM)
     message(STATUS "Using erpc for img_transcode")
 elseif(IMG_TRANSCODE_TYPE STREQUAL "rmem")
     set(PROGRAMS ${PROGRAMS} client_rmem img_bitmap_worker_rmem)

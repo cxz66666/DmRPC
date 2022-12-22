@@ -65,9 +65,10 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
     auto *req_msgbuf = req_handle->get_req_msgbuf();
 
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf->buf_);
+    uint32_t next_rpc_id = req->extra.worker_flag >> 32;
 
-    //    hdr_record_value(latency_hist_,
-    //                     static_cast<int64_t>(timers[req->req.req_number % FLAGS_concurrency].toc() * 10));
+    hdr_record_value(latency_hist_,
+                     static_cast<int64_t>(timers[next_rpc_id][req->req.req_number % FLAGS_concurrency].toc() * 10));
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
@@ -77,7 +78,6 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 
-    uint32_t next_rpc_id = req->extra.worker_flag >> 32;
     ctx->spsc_queue->push(REQ_MSG{next_rpc_id, RPC_TYPE::RPC_TRANSCODE});
 }
 
@@ -133,7 +133,7 @@ void handler_tc(ClientContext *ctx, REQ_MSG req_msg)
     // TODO don't know length, a hack method
     new (req_msgbuf.buf_) TranscodeReq(RPC_TYPE::RPC_TRANSCODE, req_id * kAppMaxCXLSession + rpc_id, file_size, (req_id % (FLAGS_concurrency * FLAGS_cxl_concurrency_scale)) * file_size_aligned, ctx->cxl_flags_[rpc_id] | req_id);
 
-    //    timers[req_msg.req_id % FLAGS_concurrency].tic();
+    timers[rpc_id][req_msg.req_id % FLAGS_concurrency].tic();
 
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
                                &req_msgbuf, &resp_msgbuf,
@@ -198,6 +198,10 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
     ctx->rpc_ = &rpc;
     printf("server %p\n", reinterpret_cast<void *>(ctx));
 
+    size_t loops_num = FLAGS_test_loop;
+    rmem::Timer now_timer;
+    bool connected = false;
+    std::vector<uint64_t> resp_total;
     while (true)
     {
         ctx->reset_stat();
@@ -205,15 +209,38 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
         start.reset();
         rpc.run_event_loop(kAppEvLoopMs);
         const double seconds = start.get_sec();
-        printf("thread %zu: ping_req : %.2f, ping_resp : %.2f, tc : %.2f, tc_req : %.2f GB \n", thread_id,
+        printf("thread %zu: ping_req : %.2f, ping_resp : %.2f, tc : %.2f, tc_req : %.2f Gb \n", thread_id,
                ctx->stat_req_ping_tot / seconds, ctx->stat_req_ping_resp_tot / seconds, ctx->stat_req_tc_tot / seconds, ctx->stat_req_tc_req_tot * 8 * file_size / (GB(1) * seconds));
 
+        if (connected)
+        {
+            loops_num--;
+            resp_total.push_back(ctx->stat_req_tc_req_tot);
+            if (loops_num == 0)
+            {
+                break;
+            }
+        }
+        if (!connected)
+        {
+            if (ctx->stat_req_tc_req_tot > 0)
+            {
+                connected = true;
+                now_timer.tic();
+            }
+        }
         ctx->rpc_->reset_dpath_stats();
         // more handler
         if (unlikely(ctrl_c_pressed))
         {
             break;
         }
+    }
+    if (connected)
+    {
+        total_speed_lock.lock();
+        total_speed += std::accumulate(resp_total.begin(), resp_total.end(), 0.0) * 8 * file_size * 1e6 / (GB(1) * now_timer.toc());
+        total_speed_lock.unlock();
     }
 }
 void leader_thread_func()
@@ -245,7 +272,7 @@ void leader_thread_func()
 
         rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node) + FLAGS_bind_core_offset);
     }
-    sleep(5);
+    sleep(3);
 
     for (size_t i = 0; i < FLAGS_client_num; i++)
     {
@@ -276,6 +303,12 @@ void leader_thread_func()
         }
     }
 
+    if (FLAGS_timeout_second != UINT64_MAX)
+    {
+        sleep(FLAGS_timeout_second);
+        ctrl_c_pressed = true;
+    }
+
     for (size_t i = 0; i < FLAGS_client_num; i++)
     {
         clients[i].join();
@@ -297,6 +330,18 @@ bool write_latency_and_reset(const std::string &filename)
     hdr_percentiles_print(latency_hist_, fp, 5, 10, CLASSIC);
     fclose(fp);
     hdr_reset(latency_hist_);
+    return true;
+}
+
+bool write_bandwidth(const std::string &filename)
+{
+    FILE *fp = fopen(filename.c_str(), "w");
+    if (fp == nullptr)
+    {
+        return false;
+    }
+    fprintf(fp, "%f\n", total_speed);
+    fclose(fp);
     return true;
 }
 
@@ -331,7 +376,6 @@ int main(int argc, char **argv)
     file.read(reinterpret_cast<char *>(file_buf), file_size);
     file.close();
 
-    timers.resize(FLAGS_concurrency);
     int ret = hdr_init(1, 1000 * 1000 * 10, 3,
                        &latency_hist_);
     rmem::rt_assert(ret == 0, "hdr_init failed");
@@ -341,6 +385,7 @@ int main(int argc, char **argv)
     leader_thread.join();
 
     delete[] file_buf;
-    write_latency_and_reset("latency.txt");
+    write_latency_and_reset(FLAGS_latency_file);
+    write_bandwidth(FLAGS_bandwidth_file);
     hdr_close(latency_hist_);
 }

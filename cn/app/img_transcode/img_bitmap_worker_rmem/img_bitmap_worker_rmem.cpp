@@ -328,9 +328,14 @@ void leader_thread_func()
         rmem::bind_to_core(workers[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
     }
 
-    sleep(10);
+    sleep(2);
 
-    // TODO
+    if (FLAGS_timeout_second != UINT64_MAX)
+    {
+        sleep(FLAGS_timeout_second);
+        ctrl_c_pressed = true;
+    }
+
     for (size_t i = 0; i < FLAGS_client_num; i++)
     {
         clients[i].join();

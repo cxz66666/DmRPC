@@ -1,4 +1,4 @@
---test_loop 10000
+--test_loop 20
 --concurrency 64
 --numa_0_ports 0
 --numa_1_ports 1
@@ -7,9 +7,10 @@
 --server_forward_index 1
 --server_backward_index 0
 --server_index 0
---client_num 1
---server_forward_num 1
---server_backward_num 1
---server_num 1
+--client_num 2
+--server_forward_num 2
+--server_backward_num 2
+--server_num 2
 --bind_core_offset 0
 --test_bitmap_file ../scripts/echo/test_4k.bmp
+--timeout_second 50

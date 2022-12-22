@@ -1,4 +1,4 @@
---test_loop 10000
+--test_loop 20
 --concurrency 32
 --numa_0_ports 0
 --numa_1_ports 1
@@ -16,3 +16,4 @@
 --cxl_fake_folder /testcxl
 --cxl_session_num 5
 --cxl_concurrency_scale 500
+--timeout_second 50

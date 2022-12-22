@@ -16,3 +16,4 @@
 --rmem_self_index 7
 --rmem_server_indexs 8
 --rmem_session_num 8
+--timeout_second 50

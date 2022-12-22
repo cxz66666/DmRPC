@@ -332,7 +332,13 @@ void leader_thread_func()
         rmem::bind_to_core(workers[i], FLAGS_numa_worker_node, get_bind_core(FLAGS_numa_worker_node) + worker_offset);
     }
 
-    sleep(10);
+    sleep(2);
+
+    if (FLAGS_timeout_second != UINT64_MAX)
+    {
+        sleep(FLAGS_timeout_second);
+        ctrl_c_pressed = true;
+    }
 
     // TODO
     for (size_t i = 0; i < FLAGS_client_num; i++)

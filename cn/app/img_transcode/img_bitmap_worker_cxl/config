@@ -16,3 +16,4 @@
 --worker_num 5
 --numa_worker_node 0
 --worker_bind_core_offset 0
+--timeout_second 50

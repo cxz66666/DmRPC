@@ -6,6 +6,15 @@
 
 DEFINE_string(test_bitmap_file, "", "test file path for bitmap image");
 
+std::streamsize file_size;
+uint8_t *file_buf;
+
+std::vector<std::vector<rmem::Timer>> timers(kAppMaxRPC, std::vector<rmem::Timer>(kAppMaxConcurrency));
+hdr_histogram *latency_hist_;
+
+double total_speed = 0;
+spinlock_mutex total_speed_lock;
+
 struct REQ_MSG
 {
     uint32_t req_id;
