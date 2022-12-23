@@ -108,14 +108,14 @@ namespace rmem
         {
             c->tput_t0.reset();
             rpc.run_event_loop(1000);
-//            printf("thread %zu: free_page size %d.\n", thread_id, g_free_pages->was_size());
+            //            printf("thread %zu: free_page size %d.\n", thread_id, g_free_pages->was_size());
 
             const double ns = c->tput_t0.get_ns();
 
-             printf("thread %zu: total %.2f alloc: %.2f free: %.2f read: %.2f write: %.2f fork: %.2f join: %.2f err: %.2f M/s.\n", thread_id,
-                    c->stat_req_rx_tot * Ki(1) / (ns), c->stat_req_alloc_tot * Ki(1) / (ns), c->stat_req_free_tot * Ki(1) / (ns),
-                    c->stat_req_read_tot * Ki(1) / (ns), c->stat_req_write_tot * Ki(1) / (ns), c->stat_req_fork_tot * Ki(1) / (ns),
-                    c->stat_req_join_tot * Ki(1) / (ns), c->stat_req_error_tot * Ki(1) / (ns));
+            printf("thread %zu: total %.2f alloc: %.2f free: %.2f read: %.2f write: %.2f fork: %.2f join: %.2f err: %.2f M/s.\n", thread_id,
+                   c->stat_req_rx_tot * Ki(1) / (ns), c->stat_req_alloc_tot * Ki(1) / (ns), c->stat_req_free_tot * Ki(1) / (ns),
+                   c->stat_req_read_tot * Ki(1) / (ns), c->stat_req_write_tot * Ki(1) / (ns), c->stat_req_fork_tot * Ki(1) / (ns),
+                   c->stat_req_join_tot * Ki(1) / (ns), c->stat_req_error_tot * Ki(1) / (ns));
             if (ctrl_c_pressed == 1)
             {
                 break;
@@ -146,6 +146,11 @@ int main(int argc, char **argv)
     {
         threads[i] = std::thread(rmem::server_thread, i, rmem::g_nexus);
         rmem::bind_to_core(threads[i], FLAGS_rmem_numa_node, i);
+    }
+    if (FLAGS_timeout_second != UINT64_MAX)
+    {
+        sleep(FLAGS_timeout_second);
+        rmem::ctrl_c_pressed = 1;
     }
 
     for (size_t i = 0; i < FLAGS_rmem_server_thread; i++)

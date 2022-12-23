@@ -355,7 +355,6 @@ int main(int argc, char **argv)
     file.read(reinterpret_cast<char *>(file_buf), file_size);
     file.close();
 
-    timers.resize(FLAGS_concurrency);
     int ret = hdr_init(1, 1000 * 1000 * 10, 3,
                        &latency_hist_);
     rmem::rt_assert(ret == 0, "hdr_init failed");

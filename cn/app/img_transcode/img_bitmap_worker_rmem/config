@@ -15,3 +15,4 @@
 --resize_factor 0.1
 --rmem_self_index 9
 --worker_num 1
+--timeout_second 50

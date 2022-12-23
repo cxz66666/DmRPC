@@ -13,3 +13,5 @@ DECLARE_string(rmem_server_ip);
 DECLARE_uint32(rmem_server_udp_port);
 
 DECLARE_uint32(rmem_dpdk_port);
+
+DECLARE_uint64(timeout_second);

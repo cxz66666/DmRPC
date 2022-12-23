@@ -16,6 +16,8 @@ DEFINE_uint32(rmem_server_udp_port, 31851, "Server udp port for client to connec
 
 DEFINE_uint32(rmem_dpdk_port, 0, "dpdk used port id to receive/send");
 
+DEFINE_uint64(timeout_second, UINT64_MAX, "Timeout second for each request, default(UINT64_MAX) means no timeout");
+
 static bool ValidateNumaNode(const char *flag_name, uint32_t value)
 {
     if (value < static_cast<uint32_t>(numa_num_configured_nodes()))

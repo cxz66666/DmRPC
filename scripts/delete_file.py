@@ -1,6 +1,5 @@
 import paramiko
 
-src_ip = "192.168.189.9"
 dst_ips = ["192.168.189.7", "192.168.189.8", "192.168.189.11", "192.168.189.12", "192.168.189.13", "192.168.189.14"]
 
 base = "/home/cxz/rmem"
@@ -8,9 +7,9 @@ user = "cxz"
 passwd = "cxz123"
 
 
-def copy_file(ssh, dst):
+def delete_file(ssh):
     stdin, stdout, stderr = ssh.exec_command(
-        "sshpass -p {0} scp -prq -o StrictHostKeyChecking=no {1} {2}@{3}:{1}".format(passwd, base, user, dst)
+        "rm -rf {0}".format(base)
     )
     str1 = stdout.read().decode('utf-8')
     str2 = stderr.read().decode('utf-8')
@@ -26,8 +25,8 @@ def ssh_connect(ip, user, passwd):
 
 
 if __name__ == '__main__':
-    ssh_client = ssh_connect(src_ip, user, passwd)
     for ip in dst_ips:
-        copy_file(ssh_client, ip)
-        print("copy to {} done".format(ip))
-    ssh_client.close()
+        ssh_client = ssh_connect(ip, user, passwd)
+        delete_file(ssh_client)
+        ssh_client.close()
+        print("delete file on {} successfully".format(ip))
