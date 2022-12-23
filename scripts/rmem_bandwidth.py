@@ -6,15 +6,14 @@ import threading
 
 import paramiko
 
-base = "/path/to/baseurl"
+base = "/home/cxz/rmem"
 program = ["bandwidth_read_test", "bandwidth_write_test"]
 
-# use for Nexus connect
 client_machine = "192.168.189.9"
 
-user = "user"
-passwd = "passwd"
-output_file_format = "/path/to/result/{}_b{}_t{}_c{}"
+user = "cxz"
+passwd = "cxz123"
+output_file_format = "/home/cxz/result/{}_b{}_t{}_c{}"
 msg_size = [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576,
             2097152, 4194304]
 max_concurrency = [128, 128, 128, 128, 128, 128, 128, 64, 64, 64, 16, 8, 4, 4, 4, 2, 2, 1]
