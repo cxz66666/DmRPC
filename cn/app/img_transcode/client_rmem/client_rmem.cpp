@@ -317,11 +317,11 @@ void leader_thread_func()
     {
         servers[i].join();
     }
-    for (size_t i = 0; i < context->rmems_.size(); i++)
-    {
-        context->rmems_[i]->disconnect_session();
-        delete context->rmems_[i];
-    }
+    // for (size_t i = 0; i < context->rmems_.size(); i++)
+    // {
+    //     context->rmems_[i]->disconnect_session();
+    //     delete context->rmems_[i];
+    // }
 }
 
 bool write_latency_and_reset(const std::string &filename)
