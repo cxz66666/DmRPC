@@ -66,8 +66,8 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf->buf_);
 
-    hdr_record_value(latency_hist_,
-                     static_cast<int64_t>(timers[ctx->server_id_][req->req.req_number % FLAGS_concurrency].toc() * 10));
+    hdr_record_value_atomic(latency_hist_,
+                            static_cast<int64_t>(timers[ctx->server_id_][req->req.req_number % FLAGS_concurrency].toc() * 10));
 
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq) + req->extra.length, "data size not match");
 

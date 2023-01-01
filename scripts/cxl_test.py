@@ -12,9 +12,9 @@ init_build = True
 # use for Nexus connect
 client_machine = "192.168.189.9"
 firewall_machine = "192.168.189.7"
-load_balance_machine = "192.168.189.8"
-img_server1_machine = "192.168.189.11"
-img_server2_machine = "192.168.189.12"
+load_balance_machine = "192.168.189.7"
+img_server1_machine = "192.168.189.7"
+img_server2_machine = "192.168.189.7"
 worker1_machine = "192.168.189.9"
 worker2_machine = "192.168.189.9"
 
@@ -39,6 +39,8 @@ max_concurrency = [64, 64, 64, 16, 8, 4, 4, 4, 2, 2, 1]
 min_concurrency = [16, 16, 16, 4, 2, 1, 1, 1, 1, 1, 1]
 
 num_threads = [1, 2, 3, 4, 5]
+# num_threads = [3, 4, 5]
+
 concurrency = [1, 2, 4, 8, 16, 32, 64, 128]
 
 common_timeout = 60
@@ -109,23 +111,23 @@ if __name__ == '__main__':
     if init_build:
         t0 = threading.Thread(target=make_and_clean, args=(ssh_client,))
         t1 = threading.Thread(target=make_and_clean, args=(ssh_firewall,))
-        t2 = threading.Thread(target=make_and_clean, args=(ssh_load_balance,))
-        t3 = threading.Thread(target=make_and_clean, args=(ssh_img_server1,))
-        t4 = threading.Thread(target=make_and_clean, args=(ssh_img_server2,))
+        # t2 = threading.Thread(target=make_and_clean, args=(ssh_load_balance,))
+        # t3 = threading.Thread(target=make_and_clean, args=(ssh_img_server1,))
+        # t4 = threading.Thread(target=make_and_clean, args=(ssh_img_server2,))
         # t5 = threading.Thread(target=make_and_clean, args=(ssh_worker1,))
         # t6 = threading.Thread(target=make_and_clean, args=(ssh_worker2,))
         t0.start()
         t1.start()
-        t2.start()
-        t3.start()
-        t4.start()
+        # t2.start()
+        # t3.start()
+        # t4.start()
         # t5.start()
         # t6.start()
         t0.join()
         t1.join()
-        t2.join()
-        t3.join()
-        t4.join()
+        # t2.join()
+        # t3.join()
+        # t4.join()
         # t5.join()
         # t6.join()
     
@@ -141,15 +143,15 @@ if __name__ == '__main__':
                                           ssh_firewall, "firewall", 1, 1, 0, extra_firewall))
                 t2 = threading.Thread(target=common_run,
                                       args=(
-                                          ssh_load_balance, "load_balance", 2, 1, 0, extra_load_balance
+                                          ssh_load_balance, "load_balance", 2, 1, 2, extra_load_balance
                                       ))
                 t3 = threading.Thread(target=common_run,
                                       args=(
-                                          ssh_img_server1, "img_server", 3, 1, 0, extra_img_server1
+                                          ssh_img_server1, "img_server", 3, 1, 4, extra_img_server1
                                       ))
                 t4 = threading.Thread(target=common_run,
                                       args=(
-                                          ssh_img_server2, "img_server", 4, 1, 0, extra_img_server2
+                                          ssh_img_server2, "img_server", 4, 1, 6, extra_img_server2
                                       ))
                 t0 = threading.Thread(target=common_run,
                                       args=(

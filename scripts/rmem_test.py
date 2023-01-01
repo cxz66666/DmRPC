@@ -47,7 +47,9 @@ file_map = {4096: "../scripts/echo/test_4k.bmp",
 max_concurrency = [64, 64, 64, 16, 8, 4, 4, 4, 2, 2, 1]
 min_concurrency = [16, 16, 16, 4, 2, 1, 1, 1, 1, 1, 1]
 
-num_threads = [1, 2, 3, 4, 6, 8]
+# num_threads = [1, 2, 3, 4, 6, 8]
+num_threads = [4, 6, 8]
+
 num_workers = [1, 2]
 concurrency = [1, 2, 4, 8, 16, 32, 64, 128]
 

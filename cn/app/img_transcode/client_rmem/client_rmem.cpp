@@ -66,9 +66,10 @@ void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 
     auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf->buf_);
     uint32_t next_rpc_id = req->extra.worker_flag >> 32;
+    uint32_t next_req_id = req->extra.worker_flag;
 
     hdr_record_value(latency_hist_,
-                     static_cast<int64_t>(timers[next_rpc_id][req->req.req_number % FLAGS_concurrency].toc() * 10));
+                     static_cast<int64_t>(timers[next_rpc_id][next_req_id % FLAGS_concurrency].toc() * 10));
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
@@ -133,7 +134,7 @@ void handler_tc(ClientContext *ctx, REQ_MSG req_msg)
     // TODO don't know length, a hack method
     new (req_msgbuf.buf_) TranscodeReq(RPC_TYPE::RPC_TRANSCODE, req_id * kAppMaxRPC + rpc_id, file_size, (req_id % FLAGS_concurrency) * file_size_aligned, ctx->rmem_flags_[rpc_id] | req_id);
 
-    timers[rpc_id][req_msg.req_id % FLAGS_concurrency].tic();
+    timers[rpc_id][req_id % FLAGS_concurrency].tic();
 
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
                                &req_msgbuf, &resp_msgbuf,
