@@ -1,6 +1,7 @@
 #include "mm_struct.h"
 #include "page.h"
 #include "server_extern.h"
+#include "gflag_configs.h"
 namespace rmem
 {
     mm_struct::mm_struct(uint16_t tid, uint16_t sid)
@@ -289,12 +290,25 @@ namespace rmem
             {
                 unsigned long pfn = addr_map[vfn];
                 size_t new_vfn = (flag ? vfn - offset : vfn + offset);
-                fs->addr_map[new_vfn] = pfn;
-
-                if (unlikely(!g_page_tables[pfn].do_page_fork(pfn)))
+                if (!FLAGS_rmem_copy)
                 {
-                    RMEM_ERROR("do_fork failed, addr: %lx, size: %lx, new_addr: %lx, vfn: %lx, pfn: %lx, offset: %lx, thread_id: %d, session_id: %d", addr, size, new_addr, vfn, pfn, offset, thread_id, session_id);
-                    exit(-1);
+                    fs->addr_map[new_vfn] = pfn;
+
+                    if (unlikely(!g_page_tables[pfn].do_page_fork(pfn)))
+                    {
+                        RMEM_ERROR("do_fork failed, addr: %lx, size: %lx, new_addr: %lx, vfn: %lx, pfn: %lx, offset: %lx, thread_id: %d, session_id: %d", addr, size, new_addr, vfn, pfn, offset, thread_id, session_id);
+                        exit(-1);
+                    }
+                }
+                else
+                {
+                    do_write(fs, PFN_2_PHYS(new_vfn), PAGE_SIZE, g_pages[pfn].data);
+                    unsigned long new_pfn = addr_map[new_vfn];
+                    fs->addr_map[new_vfn] = new_pfn;
+                    g_page_tables[new_pfn].lock.lock();
+                    // means this is copy instead of zero copy
+                    g_page_tables[new_pfn].access_mode = 0x1;
+                    g_page_tables[new_pfn].lock.unlock();
                 }
             }
         }

@@ -18,6 +18,8 @@ DEFINE_uint32(rmem_dpdk_port, 0, "dpdk used port id to receive/send");
 
 DEFINE_uint64(timeout_second, UINT64_MAX, "Timeout second for each request, default(UINT64_MAX) means no timeout");
 
+DEFINE_bool(rmem_copy, false, "use copy instead of zero copy");
+
 static bool ValidateNumaNode(const char *flag_name, uint32_t value)
 {
     if (value < static_cast<uint32_t>(numa_num_configured_nodes()))
@@ -86,9 +88,20 @@ static bool ValidateServerUdpPort(const char *flag_name, uint32_t value)
     return false;
 }
 
+static bool ValidateCopyFlag(const char *flag_name, bool value)
+{
+    _unused(flag_name);
+    if (value)
+    {
+        RMEM_WARN("use copy instead of zero copy!");
+    }
+    return true;
+}
+
 DEFINE_validator(rmem_numa_node, &ValidateNumaNode);
 DEFINE_validator(rmem_dpdk_port, &ValidateDpdkPort);
 DEFINE_validator(rmem_size, &ValidateSize);
 DEFINE_validator(rmem_server_thread, &ValidateServerThread);
 DEFINE_validator(rmem_server_ip, &ValidateServerIp);
 DEFINE_validator(rmem_server_udp_port, &ValidateServerUdpPort);
+DEFINE_validator(rmem_copy, &ValidateCopyFlag);

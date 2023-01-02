@@ -195,10 +195,11 @@ target_link_libraries(rmem_mn erpc ${LIBRARIES})
 
 if(APP STREQUAL "img_transcode")
   add_subdirectory(${CMAKE_SOURCE_DIR}/cn/app/img_transcode)
+elseif(APP STREQUAL "fork_test")
+  add_subdirectory(${CMAKE_SOURCE_DIR}/cn/app/fork_test)
 else()
   add_executable(${APP} ${CMAKE_SOURCE_DIR}/cn/app/${APP}/${APP}.cpp ${APP_ADDITIONAL_SOURCES})
   target_link_libraries(${APP} -Wl,--whole-archive erpc -Wl,--no-whole-archive rmem ${LIBRARIES})
-
 endif()
 
 

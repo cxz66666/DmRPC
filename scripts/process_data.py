@@ -51,16 +51,16 @@ def get_lat_result(file_name):
             if line[0] != '#':
                 wordlist = line.split()
                 if float(wordlist[1]) >= 0.99 and result_99 == -1:
-                    result_99 = wordlist[0]
+                    result_99 = float(wordlist[0])
                 if float(wordlist[1]) >= 0.995 and result_995 == -1:
-                    result_995 = wordlist[0]
+                    result_995 = float(wordlist[0])
                 if float(wordlist[1]) >= 0.999 and result_999 == -1:
-                    result_999 = wordlist[0]
+                    result_999 = float(wordlist[0])
             else:
 
                 if line.find("Mean") != -1:
                     tmp = re.findall(r"[-+]?\d*\.\d+|\d+", line)
-                    result_avg = tmp[0]
+                    result_avg = float(tmp[0])
 
     f.close()
     return result_99, result_995, result_999, result_avg
@@ -108,26 +108,26 @@ def generate_lat_result(target_sheet_99, target_sheet_995, target_sheet_999, tar
             msg_size = int(m.group(1))
             num_thread = int(m.group(2))
             concurrency = int(m.group(3))
+
             if target_map_99[msg_size][num_thread] == {}:
                 target_map_99[msg_size][num_thread] = sum_result[0]
             else:
-                target_map_99[msg_size][num_thread] = max(target_map_99[msg_size][num_thread], sum_result[0])
+                target_map_99[msg_size][num_thread] = min(target_map_99[msg_size][num_thread], sum_result[0])
 
             if target_map_995[msg_size][num_thread] == {}:
                 target_map_995[msg_size][num_thread] = sum_result[1]
             else:
-                target_map_995[msg_size][num_thread] = max(target_map_995[msg_size][num_thread], sum_result[1])
+                target_map_995[msg_size][num_thread] = min(target_map_995[msg_size][num_thread], sum_result[1])
 
             if target_map_999[msg_size][num_thread] == {}:
                 target_map_999[msg_size][num_thread] = sum_result[2]
             else:
-                target_map_999[msg_size][num_thread] = max(target_map_999[msg_size][num_thread], sum_result[2])
+                target_map_999[msg_size][num_thread] = min(target_map_999[msg_size][num_thread], sum_result[2])
 
             if target_map_avg[msg_size][num_thread] == {}:
                 target_map_avg[msg_size][num_thread] = sum_result[3]
             else:
-                target_map_avg[msg_size][num_thread] = max(target_map_avg[msg_size][num_thread], sum_result[3])
-
+                target_map_avg[msg_size][num_thread] = min(target_map_avg[msg_size][num_thread], sum_result[3])
     loop_list = [(target_map_99, target_sheet_99), (target_map_995, target_sheet_995),
                  (target_map_999, target_sheet_999), (target_map_avg, target_sheet_avg)]
     for _, val in enumerate(loop_list):
