@@ -1,6 +1,7 @@
 #include <thread>
+#include <experimental/filesystem>
 #include "numautil.h"
-#include "fork_test_rmem.h"
+#include "fork_test_cxl.h"
 
 size_t get_bind_core(size_t numa)
 {
@@ -59,7 +60,7 @@ void callback_ping(void *_context, void *_tag)
 void handler_ping(ClientContext *ctx, REQ_MSG req_msg)
 {
 
-    new (ctx->ping_msgbuf.buf_) PingReq(RPC_TYPE::RPC_PING, req_msg.req_id, SIZE_MAX, ctx->ping_param);
+    new (ctx->ping_msgbuf.buf_) PingReq(RPC_TYPE::RPC_PING, req_msg.req_id);
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_PING),
                                &ctx->ping_msgbuf, &ctx->ping_resp_msgbuf,
                                callback_ping, nullptr);
@@ -75,7 +76,7 @@ void callback_tc(void *_context, void *_tag)
 
     hdr_record_value_atomic(latency_hist_,
                             static_cast<int64_t>(timers[ctx->client_id_][req_id % FLAGS_concurrency].toc() * 10));
-    auto *resp = reinterpret_cast<RmemResp *>(ctx->resp_msgbuf[req_id % kAppMaxConcurrency].buf_);
+    auto *resp = reinterpret_cast<CxlResp *>(ctx->resp_msgbuf[req_id % kAppMaxConcurrency].buf_);
 
     if (resp->resp.status != 0)
     {
@@ -90,12 +91,30 @@ void handler_tc(ClientContext *ctx, REQ_MSG req_msg)
 {
     erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[req_msg.req_id % kAppMaxConcurrency];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[req_msg.req_id % kAppMaxConcurrency];
-    timers[ctx->client_id_][req_msg.req_id % FLAGS_concurrency].tic();
-
-    uint64_t new_addr = ctx->rmem_->rmem_fork(ctx->raddr_begin + (req_msg.req_id * PAGE_SIZE * 10) % alloc_size, PAGE_SIZE * 10);
 
     // TODO don't know length, a hack method
-    new (req_msgbuf.buf_) RmemReq(RPC_TYPE::RPC_TRANSCODE, req_msg.req_id, PAGE_SIZE, new_addr);
+    timers[ctx->client_id_][req_msg.req_id % FLAGS_concurrency].tic();
+
+    char filename[32];
+    std::string name = "cxl_" + std::to_string(req_msg.req_id % FLAGS_test_loop);
+    if (FLAGS_no_cow)
+    {
+        std::string dst_name = "cxl_cp_" + std::to_string(req_msg.req_id % FLAGS_test_loop);
+        try // If you want to avoid exception handling, then use the error code overload of the following functions.
+        {
+            std::experimental::filesystem::copy_file(folder_name + name, folder_name + dst_name, std::experimental::filesystem::copy_options::overwrite_existing);
+        }
+        catch (std::exception &e) // Not using fs::filesystem_error since std::bad_alloc can throw too.
+        {
+            std::cout << e.what();
+        }
+        strcpy(filename, dst_name.c_str());
+    }
+    else
+    {
+        strcpy(filename, name.c_str());
+    }
+    new (req_msgbuf.buf_) CxlReq(RPC_TYPE::RPC_TRANSCODE, req_msg.req_id, filename);
 
     ctx->rpc_->enqueue_request(ctx->session_num_vec_[0], static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE),
                                &req_msgbuf, &resp_msgbuf,
@@ -116,8 +135,8 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     for (size_t i = 0; i < kAppMaxConcurrency; i++)
     {
         // TODO
-        ctx->req_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(RmemReq));
-        ctx->resp_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(RmemResp));
+        ctx->req_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(CxlReq));
+        ctx->resp_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(CxlResp));
     }
     ctx->ping_msgbuf = rpc.alloc_msg_buffer_or_die(sizeof(PingReq));
     ctx->ping_resp_msgbuf = rpc.alloc_msg_buffer_or_die(sizeof(PingResp));
@@ -247,7 +266,6 @@ int main(int argc, char **argv)
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     check_common_gflags();
-    rmem::rmem_init(rmem::get_uri_for_process(FLAGS_rmem_self_index), FLAGS_numa_client_node);
 
     int ret = hdr_init(1, 1000 * 1000 * 10, 3,
                        &latency_hist_);

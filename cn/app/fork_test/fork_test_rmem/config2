@@ -1,5 +1,5 @@
 --test_loop 10000
---concurrency 16
+--concurrency 1
 --numa_0_ports 0
 --numa_1_ports 1
 --numa_client_node 0
@@ -14,6 +14,6 @@
 --bind_core_offset 0
 --timeout_second 50
 --read_number 1
---write_number 1
+--write_number 9
 --rmem_self_index 4
 --rmem_server_index 2

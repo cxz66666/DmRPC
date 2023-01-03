@@ -13,5 +13,4 @@
 --server_num 1
 --bind_core_offset 0
 --timeout_second 50
---rmem_self_index 3
---rmem_server_index 2
+--cxl_fake_folder /testcxl

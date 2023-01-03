@@ -1,0 +1,11 @@
+--test_loop 10000
+--concurrency 1
+--client_thread_num 1
+--server_thread_num 1
+--block_size 4096
+--alloc_size 128
+--latency_file latency.txt
+--bandwidth_file bandwidth.txt
+--numa_node_user_thread 0
+--cxl_fake_folder /testcxl
+--no_cow false

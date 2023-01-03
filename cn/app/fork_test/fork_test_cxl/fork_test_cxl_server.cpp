@@ -1,7 +1,8 @@
 #include <thread>
 #include "numautil.h"
 #include "spinlock_mutex.h"
-#include "fork_test_rmem.h"
+#include "fork_test_cxl.h"
+#include <sys/mman.h>
 
 size_t get_bind_core(size_t numa)
 {
@@ -34,18 +35,8 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
 
     auto *req = reinterpret_cast<PingReq *>(req_msgbuf->buf_);
 
-    ctx->rmem_ = new rmem::Rmem(0);
-    printf("hosts %s, thread_id %u, session_id %u\n", req->ping_param.hosts, req->ping_param.rmem_thread_id_, req->ping_param.rmem_session_id_);
-    std::string hosts(req->ping_param.hosts);
-    if (unlikely(ctx->rmem_->connect_session(hosts, req->ping_param.rmem_thread_id_)) != 0)
-    {
-        printf("connect error\n");
-        exit(-1);
-    }
-    ctx->rmem_thread_id_ = req->ping_param.rmem_thread_id_;
-    ctx->rmem_session_id_ = req->ping_param.rmem_session_id_;
-    ctx->read_buf = ctx->rmem_->rmem_get_msg_buffer(KB(4));
-    ctx->write_buf = ctx->rmem_->rmem_get_msg_buffer(KB(4));
+    ctx->read_buf = malloc(KB(4));
+    ctx->write_buf = malloc(KB(4));
 
     new (req_handle->pre_resp_msgbuf_.buf_) PingResp(req->req.type, req->req.req_number, 0, req->timestamp);
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(PingResp));
@@ -59,23 +50,33 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
     ctx->stat_req_tc_tot++;
     auto *req_msgbuf = req_handle->get_req_msgbuf();
 
-    auto *req = reinterpret_cast<RmemReq *>(req_msgbuf->buf_);
-    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RmemReq), "data size not match");
+    auto *req = reinterpret_cast<CxlReq *>(req_msgbuf->buf_);
+    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(CxlReq), "data size not match");
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
-
-    unsigned long addr = ctx->rmem_->rmem_join(req->extra.addr, ctx->rmem_thread_id_, ctx->rmem_session_id_);
-
+    FILE *file = fopen(req->extra.filename, "r+");
+    void *addr;
+    if (!FLAGS_no_cow)
+    {
+        addr = mmap(NULL, KB(40), PROT_READ | PROT_WRITE, MAP_PRIVATE, fileno(file), 0);
+    }
+    else
+    {
+        addr = mmap(NULL, KB(40), PROT_READ | PROT_WRITE, MAP_SHARED, fileno(file), 0);
+    }
+    rmem::rt_assert(addr != MAP_FAILED, "mmap failed");
     for (size_t i = 0; i < FLAGS_read_number; i++)
     {
-        ctx->rmem_->rmem_read_sync(ctx->read_buf, addr + KB(4) * i, KB(4));
+        memcpy(ctx->read_buf, static_cast<char *>(addr) + KB(4) * i, KB(4));
     }
     for (size_t i = 0; i < FLAGS_write_number; i++)
     {
-        ctx->rmem_->rmem_write_sync(ctx->write_buf, addr + KB(4) * (i + FLAGS_read_number), KB(4));
+        memcpy(static_cast<char *>(addr) + KB(4) * (i + FLAGS_read_number), ctx->write_buf, KB(4));
     }
-    new (req_handle->pre_resp_msgbuf_.buf_) RmemResp(req->req.type, req->req.req_number, 0);
+    new (req_handle->pre_resp_msgbuf_.buf_) CxlResp(req->req.type, req->req.req_number, 0);
 
+    munmap(addr, KB(40));
+    fclose(file);
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 }
 
@@ -152,7 +153,6 @@ int main(int argc, char **argv)
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     check_common_gflags();
-    rmem::rmem_init(rmem::get_uri_for_process(FLAGS_rmem_self_index), FLAGS_numa_client_node);
 
     std::thread leader_thread(leader_thread_func);
     leader_thread.join();

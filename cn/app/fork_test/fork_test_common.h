@@ -8,7 +8,7 @@
 #include "rpc.h"
 #include <app_helpers.h>
 
-static constexpr size_t alloc_size = 1024 * 1024 * 1024;
+static constexpr size_t alloc_size = 1024ul * 1024 * 1024 * 10;
 static constexpr size_t kAppMaxConcurrency = 256; // Outstanding reqs per thread
 static constexpr size_t kAppMaxRPC = 16;          // Outstanding rpcs per thread, used for RMEM_BASED
 static constexpr size_t kAppEvLoopMs = 1000;      // Duration of event loop
@@ -57,6 +57,12 @@ public:
     uint64_t addr;
 };
 
+class CxlReqMsg
+{
+public:
+    char filename[16];
+};
+
 class PingParam
 {
 public:
@@ -84,21 +90,42 @@ public:
     PingResp(RPC_TYPE t, uint32_t num, int s, size_t ts) : resp{t, num, s}, timestamp(ts) {}
 } __attribute__((packed));
 
-class TranscodeReq
+class RmemReq
 {
 public:
     CommonReq req;
     ExtraReqMsg extra;
-    TranscodeReq(RPC_TYPE t, uint32_t num) : req{t, num}, extra{0, 0} {}
-    TranscodeReq(RPC_TYPE t, uint32_t num, size_t len, uint64_t ad) : req{t, num}, extra{len, ad} {}
+    RmemReq(RPC_TYPE t, uint32_t num) : req{t, num}, extra{0, 0} {}
+    RmemReq(RPC_TYPE t, uint32_t num, size_t len, uint64_t ad) : req{t, num}, extra{len, ad} {}
 
 } __attribute__((packed));
 
-class TranscodeResp
+class RmemResp
 {
 public:
     CommonResp resp;
-    TranscodeResp(RPC_TYPE t, uint32_t num, int s) : resp{t, num, s} {}
+    RmemResp(RPC_TYPE t, uint32_t num, int s) : resp{t, num, s} {}
+} __attribute__((packed));
+
+class CxlReq
+{
+public:
+    CommonReq req;
+    CxlReqMsg extra;
+    CxlReq(RPC_TYPE t, uint32_t num) : req{t, num} {}
+
+    CxlReq(RPC_TYPE t, uint32_t num, char *p) : req{t, num}
+    {
+        memcpy(extra.filename, p, 16);
+    }
+
+} __attribute__((packed));
+
+class CxlResp
+{
+public:
+    CommonResp resp;
+    CxlResp(RPC_TYPE t, uint32_t num, int s) : resp{t, num, s} {}
 } __attribute__((packed));
 
 DEFINE_uint64(test_loop, 10, "Test loop");
