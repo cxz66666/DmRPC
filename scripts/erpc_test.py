@@ -21,8 +21,9 @@ worker2_machine = "192.168.189.14"
 user = "cxz"
 passwd = "cxz123"
 output_file_format = "/home/cxz/erpc_result/{}_b{}_t{}_c{}"
-msg_size = [4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576,
-            2097152, 4194304]
+msg_size = [4096]
+# msg_size = [4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576,
+#             2097152, 4194304]
 file_map = {4096: "../scripts/echo/test_4k.bmp",
             8192: "../scripts/echo/test_8k.bmp",
             16384: "../scripts/echo/test_16k.bmp",
@@ -38,7 +39,8 @@ file_map = {4096: "../scripts/echo/test_4k.bmp",
 max_concurrency = [64, 64, 64, 16, 8, 4, 4, 4, 2, 2, 1]
 min_concurrency = [16, 16, 16, 4, 2, 1, 1, 1, 1, 1, 1]
 
-num_threads = [1, 2, 4, 6, 8]
+# num_threads = [1, 2, 4, 6, 8]
+num_threads = [1, 8]
 concurrency = [1, 2, 4, 8, 16, 32, 64, 128]
 
 common_timeout = 60
