@@ -9,8 +9,9 @@ spinlock_mutex total_speed_lock;
 
 std::string folder_name;
 
-DEFINE_uint64(read_number, 0, "read ratio in cow");
-DEFINE_uint64(write_number, 0, "read ratio in cow");
+static constexpr size_t create_file_size = 10000;
+
+DEFINE_uint64(block_size, 4096, "block size");
 DEFINE_string(cxl_fake_folder, "", "Mount tmpfs on this folder, which use another numa memory to fake cxl memory");
 DEFINE_bool(no_cow, false, "Don't use cow");
 
@@ -82,20 +83,23 @@ public:
         {
             folder_name += '/';
         }
-        for (size_t i = 0; i < FLAGS_test_loop; i++)
+        for (size_t c_i = 0; c_i < FLAGS_client_num; c_i++)
         {
-            std::string filename = folder_name + "cxl_" + std::to_string(i);
-            std::ofstream file(filename, std::ios::out | std::ios::binary);
-            if (!file.is_open())
+            for (size_t i = 0; i < create_file_size; i++)
             {
-                std::cout << "open file fail" << std::endl;
-                exit(1);
+                std::string filename = folder_name + "cxl_" + std::to_string(c_i) + "_" + std::to_string(i);
+                std::ofstream file(filename, std::ios::out | std::ios::binary);
+                if (!file.is_open())
+                {
+                    std::cout << "open file fail" << std::endl;
+                    exit(1);
+                }
+                for (size_t j = 0; j < FLAGS_block_size / PAGE_SIZE; j++)
+                {
+                    file.write(buf, 4096);
+                }
+                file.close();
             }
-            for (size_t j = 0; j < 10; j++)
-            {
-                file.write(buf, 4096);
-            }
-            file.close();
         }
     }
     ~AppContext()
@@ -143,6 +147,11 @@ public:
         for (size_t i = 0; i < FLAGS_server_num; i++)
         {
             server_contexts_.push_back(new ServerContext(i));
+        }
+        folder_name = flags_get_cxl_fake_folder();
+        if (folder_name[folder_name.size() - 1] != '/')
+        {
+            folder_name += '/';
         }
     }
 

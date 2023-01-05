@@ -13,7 +13,6 @@
 --server_num 1
 --bind_core_offset 0
 --timeout_second 50
---read_number 1
---write_number 9
 --rmem_self_index 4
 --rmem_server_index 2
+--block_size 4096

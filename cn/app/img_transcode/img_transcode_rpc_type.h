@@ -34,12 +34,14 @@ class ExtraReqMsg
 {
 public:
     size_t length;
+    size_t flags;
 };
 
 class ExtraRespMsg
 {
 public:
     size_t length;
+    size_t flags;
 };
 
 class PingReq
@@ -66,7 +68,8 @@ public:
     CommonReq req;
     ExtraReqMsg extra;
     TranscodeReq(RPC_TYPE t, uint32_t num) : req{t, num}, extra{0} {}
-    TranscodeReq(RPC_TYPE t, uint32_t num, size_t len) : req{t, num}, extra{len} {}
+    TranscodeReq(RPC_TYPE t, uint32_t num, size_t len) : req{t, num}, extra{len, 0} {}
+    TranscodeReq(RPC_TYPE t, uint32_t num, size_t len, uint64_t f) : req{t, num}, extra{len, f} {}
 
 } __attribute__((packed));
 
@@ -76,7 +79,9 @@ public:
     CommonResp resp;
     ExtraRespMsg extra;
     TranscodeResp(RPC_TYPE t, uint32_t num, int s) : resp{t, num, s}, extra{0} {}
-    TranscodeResp(RPC_TYPE t, uint32_t num, int s, size_t len) : resp{t, num, s}, extra{len} {}
+    TranscodeResp(RPC_TYPE t, uint32_t num, int s, size_t len) : resp{t, num, s}, extra{len, 0} {}
+    TranscodeResp(RPC_TYPE t, uint32_t num, int s, size_t len, uint64_t f) : resp{t, num, s}, extra{len, f} {}
+
 } __attribute__((packed));
 
 #elif defined(RMEM_PROGRAM)

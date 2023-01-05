@@ -1,4 +1,4 @@
---test_loop 1000
+--test_loop 100000
 --concurrency 1
 --numa_0_ports 0
 --numa_1_ports 1
@@ -14,3 +14,4 @@
 --bind_core_offset 0
 --timeout_second 50
 --cxl_fake_folder /testcxl
+--block_size 4096

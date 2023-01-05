@@ -73,9 +73,9 @@ void callback_tc(void *_context, void *_tag)
     auto *ctx = static_cast<ClientContext *>(_context);
     ctx->stat_req_tc_tot++;
 
+    auto *resp = reinterpret_cast<RmemResp *>(ctx->resp_msgbuf[req_id % kAppMaxConcurrency].buf_);
     hdr_record_value_atomic(latency_hist_,
                             static_cast<int64_t>(timers[ctx->client_id_][req_id % FLAGS_concurrency].toc() * 10));
-    auto *resp = reinterpret_cast<RmemResp *>(ctx->resp_msgbuf[req_id % kAppMaxConcurrency].buf_);
 
     if (resp->resp.status != 0)
     {
@@ -90,9 +90,10 @@ void handler_tc(ClientContext *ctx, REQ_MSG req_msg)
 {
     erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[req_msg.req_id % kAppMaxConcurrency];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[req_msg.req_id % kAppMaxConcurrency];
+
     timers[ctx->client_id_][req_msg.req_id % FLAGS_concurrency].tic();
 
-    uint64_t new_addr = ctx->rmem_->rmem_fork(ctx->raddr_begin + (req_msg.req_id * PAGE_SIZE * 10) % alloc_size, PAGE_SIZE * 10);
+    uint64_t new_addr = ctx->rmem_->rmem_fork(ctx->raddr_begin + ((req_msg.req_id * FLAGS_block_size) % alloc_size), FLAGS_block_size);
 
     // TODO don't know length, a hack method
     new (req_msgbuf.buf_) RmemReq(RPC_TYPE::RPC_TRANSCODE, req_msg.req_id, PAGE_SIZE, new_addr);
@@ -258,6 +259,6 @@ int main(int argc, char **argv)
     leader_thread.join();
 
     write_latency_and_reset(FLAGS_latency_file);
-    write_bandwidth(FLAGS_bandwidth_file);
+    // write_bandwidth(FLAGS_bandwidth_file);
     hdr_close(latency_hist_);
 }

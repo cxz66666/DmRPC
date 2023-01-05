@@ -9,6 +9,7 @@ DEFINE_string(latency_file, "latency.txt", "Latency file name");
 DEFINE_string(bandwidth_file, "bandwidth.txt", "Bandwidth file name");
 
 double total_speed = 0;
+hdr_histogram *latency_hist_;
 
 void test_fork(AppContext *c, unsigned long raddr)
 {
@@ -24,8 +25,8 @@ void test_fork(AppContext *c, unsigned long raddr)
         {
             timers[0].tic();
             c->ctx->rmem_fork(begin_addr + raddr, FLAGS_block_size);
-            hdr_record_value(c->latency_hist_,
-                             static_cast<int64_t>(timers[0].toc() * 10));
+            hdr_record_value_atomic(latency_hist_,
+                                    static_cast<int64_t>(timers[0].toc() * 10));
             count++;
             if (ctrl_c_pressed == 1)
             {
@@ -47,6 +48,19 @@ bool write_bandwidth(const std::string &filename)
     fclose(fp);
     return true;
 }
+bool write_latency_and_reset(const std::string &filename)
+{
+
+    FILE *fp = fopen(filename.c_str(), "w");
+    if (fp == nullptr)
+    {
+        return false;
+    }
+    hdr_percentiles_print(latency_hist_, fp, 5, 10, CLASSIC);
+    fclose(fp);
+    hdr_reset(latency_hist_);
+    return true;
+}
 
 void client_func(size_t thread_id)
 {
@@ -66,10 +80,8 @@ void client_func(size_t thread_id)
     {
         c.ctx->rmem_write_sync(buf, i + raddr, strlen(buf));
     }
-
+    sleep(2);
     test_fork(&c, raddr);
-    rmem::rt_assert(c.write_latency_and_reset(FLAGS_latency_file));
-    rmem::rt_assert(write_bandwidth(FLAGS_bandwidth_file));
     c.ctx->rmem_free(raddr, FLAGS_alloc_size);
     c.ctx->disconnect_session();
 
@@ -80,21 +92,21 @@ int main(int argc, char **argv)
 {
     signal(SIGINT, ctrl_c_handler);
     gflags::ParseCommandLineFlags(&argc, &argv, true);
-    check_common_gflags();
+    // check_common_gflags();
     rmem::rt_assert(kAppMaxConcurrency >= FLAGS_concurrency, "kAppMaxConcurrency must be >= FLAGS_concurrency");
     rmem::rt_assert(FLAGS_alloc_size != 0, "alloc_size must be set");
-    rmem::rt_assert(FLAGS_alloc_size % FLAGS_client_thread_num == 0, "alloc_size must be divisible by client_thread_num");
     rmem::rt_assert(rmem::AsyncReceivedReqSize >= FLAGS_concurrency, "AsyncReceivedReqSize must be >= FLAGS_concurrency");
 
     FLAGS_alloc_size = GB(FLAGS_alloc_size);
     std::cout << getpid() << std::endl;
     rmem::rmem_init(rmem::get_uri_for_process(FLAGS_client_index), FLAGS_numa_node);
 
-    FLAGS_alloc_size /= FLAGS_client_thread_num;
-
     std::vector<std::thread> threads(FLAGS_client_thread_num);
 
     FLAGS_concurrency = 1;
+    int ret = hdr_init(1, 1000 * 1000 * 10, 3,
+                       &latency_hist_);
+    rmem::rt_assert(ret == 0, "hdr_init failed");
 
     threads[0] = std::thread(client_func, 0);
     usleep(2e6);
@@ -111,4 +123,7 @@ int main(int argc, char **argv)
     {
         t.join();
     }
+    write_bandwidth(FLAGS_bandwidth_file);
+    write_latency_and_reset(FLAGS_latency_file);
+    hdr_close(latency_hist_);
 }

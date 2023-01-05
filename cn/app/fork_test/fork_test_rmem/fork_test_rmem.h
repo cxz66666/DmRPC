@@ -11,8 +11,7 @@ spinlock_mutex total_speed_lock;
 DEFINE_uint64(rmem_self_index, SIZE_MAX, "Rmem self node index line for app_process_file, 2 means line 3 represent status");
 DEFINE_uint64(rmem_server_index, SIZE_MAX, "Rmem servers node index line for app_process_file, 2 means line 3 represent status");
 
-DEFINE_uint64(read_number, 0, "read ratio in cow");
-DEFINE_uint64(write_number, 0, "read ratio in cow");
+DEFINE_uint64(block_size, 0, "block size");
 
 class ClientContext : public BasicContext
 {
@@ -127,8 +126,8 @@ public:
     rmem::Rmem *rmem_{};
     int rmem_thread_id_;
     int rmem_session_id_;
-    void *read_buf;
     void *write_buf;
+    unsigned long raddr_{};
 
     void reset_stat()
     {

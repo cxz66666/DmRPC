@@ -8,7 +8,7 @@
 #include "rpc.h"
 #include <app_helpers.h>
 
-static constexpr size_t alloc_size = 1024ul * 1024 * 1024 * 10;
+static constexpr size_t alloc_size = 1024ul * 1024 * 1024;
 static constexpr size_t kAppMaxConcurrency = 256; // Outstanding reqs per thread
 static constexpr size_t kAppMaxRPC = 16;          // Outstanding rpcs per thread, used for RMEM_BASED
 static constexpr size_t kAppEvLoopMs = 1000;      // Duration of event loop
@@ -104,7 +104,10 @@ class RmemResp
 {
 public:
     CommonResp resp;
+    uint64_t join_time;
     RmemResp(RPC_TYPE t, uint32_t num, int s) : resp{t, num, s} {}
+    RmemResp(RPC_TYPE t, uint32_t num, int s, uint64_t tt) : resp{t, num, s}, join_time{tt} {}
+
 } __attribute__((packed));
 
 class CxlReq

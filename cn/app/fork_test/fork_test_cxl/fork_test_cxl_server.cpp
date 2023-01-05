@@ -35,8 +35,8 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
 
     auto *req = reinterpret_cast<PingReq *>(req_msgbuf->buf_);
 
-    ctx->read_buf = malloc(KB(4));
-    ctx->write_buf = malloc(KB(4));
+    ctx->read_buf = malloc(FLAGS_block_size);
+    ctx->write_buf = malloc(FLAGS_block_size);
 
     new (req_handle->pre_resp_msgbuf_.buf_) PingResp(req->req.type, req->req.req_number, 0, req->timestamp);
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(PingResp));
@@ -54,28 +54,26 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(CxlReq), "data size not match");
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
-    FILE *file = fopen(req->extra.filename, "r+");
+
+    std::string filename = folder_name + std::string(req->extra.filename);
+    FILE *file = fopen(filename.c_str(), "r+");
     void *addr;
     if (!FLAGS_no_cow)
     {
-        addr = mmap(NULL, KB(40), PROT_READ | PROT_WRITE, MAP_PRIVATE, fileno(file), 0);
+        addr = mmap(NULL, FLAGS_block_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fileno(file), 0);
     }
     else
     {
-        addr = mmap(NULL, KB(40), PROT_READ | PROT_WRITE, MAP_SHARED, fileno(file), 0);
+        addr = mmap(NULL, FLAGS_block_size, PROT_READ | PROT_WRITE, MAP_SHARED, fileno(file), 0);
     }
     rmem::rt_assert(addr != MAP_FAILED, "mmap failed");
-    for (size_t i = 0; i < FLAGS_read_number; i++)
-    {
-        memcpy(ctx->read_buf, static_cast<char *>(addr) + KB(4) * i, KB(4));
-    }
-    for (size_t i = 0; i < FLAGS_write_number; i++)
-    {
-        memcpy(static_cast<char *>(addr) + KB(4) * (i + FLAGS_read_number), ctx->write_buf, KB(4));
-    }
+
+    memcpy(ctx->read_buf, static_cast<char *>(addr), FLAGS_block_size);
+    memcpy(static_cast<char *>(addr), ctx->write_buf, FLAGS_block_size);
+
     new (req_handle->pre_resp_msgbuf_.buf_) CxlResp(req->req.type, req->req.req_number, 0);
 
-    munmap(addr, KB(40));
+    munmap(addr, FLAGS_block_size);
     fclose(file);
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 }

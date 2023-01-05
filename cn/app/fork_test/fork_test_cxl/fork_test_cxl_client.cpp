@@ -92,14 +92,15 @@ void handler_tc(ClientContext *ctx, REQ_MSG req_msg)
     erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[req_msg.req_id % kAppMaxConcurrency];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[req_msg.req_id % kAppMaxConcurrency];
 
+    char filename[32];
+    std::string name = "cxl_" + std::to_string(ctx->client_id_) + "_" + std::to_string(req_msg.req_id % create_file_size);
+
     // TODO don't know length, a hack method
     timers[ctx->client_id_][req_msg.req_id % FLAGS_concurrency].tic();
 
-    char filename[32];
-    std::string name = "cxl_" + std::to_string(req_msg.req_id % FLAGS_test_loop);
     if (FLAGS_no_cow)
     {
-        std::string dst_name = "cxl_cp_" + std::to_string(req_msg.req_id % FLAGS_test_loop);
+        std::string dst_name = "ccp_" + std::to_string(ctx->client_id_) + "_" + std::to_string(req_msg.req_id % create_file_size);
         try // If you want to avoid exception handling, then use the error code overload of the following functions.
         {
             std::experimental::filesystem::copy_file(folder_name + name, folder_name + dst_name, std::experimental::filesystem::copy_options::overwrite_existing);
@@ -276,6 +277,6 @@ int main(int argc, char **argv)
     leader_thread.join();
 
     write_latency_and_reset(FLAGS_latency_file);
-    write_bandwidth(FLAGS_bandwidth_file);
+    // write_bandwidth(FLAGS_bandwidth_file);
     hdr_close(latency_hist_);
 }
