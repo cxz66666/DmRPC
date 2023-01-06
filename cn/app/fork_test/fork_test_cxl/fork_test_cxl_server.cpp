@@ -46,6 +46,7 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
 
 void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 {
+    static size_t write_count = 0;
     auto *ctx = static_cast<ServerContext *>(_context);
     ctx->stat_req_tc_tot++;
     auto *req_msgbuf = req_handle->get_req_msgbuf();
@@ -55,12 +56,13 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
+    rmem::Timer timer;
     std::string filename = folder_name + std::string(req->extra.filename);
     FILE *file = fopen(filename.c_str(), "r+");
     void *addr;
     if (!FLAGS_no_cow)
     {
-        addr = mmap(NULL, FLAGS_block_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fileno(file), 0);
+        addr = mmap(NULL, FLAGS_block_size, PROT_READ | PROT_WRITE, MAP_SHARED, fileno(file), 0);
     }
     else
     {
@@ -68,13 +70,31 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
     }
     rmem::rt_assert(addr != MAP_FAILED, "mmap failed");
 
-    memcpy(ctx->read_buf, static_cast<char *>(addr), FLAGS_block_size);
-    memcpy(static_cast<char *>(addr), ctx->write_buf, FLAGS_block_size);
+    timer.tic();
+    if (!FLAGS_no_cow)
+    {
+        for (size_t i = 0; i < FLAGS_write_num; i++)
+        {
+            memcpy(ctx->random_1[write_count], static_cast<char *>(addr) + PAGE_SIZE * i, PAGE_SIZE);
+            memcpy(ctx->random_2[write_count], static_cast<char *>(ctx->write_buf) + PAGE_SIZE * i, FLAGS_write_page_size);
+            write_count = (write_count + 1) % ctx->max_num;
+        }
+    }
+    else
+    {
+        memcpy(ctx->random_3[write_count], addr, FLAGS_block_size);
+        for (size_t i = 0; i < FLAGS_write_num; i++)
+        {
+            memcpy(static_cast<char *>(ctx->random_3[write_count]) + PAGE_SIZE * i, static_cast<char *>(ctx->write_buf) + PAGE_SIZE * i, FLAGS_write_page_size);
+        }
+        write_count = (write_count + 1) % ctx->max_num_copy;
+    }
 
-    new (req_handle->pre_resp_msgbuf_.buf_) CxlResp(req->req.type, req->req.req_number, 0);
+    new (req_handle->pre_resp_msgbuf_.buf_) CxlResp(req->req.type, req->req.req_number, timer.toc());
 
     munmap(addr, FLAGS_block_size);
     fclose(file);
+
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 }
 

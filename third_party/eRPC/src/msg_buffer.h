@@ -150,6 +150,7 @@ namespace erpc
 
     // hack for erpc, maybe need more extra check
     inline void set_no_dynamic() { buffer_.buf_ = nullptr; }
+    inline void *get_buffer_ptr() const { return buffer_.buf_; }
 
   private:
     /// The optional backing hugepage buffer. buffer.buf points to the zeroth

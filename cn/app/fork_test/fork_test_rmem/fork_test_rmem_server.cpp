@@ -44,13 +44,6 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
     }
     ctx->rmem_thread_id_ = req->ping_param.rmem_thread_id_;
     ctx->rmem_session_id_ = req->ping_param.rmem_session_id_;
-    ctx->write_buf = ctx->rmem_->rmem_get_msg_buffer(FLAGS_block_size);
-    ctx->raddr_ = ctx->rmem_->rmem_alloc(alloc_size, rmem::VM_FLAG_READ | rmem::VM_FLAG_WRITE);
-    char buf[10] = "123456789";
-    for (size_t i = 0; i < alloc_size; i += PAGE_SIZE)
-    {
-        ctx->rmem_->rmem_write_sync(buf, i + ctx->raddr_, strlen(buf));
-    }
     new (req_handle->pre_resp_msgbuf_.buf_) PingResp(req->req.type, req->req.req_number, 0, req->timestamp);
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(PingResp));
 
@@ -68,9 +61,19 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
-    // unsigned long addr = ctx->rmem_->rmem_join(req->extra.addr, ctx->rmem_thread_id_, ctx->rmem_session_id_);
+    unsigned long addr = ctx->rmem_->rmem_join(req->extra.addr, ctx->rmem_thread_id_, ctx->rmem_session_id_);
 
-    ctx->rmem_->rmem_write_sync(ctx->write_buf, ctx->raddr_ + ((req->req.req_number * FLAGS_block_size) % alloc_size), FLAGS_block_size);
+    for (size_t i = 0; i < FLAGS_write_num; i++)
+    {
+        ctx->rmem_->rmem_write_async(ctx->write_buf, addr + i * PAGE_SIZE, FLAGS_write_page_size);
+    }
+
+    size_t res = 0;
+    int results[10];
+    while (res < FLAGS_write_num)
+    {
+        res += ctx->rmem_->rmem_poll(results, FLAGS_write_num);
+    }
 
     new (req_handle->pre_resp_msgbuf_.buf_) RmemResp(req->req.type, req->req.req_number, 0);
 

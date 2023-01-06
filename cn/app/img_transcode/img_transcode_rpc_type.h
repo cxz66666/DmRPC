@@ -67,7 +67,7 @@ class TranscodeReq
 public:
     CommonReq req;
     ExtraReqMsg extra;
-    TranscodeReq(RPC_TYPE t, uint32_t num) : req{t, num}, extra{0} {}
+    TranscodeReq(RPC_TYPE t, uint32_t num) : req{t, num}, extra{0, 0} {}
     TranscodeReq(RPC_TYPE t, uint32_t num, size_t len) : req{t, num}, extra{len, 0} {}
     TranscodeReq(RPC_TYPE t, uint32_t num, size_t len, uint64_t f) : req{t, num}, extra{len, f} {}
 
@@ -78,7 +78,7 @@ class TranscodeResp
 public:
     CommonResp resp;
     ExtraRespMsg extra;
-    TranscodeResp(RPC_TYPE t, uint32_t num, int s) : resp{t, num, s}, extra{0} {}
+    TranscodeResp(RPC_TYPE t, uint32_t num, int s) : resp{t, num, s}, extra{0, 0} {}
     TranscodeResp(RPC_TYPE t, uint32_t num, int s, size_t len) : resp{t, num, s}, extra{len, 0} {}
     TranscodeResp(RPC_TYPE t, uint32_t num, int s, size_t len, uint64_t f) : resp{t, num, s}, extra{len, f} {}
 

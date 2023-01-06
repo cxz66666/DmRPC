@@ -74,6 +74,8 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/cn/app/img_transcode/build_app")
     set(IMG_TRANSCODE_TYPE "rmem")
   elseif(IMG_TRANSCODE_TYPE_FILE STREQUAL "cxl")
     set(IMG_TRANSCODE_TYPE "cxl")
+  elseif(IMG_TRANSCODE_TYPE_FILE STREQUAL "lb_test")
+    set(IMG_TRANSCODE_TYPE "lb_test")
   endif()
 endif()
 

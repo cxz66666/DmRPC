@@ -12,6 +12,8 @@ DEFINE_uint64(rmem_self_index, SIZE_MAX, "Rmem self node index line for app_proc
 DEFINE_uint64(rmem_server_index, SIZE_MAX, "Rmem servers node index line for app_process_file, 2 means line 3 represent status");
 
 DEFINE_uint64(block_size, 0, "block size");
+DEFINE_uint64(write_num, 0, "write num");
+DEFINE_uint64(write_page_size, 2048, "write page size");
 
 class ClientContext : public BasicContext
 {
@@ -126,7 +128,7 @@ public:
     rmem::Rmem *rmem_{};
     int rmem_thread_id_;
     int rmem_session_id_;
-    void *write_buf;
+    char write_buf[4098];
     unsigned long raddr_{};
 
     void reset_stat()
