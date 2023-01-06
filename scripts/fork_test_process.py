@@ -5,12 +5,15 @@ import re
 rmem_target_dir = "/home/cxz/fork_test_rmem_result"
 cxl_target_dir = "/home/cxz/fork_test_cxl_result"
 
-rmem_pattern_lat = r"lat_b(\d+)_t(\d+)_cow(\d+)"
-cxl_pattern_lat = r"lat_b(\d+)_t(\d+)_cow(\d+)"
+rmem_pattern_lat = r"lat_w(\d+)_s(\d+)_cow(\d+)"
+cxl_pattern_lat = r"lat_w(\d+)_s(\d+)_cow(\d+)$"
+cxl_pattern_lat1 = r"lat_w(\d+)_s(\d+)_cow(\d+)_1"
+cxl_pattern_lat2 = r"lat_w(\d+)_s(\d+)_cow(\d+)_2"
 
-rmem_thread_map = {1: 1, 6: 2}
-cxl_thread_map = {1: 1, 6: 2}
 
+
+rmem_thread_map = {4: 1, 1024: 2, 2048: 3, 4096:4}
+cxl_thread_map = {4: 1, 1024: 2, 2048: 3, 4096:4}
 
 class Vividict(dict):
     def __missing__(self, key):
@@ -54,23 +57,23 @@ def generate_lat_result(target_sheet_avg,
         if re.match(pattern, fi):
             sum_result = get_lat_result(target_dir + "/" + fi)
             m = re.match(pattern, fi)
-            num_thread = int(m.group(2))
+            write_page_size = int(m.group(2))
             cow = int(m.group(3))
-            block_size = int(m.group(1))
-            if target_map_avg[block_size][num_thread][cow] == {}:
-                target_map_avg[block_size][num_thread][cow] = sum_result[3]
+            write_num = int(m.group(1))
+            if target_map_avg[write_num][write_page_size][cow] == {}:
+                target_map_avg[write_num][write_page_size][cow] = sum_result[3]
             else:
-                target_map_avg[block_size][num_thread][cow] = min(target_map_avg[block_size][num_thread][cow],
+                target_map_avg[write_num][write_page_size][cow] = min(target_map_avg[write_num][write_page_size][cow],
                                                                 sum_result[3])
     loop_list = [(target_map_avg, target_sheet_avg)]
     for _, val in enumerate(loop_list):
         target_map = val[0]
         target_sheet = val[1]
-        target_sheet.write(row_offset, col_offset, "read_num/thread_num")
+        target_sheet.write(row_offset, col_offset, "write_num/write_size")
         for i in thread_map.keys():
             target_sheet.write(row_offset, thread_map[i] + col_offset, i)
         for i in thread_map.keys():
-            target_sheet.write(row_offset, thread_map[i] + col_offset + 2, "copy_" + str(i))
+            target_sheet.write(row_offset, thread_map[i] + col_offset + 4, "copy_" + str(i))
         row = 1
         for msg_size_key in sorted(target_map):
             target_sheet.write(row + row_offset, col_offset, msg_size_key)
@@ -82,7 +85,7 @@ def generate_lat_result(target_sheet_avg,
                     print("error: not find thread num {} in thread map".format(num_thread_key))
             for num_thread_key in sorted(target_map[msg_size_key]):
                 if num_thread_key in thread_map:
-                    target_sheet.write(row + row_offset, thread_map[num_thread_key] + col_offset + 2,
+                    target_sheet.write(row + row_offset, thread_map[num_thread_key] + col_offset + 4,
                                        target_map[msg_size_key][num_thread_key][1])
                 else:
                     print("error: not find thread num {} in thread map".format(num_thread_key))
@@ -98,6 +101,10 @@ if __name__ == '__main__':
                         rmem_thread_map, 0, 0)
     generate_lat_result(sheet_lat_avg, cxl_target_dir, cxl_pattern_lat,
                          cxl_thread_map, 15, 0)
+    generate_lat_result(sheet_lat_avg, cxl_target_dir, cxl_pattern_lat1,
+                         cxl_thread_map, 30, 0)
+    generate_lat_result(sheet_lat_avg, cxl_target_dir, cxl_pattern_lat2,
+                         cxl_thread_map, 45, 0)
 
 
     workbook.save('result.xls')

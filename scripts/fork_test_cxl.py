@@ -16,21 +16,23 @@ client_machine = "192.168.189.9"
 server_machine = "192.168.189.9"
 user = "cxz"
 passwd = "cxz123"
-output_file_format = "/home/cxz/fork_test_cxl_result/{}_b{}_t{}_cow{}"
-msg_size = [4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288]
+output_file_format = "/home/cxz/fork_test_cxl_result/{}_w{}_s{}_cow{}"
+msg_size = 32768
 zero_copys = [0, 1]
 
 # num_threads = [1, 2, 3, 4, 6, 8]
+num_write = [1, 2, 3, 4, 5, 6, 7, 8]
+write_page_size = [4, 1024, 2048, 4096]
 num_threads = [1]
 
-common_timeout = 50
+common_timeout = 30
 
-self_index_list = [0, 1]
-forward_index_list = [1, 0]
+self_index_list = [0, 3]
+forward_index_list = [3, 0]
 backward_index_list = [0, 0]
 
 extra_client = "--latency_file={0} --bandwidth_file={1} --block_size={2}"
-extra_server = "--block_size={0}"
+extra_server = "--block_size={0} --write_num={1} --write_page_size={2}"
 
 
 def make_and_clean(ssh):
@@ -111,25 +113,26 @@ if __name__ == '__main__':
 
         t0.join()
 
-    for b_i in msg_size:
-        for t_i in num_threads:
-            for z_i in zero_copys:
-                t0 = threading.Thread(target=client_run,
-                                      args=(
-                                          ssh_client, "fork_test_cxl_client", 0, t_i, 0, z_i, extra_client.format(
-                                              output_file_format.format("lat", b_i, t_i, z_i),
-                                              output_file_format.format("bw", b_i, t_i, z_i),
-                                              b_i
-                                          )))
-                t1 = threading.Thread(target=server_run,
-                                      args=(
-                                          ssh_server, "fork_test_cxl_server", 1, t_i, 6, z_i,
-                                          extra_server.format(b_i)))
-                t1.start()
-                time.sleep(2)
-                t0.start()
-                t0.join()
-                t1.join()
-                print("finish: thread {} cow {} block size {}\n".format(t_i, z_i, b_i))
+    for w_i in num_write:
+        for s_i in write_page_size:
+            for t_i in num_threads:
+                for z_i in zero_copys:
+                    t0 = threading.Thread(target=client_run,
+                                          args=(
+                                              ssh_client, "fork_test_cxl_client", 0, t_i, 0, z_i, extra_client.format(
+                                                  output_file_format.format("lat", w_i, s_i, z_i),
+                                                  output_file_format.format("bw", w_i, s_i, z_i),
+                                                  msg_size
+                                              )))
+                    t1 = threading.Thread(target=server_run,
+                                          args=(
+                                              ssh_server, "fork_test_cxl_server", 1, t_i, 6, z_i,
+                                              extra_server.format(msg_size, w_i, s_i)))
+                    t1.start()
+                    time.sleep(2)
+                    t0.start()
+                    t0.join()
+                    t1.join()
+                    print("finish: thread {} cow {} num_write {}  write_page_size {}\n".format(t_i, z_i, w_i, s_i))
 
     ssh_client.close()
