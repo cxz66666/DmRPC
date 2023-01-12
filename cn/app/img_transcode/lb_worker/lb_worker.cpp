@@ -317,7 +317,7 @@ void leader_thread_func()
     if (FLAGS_timeout_second != UINT64_MAX)
     {
         sleep(FLAGS_timeout_second);
-        ctrl_c_pressed = true;
+        ctrl_c_pressed = 1;
     }
 
     // TODO
