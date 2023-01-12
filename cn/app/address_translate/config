@@ -1,0 +1,3 @@
+--total_size_gb 100
+--test_loop 100
+--per_loop_num 1000
