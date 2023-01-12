@@ -4,7 +4,7 @@
 #include <iostream>
 #include <hs_clock.h>
 #include <sys/mman.h>
-#include <experimental/filesystem>
+#include <numa.h>
 
 // do we need it ?
 DEFINE_uint64(alloc_size, 0, "Alloc size for each request, unit is MB");
@@ -19,7 +19,54 @@ hdr_histogram *latency_hist_;
 
 static size_t file_num;
 
-void test_fork(AppContext *c, size_t *raddr)
+void *malloc_2m_hugepage(size_t size)
+{
+    int flags = MAP_ANONYMOUS | MAP_PRIVATE | MAP_HUGETLB | ((21 & MAP_HUGE_MASK) << MAP_HUGE_SHIFT); // 2^21 == 2M
+    int protection = PROT_READ | PROT_WRITE;
+    void *p = mmap(NULL, size, protection, flags, -1, 0);
+    if (p == MAP_FAILED)
+    {
+        std::runtime_error("MAP_FAILED");
+    }
+    return p;
+}
+
+void *malloc_2m_numa(size_t buf_size, int node_id)
+{
+    int page_size = 2 * 1024 * 1024;
+    int num_pages = buf_size / page_size;
+    void *buf = malloc_2m_hugepage(buf_size);
+    for (size_t i = 0; i < buf_size / sizeof(int); i++)
+    {
+        (static_cast<int *>(buf))[i] = 0;
+    }
+    int *status = new int[num_pages];
+    int *nodes = new int[num_pages];
+    void **bufs = new void *[num_pages];
+    for (int i = 0; i < num_pages; i++)
+    {
+        status[i] = 0;
+        nodes[i] = node_id;
+        bufs[i] = reinterpret_cast<void *>(reinterpret_cast<uint64_t>(buf) + static_cast<uint64_t>(i) * page_size);
+    }
+    int rc = move_pages(getpid(), num_pages, bufs, nodes, status, MPOL_MF_MOVE_ALL);
+    if (rc != 0)
+    {
+        std::runtime_error("Move page failed, maybe you forget to use 'sudo'");
+    }
+    for (int i = 0; i < num_pages; i++)
+    {
+        assert(status[i] == node_id);
+    }
+
+    delete[] status;
+    delete[] nodes;
+    delete[] bufs;
+
+    return buf;
+}
+
+void test_fork(AppContext *c, size_t *raddr, void *file_addr)
 {
     std::random_device rd;
     std::uniform_int_distribution<int> dist(0, RAND_MAX);
@@ -27,7 +74,7 @@ void test_fork(AppContext *c, size_t *raddr)
     size_t write_num = FLAGS_block_size / 4096;
     size_t max_num = FLAGS_alloc_size / sizeof(size_t);
 
-    std::vector<rmem::Timer> timers(FLAGS_concurrency);
+    // std::vector<rmem::Timer> timers(FLAGS_concurrency);
     if (FLAGS_concurrency == 1)
     {
         rmem::Timer now_clock;
@@ -39,52 +86,46 @@ void test_fork(AppContext *c, size_t *raddr)
                 now_nums[i][j] = dist(rd) % max_num;
             }
         }
-        std::vector<size_t> rand_file_nums(FLAGS_test_loop);
+        std::vector<size_t> rand_file_nums1(FLAGS_test_loop);
+        std::vector<size_t> rand_file_nums2(FLAGS_test_loop);
+
         for (size_t i = 0; i < FLAGS_test_loop; i++)
         {
-            rand_file_nums[i] = dist(rd) % file_num;
+            rand_file_nums1[i] = dist(rd) % file_num;
+            rand_file_nums2[i] = dist(rd) % file_num;
         }
+
         std::cout << "begin thread " << c->thread_id_ << std::endl;
         now_clock.tic();
         size_t count = 0;
         for (size_t i = 0; i < FLAGS_test_loop; i++)
         {
 
-            timers[0].tic();
-
-            // int now_num = 0;
+            // timers[0].tic();
 
             for (size_t t = 0; t < write_num; t++)
             {
                 int now_num = now_nums[i][t];
-                size_t tmp = raddr[now_num];
-                raddr[now_num] = tmp + 1;
+                __sync_fetch_and_add(&raddr[now_num], 1);
+                // size_t tmp = raddr[now_num];
+                // raddr[now_num] = tmp + 1;
             }
 
             if (FLAGS_no_cow)
             {
-                std::string src_file = folder_name + "cxlspeed_" + std::to_string(c->thread_id_) + "_" + std::to_string(rand_file_nums[i]);
-
-                std::string dst_file = folder_name + "cxlspeedcp_" + std::to_string(c->thread_id_) + "_" + std::to_string(rand_file_nums[i]);
-
-                try // If you want to avoid exception handling, then use the error code overload of the following functions.
-                {
-                    std::experimental::filesystem::copy_file(src_file, dst_file, std::experimental::filesystem::copy_options::overwrite_existing);
-                }
-                catch (std::exception &e) // Not using fs::filesystem_error since std::bad_alloc can throw too.
-                {
-                    std::cout << e.what();
-                }
+                memcpy(static_cast<char *>(file_addr) + rand_file_nums1[i] * FLAGS_block_size, static_cast<char *>(file_addr) + rand_file_nums2[i] * FLAGS_block_size, FLAGS_block_size);
             }
 
-            hdr_record_value_atomic(latency_hist_,
-                                    static_cast<int64_t>(timers[0].toc() * 10));
+            // hdr_record_value_atomic(latency_hist_,
+            //                         static_cast<int64_t>(timers[0].toc() * 10));
             count++;
-            if (ctrl_c_pressed == 1)
-            {
-                break;
-            }
+            // if (ctrl_c_pressed == 1)
+            // {
+            //     break;
+            // }
         }
+        hdr_record_value_atomic(latency_hist_,
+                                static_cast<int64_t>(now_clock.toc() * 10));
         total_speed += (double)count * 1e6 / now_clock.toc();
         std::cout << "end thread " << c->thread_id_ << std::endl;
     }
@@ -120,44 +161,54 @@ void client_func(size_t thread_id)
 {
     AppContext c;
     c.thread_id_ = thread_id;
-    char buf[4096] = "123456789";
+    // char buf[4096] = "123456789";
 
-    for (size_t i = 0; i < file_num; i++)
+    // for (size_t i = 0; i < file_num; i++)
+    // {
+    //     std::string filename = folder_name + "cxlspeed_" + std::to_string(thread_id) + "_" + std::to_string(i);
+    //     std::ofstream file(filename, std::ios::out | std::ios::binary);
+    //     if (!file.is_open())
+    //     {
+    //         std::cout << "open file fail" << std::endl;
+    //         exit(1);
+    //     }
+    //     for (size_t j = 0; j < FLAGS_block_size / 4096; j++)
+    //     {
+    //         file.write(buf, 4096);
+    //     }
+    //     file.close();
+    // }
+
+    // std::string filename = folder_name + "cxlpt_" + std::to_string(thread_id);
+    // std::ofstream file(filename, std::ios::out | std::ios::binary);
+    // if (!file.is_open())
+    // {
+    //     std::cout << "open file fail" << std::endl;
+    //     exit(1);
+    // }
+    // for (size_t j = 0; j < FLAGS_alloc_size / 4096; j++)
+    // {
+    //     file.write(buf, 4096);
+    // }
+    // file.close();
+
+    // sleep(2);
+
+    // FILE *c_file = fopen(filename.c_str(), "r+");
+    // void *addr = mmap(NULL, FLAGS_alloc_size, PROT_READ | PROT_WRITE, MAP_SHARED, fileno(c_file), 0);
+    // rmem::rt_assert(addr != MAP_FAILED, "mmap failed");
+
+    void *addr = numa_alloc_onnode(FLAGS_alloc_size, 1);
+    for (size_t i = 0; i < FLAGS_alloc_size / 4096; i++)
     {
-        std::string filename = folder_name + "cxlspeed_" + std::to_string(thread_id) + "_" + std::to_string(i);
-        std::ofstream file(filename, std::ios::out | std::ios::binary);
-        if (!file.is_open())
-        {
-            std::cout << "open file fail" << std::endl;
-            exit(1);
-        }
-        for (size_t j = 0; j < FLAGS_block_size / 4096; j++)
-        {
-            file.write(buf, 4096);
-        }
-        file.close();
+        ((char *)addr)[i * 4096] = '1';
     }
-
-    std::string filename = folder_name + "cxlpt_" + std::to_string(thread_id);
-    std::ofstream file(filename, std::ios::out | std::ios::binary);
-    if (!file.is_open())
+    void *file_addr = numa_alloc_onnode(file_num * FLAGS_block_size, 1);
+    for (size_t i = 0; i < file_num * FLAGS_block_size / 4096; i++)
     {
-        std::cout << "open file fail" << std::endl;
-        exit(1);
+        ((char *)file_addr)[i * 4096] = '1';
     }
-    for (size_t j = 0; j < FLAGS_alloc_size / 4096; j++)
-    {
-        file.write(buf, 4096);
-    }
-    file.close();
-
-    sleep(2);
-
-    FILE *c_file = fopen(filename.c_str(), "r+");
-    void *addr = mmap(NULL, FLAGS_alloc_size, PROT_READ | PROT_WRITE, MAP_SHARED, fileno(c_file), 0);
-    rmem::rt_assert(addr != MAP_FAILED, "mmap failed");
-
-    test_fork(&c, static_cast<size_t *>(addr));
+    test_fork(&c, static_cast<size_t *>(addr), file_addr);
 }
 
 int main(int argc, char **argv)
@@ -186,7 +237,7 @@ int main(int argc, char **argv)
                        &latency_hist_);
     rmem::rt_assert(ret == 0, "hdr_init failed");
 
-    file_num = (128 << 20) / FLAGS_block_size;
+    file_num = (1024 << 20) / FLAGS_block_size;
 
     for (size_t i = 0; i < FLAGS_client_thread_num; i++)
     {
