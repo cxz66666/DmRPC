@@ -9,6 +9,8 @@ std::uniform_int_distribution<int> dist(0, RAND_MAX);
 hdr_histogram *latency_hist_1;
 hdr_histogram *latency_hist_2;
 
+rmem::Timer total_speed_timer;
+
 size_t get_bind_core(size_t numa)
 {
     static size_t numa0_core = 0;
@@ -89,6 +91,13 @@ void callback_tc(void *_context, void *_tag)
     if (req_id + FLAGS_concurrency < FLAGS_test_loop)
     {
         ctx->spsc_queue->push(REQ_MSG{static_cast<uint32_t>(req_id + FLAGS_concurrency), RPC_TYPE::RPC_TRANSCODE});
+    }
+    else if (req_id == FLAGS_test_loop - 1)
+    {
+        long now_time = total_speed_timer.toc();
+        total_speed_lock.lock();
+        total_speed += 1e6 * 1.0 * FLAGS_test_loop / now_time;
+        total_speed_lock.unlock();
     }
 }
 void handler_tc(ClientContext *ctx, REQ_MSG req_msg)
@@ -215,6 +224,7 @@ void leader_thread_func()
         rmem::rt_assert(msg.status == 0 && msg.req_id == 0, "server connect failed");
     }
 
+    total_speed_timer.tic();
     for (size_t i = 0; i < FLAGS_client_num; i++)
     {
         size_t tmp = FLAGS_concurrency;
@@ -307,6 +317,7 @@ int main(int argc, char **argv)
     leader_thread.join();
 
     write_latency_and_reset(FLAGS_latency_file);
+    write_bandwidth(FLAGS_bandwidth_file);
     // write_bandwidth(FLAGS_bandwidth_file);
     hdr_close(latency_hist_);
     hdr_close(latency_hist_1);

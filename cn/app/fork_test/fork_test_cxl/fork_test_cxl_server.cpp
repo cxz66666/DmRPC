@@ -54,8 +54,6 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
     auto *req = reinterpret_cast<CxlReq *>(req_msgbuf->buf_);
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(CxlReq), "data size not match");
 
-    // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
-
     rmem::Timer timer;
     std::string filename = folder_name + std::string(req->extra.filename);
     FILE *file = fopen(filename.c_str(), "r+");
