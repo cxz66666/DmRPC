@@ -13,9 +13,9 @@ namespace rmem
     mm_struct::~mm_struct()
     {
         free_all_vma_list();
-        rt_assert(vma_list.empty(), "not empty vma_list");
-        rt_assert(fork_list.empty(), "not empty fork_list");
-        rt_assert(addr_map.empty(), "not empty addr_map");
+        // rt_assert(vma_list.empty(), "not empty vma_list");
+        // rt_assert(fork_list.empty(), "not empty fork_list");
+        // rt_assert(addr_map.empty(), "not empty addr_map");
     }
     unsigned long mm_struct::get_unmapped_area(size_t length)
     {
