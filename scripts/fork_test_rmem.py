@@ -13,7 +13,7 @@ init_build = True
 
 # use for Nexus connect
 client_machine = "192.168.189.9"
-server_machine = "192.168.189.7"
+server_machine = "192.168.189.11"
 user = "cxz"
 passwd = "cxz123"
 output_file_format = "/home/cxz/fork_test_rmem_result/{}_w{}_s{}_cow{}"
@@ -21,14 +21,14 @@ zero_copys = [0, 1]
 
 msg_size = 32768
 
-num_write = [1, 2,  4]
+num_write = [1, 2, 3, 4, 5, 6, 7, 8]
 write_page_size = [4, 1024, 2048, 4096]
 num_threads = [1]
 
 common_timeout = 20
 
-self_index_list = [0, 1]
-forward_index_list = [1, 0]
+self_index_list = [0, 5]
+forward_index_list = [5, 0]
 backward_index_list = [0, 0]
 
 extra_client = "--latency_file={0} --bandwidth_file={1} --rmem_self_index={2} --rmem_server_index={3} --block_size={4}"
@@ -143,14 +143,14 @@ if __name__ == '__main__':
                     t0 = threading.Thread(target=client_run,
                                           args=(
                                               ssh_client, "fork_test_rmem_client", 0, t_i, 0, z_i, extra_client.format(
-                                                  output_file_format.format("lat", w_i,s_i, z_i),
+                                                  "latency.txt",
                                                   output_file_format.format("bw", w_i, s_i, z_i),
                                                   3, 2, msg_size
                                               )))
                     t1 = threading.Thread(target=server_run,
                                           args=(
                                               ssh_server, "fork_test_rmem_server", 1, t_i, 6, z_i,
-                                              extra_server.format(msg_size, 4, 2, w_i, s_i )))
+                                              extra_server.format(msg_size, 6, 2, w_i, s_i )))
 
                     m1 = threading.Thread(target=memory_run, args=(
                         ssh_memory, "rmem_mn", memory_node_alloc_gb, memory_node_ips,

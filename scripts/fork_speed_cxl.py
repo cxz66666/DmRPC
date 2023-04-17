@@ -24,7 +24,7 @@ zero_copys = [0, 1]
 # num_threads = [1, 2, 3, 4, 6, 8]
 num_threads = [1, 12]
 
-common_timeout = 40
+common_timeout = 10
 
 
 def make_and_clean(ssh):
@@ -89,14 +89,13 @@ if __name__ == '__main__':
                                                                output_file_format.format("lat", m_i, t_i, z_i),
                                                                output_file_format.format("bw", m_i, t_i, z_i), z_i))
 
-                m1 = threading.Thread(target=pcm_run, args=(
-                    ssh_client, common_timeout, output_file_format.format("pcm", m_i, t_i, z_i)))
+                # m1 = threading.Thread(target=pcm_run, args=(
+                #     ssh_client, common_timeout, output_file_format.format("pcm", m_i, t_i, z_i)))
 
-                m1.start()
-                time.sleep(2)
+                # m1.start()
                 t0.start()
                 t0.join()
-                m1.join()
+                # m1.join()
 
                 print("finish: thread {} msg_size {} cow {} \n".format(t_i, m_i, z_i))
 

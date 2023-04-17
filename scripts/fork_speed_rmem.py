@@ -25,14 +25,13 @@ passwd = "cxz123"
 output_file_format = "/home/cxz/fork_speed_rmem_result/{}_b{}_t{}_cow{}"
 msg_size = [4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288]
 
-test_loops = [400000, 400000, 400000, 400000, 320000, 160000, 80000, 40000]
+# test_loops = [400000, 400000, 400000, 400000, 320000, 160000, 80000, 40000]
+test_loops = [4000, 4000, 4000, 4000, 3200, 1600, 800, 400]
 
 zero_copys = [0, 1]
 
 # num_threads = [1, 2, 3, 4, 6, 8]
-num_threads = [1,12]
-
-
+num_threads = [1, 12]
 
 common_timeout = 40
 
@@ -66,7 +65,7 @@ def common_run(ssh, program, thread_num, block_size, latency_file, bandwidth_fil
     print(str2)
 
 
-def memory_run(ssh, program, size_gb, self_ip, self_udp_port, thread_num, no_zero_copy=0):
+def memory_run(ssh, program, size_gb, self_ip, self_udp_port, thread_num, latency_file, no_zero_copy=0):
     extra = ""
     if no_zero_copy == 1:
         extra = "--rmem_copy"
@@ -76,8 +75,9 @@ def memory_run(ssh, program, size_gb, self_ip, self_udp_port, thread_num, no_zer
         "--rmem_server_ip={3} "
         "--rmem_server_thread={4} "
         "--rmem_server_udp_port={5} "
-        "--timeout_second={6} {7}".format(base, program, size_gb, self_ip, thread_num, self_udp_port,
-                                          common_timeout + 10, extra)
+        "--timeout_second={6} --latency_file={8}  {7}".format(base, program, size_gb, self_ip, thread_num,
+                                                              self_udp_port,
+                                                              common_timeout + 15, extra, latency_file)
         , get_pty=True)
     str1 = stdout.read().decode('utf-8')
     str2 = stderr.read().decode('utf-8')
@@ -123,14 +123,14 @@ if __name__ == '__main__':
                                                                int(test_loops[index] / t_i)))
                 m1 = threading.Thread(target=memory_run, args=(
                     ssh_memory, "rmem_mn", memory_node_alloc_gb, memory_node_ips,
-                    memory_node_port, memory_node_thread, z_i
+                    memory_node_port, memory_node_thread, output_file_format.format("lat", m_i, t_i, z_i), z_i
                 ))
 
                 m2 = threading.Thread(target=pcm_run, args=(
                     ssh_memory, 30, output_file_format.format("pcm", m_i, t_i, z_i)))
 
                 m1.start()
-                time.sleep(10)
+                time.sleep(15)
                 m2.start()
                 t0.start()
 

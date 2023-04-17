@@ -12,13 +12,11 @@ init_build = True
 # use for Nexus connect
 client_machine1 = "192.168.189.7"
 client_machine2 = "192.168.189.8"
-client_machine3 = "192.168.189.11"
 
 load_balance_machine = "192.168.189.9"
 
-worker_machine1 = "192.168.189.12"
-worker_machine2 = "192.168.189.13"
-worker_machine3 = "192.168.189.14"
+worker_machine1 = "192.168.189.13"
+worker_machine2 = "192.168.189.14"
 
 user = "cxz"
 passwd = "cxz123"
@@ -28,14 +26,14 @@ max_concurrency = [128, 64, 64, 64, 64, 64, 64, 32, 16]
 min_concurrency = [128, 64, 64, 64, 64, 64, 64, 32, 16]
 
 # num_threads = [1, 2, 4, 6, 8]
-num_threads = [1, 4]
+num_threads = [1, 6]
 concurrency = [1, 2, 4, 8, 16, 32, 64, 128]
 
 common_timeout = 50
 
-self_index_list = [0, 1, 3, 2, 9, 14, 4, 5, 6]
-forward_index_list = [2, 9, 14, 0, 0, 0, 0, 0, 0]
-backward_index_list = [0, 0, 0, 0, 0, 0, 2, 9, 14]
+self_index_list = [0, 1,  2, 9, 5, 6]
+forward_index_list = [2, 9, 0, 0, 0, 0]
+backward_index_list = [0, 0,  0, 0,  2, 9]
 
 
 def make_and_clean(ssh):
@@ -87,9 +85,8 @@ def ssh_connect(ip, user, passwd):
     return ssh
 
 
-extra_load_balance1 = "--load_balance_servers_index=4 --load_balance_backs_index=0"
-extra_load_balance2 = "--load_balance_servers_index=5 --load_balance_backs_index=1"
-extra_load_balance3 = "--load_balance_servers_index=6 --load_balance_backs_index=3"
+extra_load_balance1 = "--load_balance_servers_index=5 --load_balance_backs_index=0"
+extra_load_balance2 = "--load_balance_servers_index=6 --load_balance_backs_index=1"
 
 extra_client = "--test_loop=20 --concurrency={0} --block_size={1} --latency_file={2} --bandwidth_file={3} " \
                "--extra_flags={4} "
@@ -98,39 +95,31 @@ extra_worker = "--numa_worker_node=0 --worker_bind_core_offset=0"
 if __name__ == '__main__':
     ssh_client1 = ssh_connect(client_machine1, user, passwd)
     ssh_client2 = ssh_connect(client_machine2, user, passwd)
-    ssh_client3 = ssh_connect(client_machine3, user, passwd)
 
     ssh_load_balance = ssh_connect(load_balance_machine, user, passwd)
 
     ssh_worker1 = ssh_connect(worker_machine1, user, passwd)
     ssh_worker2 = ssh_connect(worker_machine2, user, passwd)
-    ssh_worker3 = ssh_connect(worker_machine3, user, passwd)
 
     if init_build:
         t0 = threading.Thread(target=make_and_clean, args=(ssh_client1,))
         t1 = threading.Thread(target=make_and_clean, args=(ssh_client2,))
-        t2 = threading.Thread(target=make_and_clean, args=(ssh_client3,))
 
         t3 = threading.Thread(target=make_and_clean, args=(ssh_load_balance,))
 
         t4 = threading.Thread(target=make_and_clean, args=(ssh_worker1,))
         t5 = threading.Thread(target=make_and_clean, args=(ssh_worker2,))
-        t6 = threading.Thread(target=make_and_clean, args=(ssh_worker3,))
 
         t0.start()
         t1.start()
-        t2.start()
         t3.start()
         t4.start()
         t5.start()
-        t6.start()
         t0.join()
         t1.join()
-        t2.join()
         t3.join()
         t4.join()
         t5.join()
-        t6.join()
 
     for t_i in num_threads:
         for index, m_i in enumerate(msg_size):
@@ -153,39 +142,25 @@ if __name__ == '__main__':
                                                               output_file_format.format("lat", m_i, t_i, c_i),
                                                               output_file_format.format("band", m_i, t_i, c_i), 0)
                                       ))
-                t2 = threading.Thread(target=common_run,
-                                      args=(
-                                          ssh_client3, "lb_client", 2, t_i, 0,
-                                          extra_client.format(c_i, m_i,
-                                                              output_file_format.format("lat", m_i, t_i, c_i),
-                                                              output_file_format.format("band", m_i, t_i, c_i), 0)
-                                      ))
+
 
                 t3 = threading.Thread(target=common_run,
                                       args=(
-                                          ssh_load_balance, "lb_lb", 3, t_i, 0, extra_load_balance1
+                                          ssh_load_balance, "lb_lb", 2, t_i, 0, extra_load_balance1
                                       ))
 
                 t4 = threading.Thread(target=common_run,
                                       args=(
-                                          ssh_load_balance, "lb_lb", 4, t_i, t_i * 2, extra_load_balance2
-                                      ))
-                t5 = threading.Thread(target=common_run,
-                                      args=(
-                                          ssh_load_balance, "lb_lb", 5, t_i, t_i * 4, extra_load_balance3
+                                          ssh_load_balance, "lb_lb", 3, t_i, t_i * 2, extra_load_balance2
                                       ))
 
                 t6 = threading.Thread(target=common_run,
                                       args=(
-                                          ssh_worker1, "lb_worker", 6, t_i, 0, extra_worker)
+                                          ssh_worker1, "lb_worker", 4, t_i, 0, extra_worker)
                                       )
                 t7 = threading.Thread(target=common_run,
                                       args=(
-                                          ssh_worker2, "lb_worker", 7, t_i, 0, extra_worker)
-                                      )
-                t8 = threading.Thread(target=common_run,
-                                      args=(
-                                          ssh_worker3, "lb_worker", 8, t_i, 0, extra_worker)
+                                          ssh_worker2, "lb_worker", 5, t_i, 0, extra_worker)
                                       )
 
                 t9 = threading.Thread(target=pcm_run, args=(
@@ -194,32 +169,24 @@ if __name__ == '__main__':
 
                 t0.start()
                 t1.start()
-                t2.start()
                 t3.start()
                 t4.start()
-                t5.start()
                 t6.start()
                 t7.start()
-                t8.start()
                 t9.start()
 
                 t0.join()
                 t1.join()
-                t2.join()
                 t3.join()
                 t4.join()
-                t5.join()
                 t6.join()
                 t7.join()
-                t8.join()
                 t9.join()
 
                 print("finish: thread {} msg_size {} concurrency_size {}\n".format(t_i, m_i, c_i))
 
     ssh_client1.close()
     ssh_client2.close()
-    ssh_client3.close()
     ssh_load_balance.close()
     ssh_worker1.close()
     ssh_worker2.close()
-    ssh_worker3.close()

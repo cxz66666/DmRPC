@@ -25,7 +25,7 @@ num_write = [1, 2, 3, 4, 5, 6, 7, 8]
 write_page_size = [4, 1024, 2048, 4096]
 num_threads = [1]
 
-common_timeout = 30
+common_timeout = 10
 
 self_index_list = [0, 3]
 forward_index_list = [3, 0]
@@ -120,7 +120,7 @@ if __name__ == '__main__':
                     t0 = threading.Thread(target=client_run,
                                           args=(
                                               ssh_client, "fork_test_cxl_client", 0, t_i, 0, z_i, extra_client.format(
-                                                  output_file_format.format("lat", w_i, s_i, z_i),
+                                                  "latency.txt",
                                                   output_file_format.format("bw", w_i, s_i, z_i),
                                                   msg_size
                                               )))
