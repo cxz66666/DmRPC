@@ -10,7 +10,7 @@ namespace rmem
     /**
      * default page size is 2MB
      */
-#define PAGE_SHIFT 21
+#define PAGE_SHIFT 12
 
 #define PAGE_SIZE (1UL << PAGE_SHIFT)
 
