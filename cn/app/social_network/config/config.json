@@ -1,0 +1,14 @@
+{
+  "common": {
+    "test_loop": 10,
+    "concurrency": 0,
+    "numa_0_ports": "0",
+    "numa_1_ports": "1",
+    "client_num": 1,
+    "server_num": 1,
+    "bind_core_offset": 0,
+    "timeout_second": 60,
+    "latency_file": "latency.txt",
+    "bandwidth_file": "bandwidth.txt"
+  }
+}

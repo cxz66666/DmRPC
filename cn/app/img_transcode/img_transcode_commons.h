@@ -2,7 +2,7 @@
 #include <gflags/gflags.h>
 #include <app_helpers.h>
 #include <hdr/hdr_histogram.h>
-#include <signal.h>
+#include <csignal>
 #include "rpc.h"
 #include "./img_transcode_rpc_type.h"
 
