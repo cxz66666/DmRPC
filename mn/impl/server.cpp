@@ -7,6 +7,11 @@
 #include "rpc_type.h"
 #include "req_handler.h"
 #include "page.h"
+
+#include "hdr/hdr_histogram.h"
+DEFINE_string(latency_file, "latency.txt", "Latency file name");
+hdr_histogram *latency_hist_;
+
 namespace rmem
 {
 
@@ -125,6 +130,20 @@ namespace rmem
     }
 }
 
+bool write_latency_and_reset(const std::string &filename)
+{
+
+    FILE *fp = fopen(filename.c_str(), "w");
+    if (fp == nullptr)
+    {
+        return false;
+    }
+    hdr_percentiles_print(latency_hist_, fp, 5, 10, CLASSIC);
+    fclose(fp);
+    hdr_reset(latency_hist_);
+    return true;
+}
+
 int main(int argc, char **argv)
 {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -132,6 +151,10 @@ int main(int argc, char **argv)
     rmem::init_rmem();
 
     rmem::init_nexus();
+
+    int ret = hdr_init(1, 1000 * 1000 * 10, 3,
+                       &latency_hist_);
+    rmem::rt_assert(ret == 0, "hdr_init failed");
 
     std::vector<std::thread> threads(FLAGS_rmem_server_thread);
 
@@ -157,4 +180,7 @@ int main(int argc, char **argv)
     {
         threads[i].join();
     }
+
+    write_latency_and_reset(FLAGS_latency_file);
+    hdr_close(latency_hist_);
 }

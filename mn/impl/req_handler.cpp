@@ -4,7 +4,9 @@
 #include "server_context.h"
 #include "page.h"
 #include <cmath>
-
+#include <hs_clock.h>
+#include "hdr/hdr_histogram.h"
+extern hdr_histogram *latency_hist_;
 namespace rmem
 {
 
@@ -158,6 +160,49 @@ namespace rmem
         ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(WriteResp));
         ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
     }
+    // 这个fork_req_handler 用于 fork_speed_rmem 测试， 同时需要配合mm_struct::do_fork
+    // void fork_req_handler(erpc::ReqHandle *req_handle, void *_context)
+    // {
+
+    //     Timer timer;
+    //     timer.tic();
+    //     ServerContext *ctx = static_cast<ServerContext *>(_context);
+    //     ctx->stat_req_rx_tot++;
+    //     ctx->stat_req_fork_tot++;
+
+    //     for (size_t i = 0; i < 100; i++)
+    //     {
+    //         auto *req_msgbuf = req_handle->get_req_msgbuf();
+    //         rt_assert(req_msgbuf->get_data_size() == sizeof(ForkReq), "data size not match");
+
+    //         auto *req = reinterpret_cast<ForkReq *>(req_msgbuf->buf_);
+    //         rt_assert(ctx->mm_struct_map_.count(req_handle->get_server_session_num()), "session not found");
+
+    //         mm_struct *mm = ctx->mm_struct_map_[req_handle->get_server_session_num()];
+
+    //         // check req validity
+    //         if (!IS_PAGE_ALIGN(req->rsize) || !IS_PAGE_ALIGN(req->raddr))
+    //         {
+    //             RETURN_IF_ERROR(EINVAL, ForkResp, ctx, req_handle, req->req)
+    //         }
+
+    //         auto vma = mm->find_vma_range(req->raddr, req->rsize);
+
+    //         if (!vma)
+    //         {
+    //             RETURN_IF_ERROR(EINVAL, ForkResp, ctx, req_handle, req->req)
+    //         }
+    //         unsigned long new_addr = mm->do_fork(vma, req->raddr, req->rsize);
+
+    //         new (req_handle->pre_resp_msgbuf_.buf_) ForkResp(req->req.type, req->req.req_number, 0, new_addr);
+    //         ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(ForkResp));
+    //     }
+    //     hdr_record_value_atomic(latency_hist_,
+    //                             static_cast<int64_t>(timer.toc() * 10));
+
+    //     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
+    // }
+
     void fork_req_handler(erpc::ReqHandle *req_handle, void *_context)
     {
         ServerContext *ctx = static_cast<ServerContext *>(_context);
