@@ -4,6 +4,7 @@
 #include <nlohmann/json.hpp>
 #include <csignal>
 #include <app_helpers.h>
+#include "rpc.h"
 
 using json = nlohmann::json;
 
@@ -71,10 +72,140 @@ void init_config(const std::string& file_path, const std::string& service_name){
     FLAGS_numa_0_ports = config["numa_0_ports"];
     FLAGS_numa_1_ports = config["numa_1_ports"];
     FLAGS_server_addr = config["server_addr"];
-    FLAGS_client_num = config["client_num"].get<uint64_t>();
-    FLAGS_server_num = config["server_num"].get<uint64_t>();
-    FLAGS_bind_core_offset = config["bind_core_offset"].get<uint64_t>();
-    FLAGS_timeout_second = config["timeout_second"].get<uint64_t>();
-    FLAGS_latency_file = config["latency_file"].get<std::string>();
-    FLAGS_bandwidth_file = config["bandwidth_file"].get<std::string>();
+    FLAGS_client_num = config["client_num"];
+    FLAGS_server_num = config["server_num"];
+    FLAGS_bind_core_offset = config["bind_core_offset"];
+    FLAGS_timeout_second = config["timeout_second"];
+    FLAGS_latency_file = config["latency_file"];
+    FLAGS_bandwidth_file = config["bandwidth_file"];
+
+    auto server_config = config_json[service_name];
+    if (server_config.is_null()) {
+        RMEM_ERROR("Failed to find %s config", service_name.c_str());
+        exit(1);
+    }
+
+    FLAGS_server_addr = server_config["server_addr"];
+    if(FLAGS_server_addr.empty()){
+        RMEM_ERROR("Failed to find server_addr in %s config", service_name.c_str());
+        exit(1);
+    }
+    // check server_config whether you have a key named "server_addr"
+    if(server_config.contains("test_loop")){
+        FLAGS_test_loop = server_config["test_loop"];
+    }
+    if(server_config.contains("concurrency")){
+        FLAGS_concurrency = server_config["concurrency"];
+    }
+    if(server_config.contains("numa_0_ports")){
+        FLAGS_numa_0_ports = server_config["numa_0_ports"];
+    }
+    if(server_config.contains("numa_1_ports")){
+        FLAGS_numa_1_ports = server_config["numa_1_ports"];
+    }
+    if(server_config.contains("client_num")){
+        FLAGS_client_num = server_config["client_num"];
+    }
+    if(server_config.contains("server_num")){
+        FLAGS_server_num = server_config["server_num"];
+    }
+    if(server_config.contains("bind_core_offset")){
+        FLAGS_bind_core_offset = server_config["bind_core_offset"];
+    }
+    if(server_config.contains("timeout_second")){
+        FLAGS_timeout_second = server_config["timeout_second"];
+    }
+    if(server_config.contains("latency_file")){
+        FLAGS_latency_file = server_config["latency_file"];
+    }
+    if(server_config.contains("bandwidth_file")){
+        FLAGS_bandwidth_file = server_config["bandwidth_file"];
+    }
+
+    return;
+}
+
+std::vector<size_t> flags_get_numa_ports(size_t numa_node)
+{
+    rmem::rt_assert(numa_node <= 1); // Only NUMA 0 and 1 supported for now
+    std::vector<size_t> ret;
+
+    std::string port_str =
+            numa_node == 0 ? FLAGS_numa_0_ports : FLAGS_numa_1_ports;
+    if (port_str.size() == 0)
+        return ret;
+
+    std::vector<std::string> split_vec = rmem::split(port_str, ',');
+    rmem::rt_assert(split_vec.size() > 0);
+
+    for (auto &s : split_vec)
+        ret.push_back(std::stoull(s)); // stoull trims ' '
+
+    return ret;
+}
+
+class BasicContext
+{
+public:
+    erpc::Rpc<erpc::CTransport> *rpc_;
+    std::vector<int> session_num_vec_;
+    size_t num_sm_resps_ = 0; // Number of SM responses
+};
+
+/// A basic session management handler that expects successful responses
+/// used for client side
+void basic_sm_handler_client(int session_num, int remote_session_num, erpc::SmEventType sm_event_type,
+                             erpc::SmErrType sm_err_type, void *_context)
+{
+    _unused(remote_session_num);
+    printf("client sm_handler receive: session_num:%d\n", session_num);
+    auto *c = static_cast<BasicContext *>(_context);
+    c->num_sm_resps_++;
+    for (auto m : c->session_num_vec_)
+    {
+        printf("session_num_vec_:%d\n", m);
+    }
+    rmem::rt_assert(
+            sm_err_type == erpc::SmErrType::kNoError,
+            "SM response with error " + erpc::sm_err_type_str(sm_err_type));
+
+    if (!(sm_event_type == erpc::SmEventType::kConnected ||
+          sm_event_type == erpc::SmEventType::kDisconnected))
+    {
+        throw std::runtime_error("Received unexpected SM event.");
+    }
+
+    // The callback gives us the eRPC session number - get the index in vector
+    size_t session_idx = c->session_num_vec_.size();
+    for (size_t i = 0; i < c->session_num_vec_.size(); i++)
+    {
+        if (c->session_num_vec_[i] == session_num)
+            session_idx = i;
+    }
+    rmem::rt_assert(session_idx < c->session_num_vec_.size(),
+                    "SM callback for invalid session number.");
+}
+
+/// A basic session management handler that expects successful responses
+/// used for server side
+void basic_sm_handler_server(int session_num, int remote_session_num, erpc::SmEventType sm_event_type,
+                             erpc::SmErrType sm_err_type, void *_context)
+{
+    _unused(remote_session_num);
+
+    auto *c = static_cast<BasicContext *>(_context);
+    c->num_sm_resps_++;
+
+    rmem::rt_assert(
+            sm_err_type == erpc::SmErrType::kNoError,
+            "SM response with error " + erpc::sm_err_type_str(sm_err_type));
+
+    if (!(sm_event_type == erpc::SmEventType::kConnected ||
+          sm_event_type == erpc::SmEventType::kDisconnected))
+    {
+        throw std::runtime_error("Received unexpected SM event.");
+    }
+
+    c->session_num_vec_.push_back(session_num);
+    printf("Server id %" PRIu8 ": Got session %d\n", c->rpc_->get_rpc_id(), session_num);
 }
