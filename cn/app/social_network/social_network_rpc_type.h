@@ -49,3 +49,25 @@ class RPCMsgResp
     RPCMsgResp(RPC_TYPE t, uint32_t num, int status) : resp_common{t, num, status} {}
     RPCMsgResp(RPC_TYPE t, uint32_t num, int status, T resp) : resp_common{t, num, status}, resp_control(resp) {}
 }__attribute__((packed));
+
+#if defined(ERPC_PROGRAM)
+class ComposePostReq
+        {
+        public:
+            size_t length;
+            size_t flags;
+        };
+
+class ComposePostResp
+        {
+        public:
+            size_t length;
+            size_t flags;
+        };
+
+class
+
+#elif defined(RMEM_PROGRAM)
+
+
+#endif
