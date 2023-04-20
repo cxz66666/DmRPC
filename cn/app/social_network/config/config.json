@@ -6,6 +6,8 @@
     "numa_1_ports": "1",
     "client_num": 1,
     "server_num": 1,
+    "numa_client_node": 0,
+    "numa_server_node": 0,
     "bind_core_offset": 0,
     "timeout_second": 60,
     "latency_file": "latency.txt",

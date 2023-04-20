@@ -129,11 +129,21 @@ public:
     hdr_histogram *latency_hist_{};
 };
 
+// must be used after init_service_config
+
+void init_specific_config(){
+    rmem::rt_assert(!config_json_all.is_null(),"must be used after init_service_config");
+    auto value = config_json_all["load_balance"]["load_balance_servers"];
+    rmem::rt_assert(!value.is_null(),"value is null");
+    FLAGS_load_balance_servers = value;
+}
+
 std::vector<size_t> flags_get_balance_servers_index()
 {
-    rmem::rt_assert(!FLAGS_load_balance_servers_index.empty(), "please set at least one load balance server");
+
+    rmem::rt_assert(!FLAGS_load_balance_servers.empty(), "please set at least one load balance server");
     std::vector<size_t> ret;
-    std::vector<std::string> split_vec = rmem::split(FLAGS_load_balance_servers_index, ',');
+    std::vector<std::string> split_vec = rmem::split(FLAGS_load_balance_servers, ',');
     rmem::rt_assert(!split_vec.empty());
 
     for (auto &s : split_vec)

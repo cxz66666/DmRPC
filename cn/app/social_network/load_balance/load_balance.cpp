@@ -422,8 +422,15 @@ void leader_thread_func()
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING), ping_handler);
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP), ping_resp_handler);
 
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE), transcode_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_TRANSCODE_RESP), transcode_resp_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST), transcode_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST_RESP), transcode_resp_handler);
+
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE), transcode_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_RESP), transcode_resp_handler);
+
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE), transcode_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_RESP), transcode_resp_handler);
+
 
     std::vector<std::thread> clients(FLAGS_client_num);
     std::vector<std::thread> servers(FLAGS_server_num);
@@ -473,7 +480,7 @@ int main(int argc, char **argv)
     // only config_file is required!!!
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    init_config(FLAGS_config_file,"load_balance");
+    init_service_config(FLAGS_config_file,"load_balance");
 
 
     std::thread leader_thread(leader_thread_func);

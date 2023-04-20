@@ -27,6 +27,10 @@ DEFINE_uint64(client_num, 1, "Client(forward usage) thread num, must >0 and <DPD
 // this node
 DEFINE_uint64(server_num, 1, "Server(self) thread num, must >0 and <DPDK_QUEUE_NUM");
 
+DEFINE_uint64(numa_client_node, 0, "NUMA node for client threads, must be 0 or 1");
+
+DEFINE_uint64(numa_server_node, 0, "NUMA node for server threads, must be 0 or 1");
+
 DEFINE_uint64(bind_core_offset, 0, "Bind core offset, used for local test to bind different processes to different cores");
 
 DEFINE_uint64(timeout_second, UINT64_MAX, "Timeout second for each request, default(UINT64_MAX) means no timeout");
@@ -45,6 +49,8 @@ static constexpr size_t kAppEvLoopMs = 1000; // Duration of event loop
 volatile sig_atomic_t ctrl_c_pressed = 0;
 void ctrl_c_handler(int) { ctrl_c_pressed = 1; }
 
+json config_json_all;
+
 int load_config_file(const std::string& file_name, json* config_json){
     std::ifstream json_file;
     json_file.open(file_name);
@@ -59,13 +65,12 @@ int load_config_file(const std::string& file_name, json* config_json){
     }
 }
 
-void init_config(const std::string& file_path, const std::string& service_name){
-    json config_json;
-    if (load_config_file(file_path, &config_json) != 0) {
+void init_service_config(const std::string& file_path, const std::string& service_name){
+    if (load_config_file(file_path, &config_json_all) != 0) {
         exit(1);
     }
 
-    auto config = config_json["common"];
+    auto config = config_json_all["common"];
     if (config.is_null()) {
         RMEM_ERROR("Failed to find common config");
         exit(1);
@@ -77,12 +82,14 @@ void init_config(const std::string& file_path, const std::string& service_name){
     FLAGS_server_addr = config["server_addr"];
     FLAGS_client_num = config["client_num"];
     FLAGS_server_num = config["server_num"];
+    FLAGS_numa_client_node = config["numa_client_node"];
+    FLAGS_numa_server_node = config["numa_server_node"];
     FLAGS_bind_core_offset = config["bind_core_offset"];
     FLAGS_timeout_second = config["timeout_second"];
     FLAGS_latency_file = config["latency_file"];
     FLAGS_bandwidth_file = config["bandwidth_file"];
 
-    auto server_config = config_json[service_name];
+    auto server_config = config_json_all[service_name];
     if (server_config.is_null()) {
         RMEM_ERROR("Failed to find %s config", service_name.c_str());
         exit(1);
@@ -111,6 +118,12 @@ void init_config(const std::string& file_path, const std::string& service_name){
     }
     if(server_config.contains("server_num")){
         FLAGS_server_num = server_config["server_num"];
+    }
+    if(server_config.contains("numa_client_node")){
+        FLAGS_numa_client_node = server_config["numa_client_node"];
+    }
+    if(server_config.contains("numa_server_node")){
+        FLAGS_numa_server_node = server_config["numa_server_node"];
     }
     if(server_config.contains("bind_core_offset")){
         FLAGS_bind_core_offset = server_config["bind_core_offset"];

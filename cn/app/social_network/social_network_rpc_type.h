@@ -32,12 +32,20 @@ public:
 } __attribute__((packed));
 
 template<class T>
-class RPCMsg
+class RPCMsgReq
 {
 public:
     CommonReq req_common;
     T req_control;
-    RPCMsg(RPC_TYPE t, uint32_t num) : req_common{t, num} {}
-    RPCMsg(RPC_TYPE t, uint32_t num, T req) : req_common{t, num}, req_control(req) {}
+    RPCMsgReq(RPC_TYPE t, uint32_t num) : req_common{t, num} {}
+    RPCMsgReq(RPC_TYPE t, uint32_t num, T req) : req_common{t, num}, req_control(req) {}
 }__attribute__((packed));
 
+template<class T>
+class RPCMsgResp
+{
+    CommonResp resp_common;
+    T resp_control;
+    RPCMsgResp(RPC_TYPE t, uint32_t num, int status) : resp_common{t, num, status} {}
+    RPCMsgResp(RPC_TYPE t, uint32_t num, int status, T resp) : resp_common{t, num, status}, resp_control(resp) {}
+}__attribute__((packed));
