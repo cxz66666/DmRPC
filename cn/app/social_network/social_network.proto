@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package social_network;
+
+
+option optimize_for = LITE_RUNTIME;
+
+message Text {
+    optional string text = 1;
+}

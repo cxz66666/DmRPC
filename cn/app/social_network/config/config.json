@@ -10,5 +10,9 @@
     "timeout_second": 60,
     "latency_file": "latency.txt",
     "bandwidth_file": "bandwidth.txt"
+  },
+  "load_balance": {
+    "server_addr": "192.168.189.8:31851",
+    "load_balance_servers": "192.168.189.9:31851"
   }
 }

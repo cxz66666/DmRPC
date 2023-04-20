@@ -5,8 +5,11 @@
 #include <csignal>
 #include <app_helpers.h>
 #include "rpc.h"
+#include "social_network_rpc_type.h"
 
 using json = nlohmann::json;
+
+DEFINE_string(config_file,"../cn/app/social_network/config/config.json","Config file path");
 
 DEFINE_uint64(test_loop, 10, "Test loop");
 
@@ -122,7 +125,6 @@ void init_config(const std::string& file_path, const std::string& service_name){
         FLAGS_bandwidth_file = server_config["bandwidth_file"];
     }
 
-    return;
 }
 
 std::vector<size_t> flags_get_numa_ports(size_t numa_node)
@@ -208,4 +210,26 @@ void basic_sm_handler_server(int session_num, int remote_session_num, erpc::SmEv
 
     c->session_num_vec_.push_back(session_num);
     printf("Server id %" PRIu8 ": Got session %d\n", c->rpc_->get_rpc_id(), session_num);
+}
+
+size_t get_bind_core(size_t numa)
+{
+    static size_t numa0_core = 0;
+    static size_t numa1_core = 0;
+    static spinlock_mutex lock;
+    size_t res;
+    lock.lock();
+    rmem::rt_assert(numa == 0 || numa == 1);
+    if (numa == 0)
+    {
+        rmem::rt_assert(numa0_core <= rmem::num_lcores_per_numa_node());
+        res = numa0_core++;
+    }
+    else
+    {
+        rmem::rt_assert(numa1_core <= rmem::num_lcores_per_numa_node());
+        res = numa1_core++;
+    }
+    lock.unlock();
+    return res;
 }

@@ -1,6 +1,6 @@
 #pragma once
-#include <stdint.h>
-#include <stddef.h>
+#include <cstdint>
+#include <cstddef>
 
 enum class RPC_TYPE : uint8_t
 {
