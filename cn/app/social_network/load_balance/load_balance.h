@@ -8,6 +8,7 @@ DEFINE_string(load_balance_servers, "", "load balance servers, split by ',', for
 std::string client_addr;
 
 size_t send_ping_req_num = 0;
+size_t send_ping_resp_num = 0;
 
 class ClientContext : public BasicContext
 {
@@ -43,12 +44,11 @@ public:
 class ServerContext : public BasicContext
 {
 public:
-    ServerContext(size_t sid) : server_id_(sid)
+    explicit ServerContext(size_t sid) : server_id_(sid)
     {
     }
     ~ServerContext()
-    {
-    }
+    = default;
     size_t server_id_{};
     size_t stat_req_ping_tot{};
     size_t stat_req_ping_resp_tot{};
@@ -94,8 +94,6 @@ public:
             client_contexts_.push_back(new ClientContext(i, i % FLAGS_server_forward_num, i % FLAGS_server_backward_num));
 #elif defined(RMEM_PROGRAM)
             client_contexts_.push_back(new ClientContext(i, (i % FLAGS_server_forward_num) + kAppMaxRPC, (i % FLAGS_server_backward_num) + kAppMaxRPC));
-#elif defined(CXL_PROGRAM)
-            client_contexts_.push_back(new ClientContext(i, i % FLAGS_server_forward_num, i % FLAGS_server_backward_num));
 #endif
         }
         for (size_t i = 0; i < FLAGS_server_num; i++)
@@ -121,7 +119,8 @@ public:
             delete ctx;
         }
     }
-    bool write_latency_and_reset(const std::string &filename)
+
+    [[maybe_unused]] [[nodiscard]] bool write_latency_and_reset(const std::string &filename) const
     {
 
         FILE *fp = fopen(filename.c_str(), "w");

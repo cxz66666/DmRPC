@@ -65,9 +65,12 @@ void ping_resp_handler(erpc::ReqHandle *req_handle, void *_context)
     new (req_handle->pre_resp_msgbuf_.buf_) RPCMsgResp<PingRPCResp>(req->req_common.type, req->req_common.req_number, 0, {req->req_control.timestamp});
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(RPCMsgResp<PingRPCResp>));
 
-    ctx->backward_spsc_queue->push(*req_msgbuf);
-
-    req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
+    send_ping_resp_num++;
+    if(send_ping_req_num==send_ping_resp_num){
+        ctx->backward_spsc_queue->push(*req_msgbuf);
+        // hack for erpc
+        req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
+    }
 
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 }
@@ -87,31 +90,22 @@ void common_req_handler(erpc::ReqHandle *req_handle, void *_context)
             ctx->stat_req_user_timeline_tot++;
             break;
         case RPC_TYPE::RPC_HOME_TIMELINE:
-            ctx->stat_req_home_timeline_tot;
+            ctx->stat_req_home_timeline_tot++;
+            break;
         default:
-        RMEM_ERROR("error req type %u\n", req->type);
+        RMEM_ERROR("error req type %u\n", static_cast<uint>(req->type));
     }
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
 
-#if defined(ERPC_PROGRAM)
-    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq) + req->extra.length, "data size not match");
-    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
-#elif defined(RMEM_PROGRAM)
-    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq), "data size not match");
-    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
 
-#elif defined(CXL_PROGRAM)
-    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq), "data size not match");
-    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
-#else
-    static_assert(false, "program type not defined");
-#endif
-    ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
+    new (req_handle->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->type, req->req_number, 0, {0});
 
-    if (likely(ctx->req_forward_msgbuf_ptr[req->req.req_number % kAppMaxBuffer].buf_ != nullptr))
+    ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
+
+    if (likely(ctx->req_forward_msgbuf_ptr[req->req_number % kAppMaxBuffer].buf_ != nullptr))
     {
-        ctx->rpc_->free_msg_buffer(ctx->req_forward_msgbuf_ptr[req->req.req_number % kAppMaxBuffer]);
+        ctx->rpc_->free_msg_buffer(ctx->req_forward_msgbuf_ptr[req->req_number % kAppMaxBuffer]);
     }
 
     ctx->forward_spsc_queue->push(*req_msgbuf);
@@ -121,34 +115,35 @@ void common_req_handler(erpc::ReqHandle *req_handle, void *_context)
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 }
 
-void transcode_resp_handler(erpc::ReqHandle *req_handle, void *_context)
+void common_resp_handler(erpc::ReqHandle *req_handle, void *_context)
 {
     auto *ctx = static_cast<ServerContext *>(_context);
-    ctx->stat_req_tc_req_tot++;
+
     auto *req_msgbuf = req_handle->get_req_msgbuf();
 
-    auto *req = reinterpret_cast<TranscodeReq *>(req_msgbuf->buf_);
+    auto *req = reinterpret_cast<CommonReq *>(req_msgbuf->buf_);
 
-    // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
+    switch (req->type) {
+        case RPC_TYPE::RPC_COMPOSE_POST_RESP:
+            ctx->stat_req_compose_post_resp_tot++;
+            break;
+        case RPC_TYPE::RPC_USER_TIMELINE_RESP:
+            ctx->stat_req_user_timeline_resp_tot++;
+            break;
+        case RPC_TYPE::RPC_HOME_TIMELINE_RESP:
+            ctx->stat_req_home_timeline_resp_tot++;
+            break;
+        default:
+        RMEM_ERROR("error req type %u\n", static_cast<uint>(req->type));
+    }
 
-#if defined(ERPC_PROGRAM)
-    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq) + req->extra.length, "data size not match");
-    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length);
-#elif defined(RMEM_PROGRAM)
-    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq), "data size not match");
-    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
+    new (req_handle->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->type, req->req_number, 0, {0});
 
-#elif defined(CXL_PROGRAM)
-    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(TranscodeReq), "data size not match");
-    new (req_handle->pre_resp_msgbuf_.buf_) TranscodeResp(req->req.type, req->req.req_number, 0, req->extra.length, req->extra.offset, req->extra.worker_flag);
-#else
-    static_assert(false, "program type not defined");
-#endif
-    ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(TranscodeResp));
+    ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
 
-    if (ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxBuffer].buf_ != nullptr)
+    if (ctx->req_backward_msgbuf_ptr[req->req_number % kAppMaxBuffer].buf_ != nullptr)
     {
-        ctx->rpc_->free_msg_buffer(ctx->req_backward_msgbuf_ptr[req->req.req_number % kAppMaxBuffer]);
+        ctx->rpc_->free_msg_buffer(ctx->req_backward_msgbuf_ptr[req->req_number % kAppMaxBuffer]);
     }
 
     ctx->backward_spsc_queue->push(*req_msgbuf);
@@ -393,8 +388,6 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
     rpc_id = thread_id;
 #elif defined(RMEM_PROGRAM)
     rpc_id = thread_id + kAppMaxRPC;
-#elif defined(CXL_PROGRAM)
-    rpc_id = thread_id;
 #endif
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
                                     rpc_id,
@@ -409,8 +402,10 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
         start.reset();
         rpc.run_event_loop(kAppEvLoopMs);
         const double seconds = start.get_sec();
-        printf("thread %zu: ping_req : %.2f, ping_resp : %.2f, tc : %.2f, tc_req : %.2f \n", thread_id,
-               ctx->stat_req_ping_tot / seconds, ctx->stat_req_ping_resp_tot / seconds, ctx->stat_req_tc_tot / seconds, ctx->stat_req_tc_req_tot / seconds);
+        printf("thread %zu: ping_req : %.2f, ping_resp : %.2f, cq_ut_ht_req : %.2f %.2f %.2f, cq_ut_ht_req : %.2f %.2f %.2f \n", thread_id,
+               ctx->stat_req_ping_tot / seconds, ctx->stat_req_ping_resp_tot / seconds, ctx->stat_req_compose_post_tot / seconds,
+               ctx->stat_req_user_timeline_tot / seconds, ctx->stat_req_home_timeline_tot /seconds, ctx->stat_req_compose_post_resp_tot/seconds,
+               ctx->stat_req_user_timeline_resp_tot/seconds, ctx->stat_req_home_timeline_resp_tot/seconds);
 
         ctx->rpc_->reset_dpath_stats();
         // more handler
@@ -428,14 +423,14 @@ void leader_thread_func()
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING), ping_handler);
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP), ping_resp_handler);
 
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST), transcode_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST_RESP), transcode_resp_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST), common_req_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST_RESP), common_resp_handler);
 
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE), transcode_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_RESP), transcode_resp_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE), common_req_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_RESP), common_resp_handler);
 
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE), transcode_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_RESP), transcode_resp_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE), common_req_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_RESP), common_resp_handler);
 
 
     std::vector<std::thread> clients(FLAGS_client_num);
