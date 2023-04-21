@@ -12,6 +12,7 @@ enum class RPC_TYPE : uint8_t
     RPC_USER_TIMELINE_RESP,
     RPC_HOME_TIMELINE,
     RPC_HOME_TIMELINE_RESP,
+    RPC_UNIQUE_ID,
 };
 
 class CommonReq
@@ -116,6 +117,16 @@ public:
 class PingRPCResp {
 public:
     size_t timestamp;
+};
+
+class UniqueIDReq {
+public:
+    size_t dummy; // it is useless!!
+};
+
+class UniqueIDResp {
+public:
+    size_t post_id;
 };
 
 #if defined(ERPC_PROGRAM)
