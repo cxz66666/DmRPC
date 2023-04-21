@@ -5,6 +5,10 @@
 
 DEFINE_string(load_balance_servers, "", "load balance servers, split by ',', for example: 192.168.189.8:1234,192.168.189.8:3456");
 
+std::string client_addr;
+
+size_t send_ping_req_num = 0;
+
 class ClientContext : public BasicContext
 {
 public:
@@ -30,7 +34,7 @@ public:
 
     int backward_session_num_;
 
-    int servers_num_;
+    int servers_num_{};
 
     atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *forward_spsc_queue;
     atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *backward_spsc_queue;
@@ -39,33 +43,41 @@ public:
 class ServerContext : public BasicContext
 {
 public:
-    ServerContext(size_t sid) : server_id_(sid), stat_req_ping_tot(0), stat_req_ping_resp_tot(0), stat_req_tc_tot(0), stat_req_tc_req_tot(0), stat_req_err_tot(0)
+    ServerContext(size_t sid) : server_id_(sid)
     {
     }
     ~ServerContext()
     {
     }
-    size_t server_id_;
-    size_t stat_req_ping_tot;
-    size_t stat_req_ping_resp_tot;
-    size_t stat_req_tc_tot;
-    size_t stat_req_tc_req_tot;
-    size_t stat_req_err_tot;
+    size_t server_id_{};
+    size_t stat_req_ping_tot{};
+    size_t stat_req_ping_resp_tot{};
+    size_t stat_req_compose_post_tot{};
+    size_t stat_req_compose_post_resp_tot{};
+    size_t stat_req_user_timeline_tot{};
+    size_t stat_req_user_timeline_resp_tot{};
+    size_t stat_req_home_timeline_tot{};
+    size_t stat_req_home_timeline_resp_tot{};
+    size_t stat_req_err_tot{};
 
     void reset_stat()
     {
         stat_req_ping_tot = 0;
         stat_req_ping_resp_tot = 0;
-        stat_req_tc_tot = 0;
-        stat_req_tc_req_tot = 0;
+        stat_req_compose_post_tot = 0;
+        stat_req_compose_post_resp_tot =0;
+        stat_req_user_timeline_tot = 0;
+        stat_req_user_timeline_resp_tot = 0;
+        stat_req_home_timeline_tot = 0;
+        stat_req_home_timeline_resp_tot = 0;
         stat_req_err_tot = 0;
     }
 
-    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *forward_spsc_queue;
-    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *backward_spsc_queue;
+    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *forward_spsc_queue{};
+    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *backward_spsc_queue{};
 
-    erpc::MsgBuffer *req_forward_msgbuf_ptr;
-    erpc::MsgBuffer *req_backward_msgbuf_ptr;
+    erpc::MsgBuffer *req_forward_msgbuf_ptr{};
+    erpc::MsgBuffer *req_backward_msgbuf_ptr{};
 };
 
 class AppContext
@@ -133,12 +145,17 @@ public:
 
 void init_specific_config(){
     rmem::rt_assert(!config_json_all.is_null(),"must be used after init_service_config");
-    auto value = config_json_all["load_balance"]["load_balance_servers"];
+    // this is a hack
+    auto value = config_json_all["nginx"]["server_addr"];
     rmem::rt_assert(!value.is_null(),"value is null");
     FLAGS_load_balance_servers = value;
+
+    value = config_json_all["client"]["server_addr"];
+    rmem::rt_assert(!value.is_null(),"value is null");
+    client_addr = value;
 }
 
-std::vector<size_t> flags_get_balance_servers_index()
+std::vector<std::string> flags_get_balance_servers_index()
 {
 
     rmem::rt_assert(!FLAGS_load_balance_servers.empty(), "please set at least one load balance server");
@@ -146,8 +163,5 @@ std::vector<size_t> flags_get_balance_servers_index()
     std::vector<std::string> split_vec = rmem::split(FLAGS_load_balance_servers, ',');
     rmem::rt_assert(!split_vec.empty());
 
-    for (auto &s : split_vec)
-        ret.push_back(std::stoull(s)); // stoull trims ' '
-
-    return ret;
+    return split_vec;
 }

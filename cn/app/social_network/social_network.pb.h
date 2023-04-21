@@ -28,6 +28,8 @@
 #include <google/protobuf/message_lite.h>
 #include <google/protobuf/repeated_field.h>  // IWYU pragma: export
 #include <google/protobuf/extension_set.h>  // IWYU pragma: export
+#include <google/protobuf/generated_enum_util.h>
+#include <google/protobuf/timestamp.pb.h>
 // @@protoc_insertion_point(includes)
 #include <google/protobuf/port_def.inc>
 #define PROTOBUF_INTERNAL_EXPORT_social_5fnetwork_2eproto
@@ -42,15 +44,62 @@ struct TableStruct_social_5fnetwork_2eproto {
   static const uint32_t offsets[];
 };
 namespace social_network {
+class ComposePostData;
+struct ComposePostDataDefaultTypeInternal;
+extern ComposePostDataDefaultTypeInternal _ComposePostData_default_instance_;
+class Creator;
+struct CreatorDefaultTypeInternal;
+extern CreatorDefaultTypeInternal _Creator_default_instance_;
+class Media;
+struct MediaDefaultTypeInternal;
+extern MediaDefaultTypeInternal _Media_default_instance_;
+class Post;
+struct PostDefaultTypeInternal;
+extern PostDefaultTypeInternal _Post_default_instance_;
 class Text;
 struct TextDefaultTypeInternal;
 extern TextDefaultTypeInternal _Text_default_instance_;
+class Url;
+struct UrlDefaultTypeInternal;
+extern UrlDefaultTypeInternal _Url_default_instance_;
+class UserMention;
+struct UserMentionDefaultTypeInternal;
+extern UserMentionDefaultTypeInternal _UserMention_default_instance_;
 }  // namespace social_network
 PROTOBUF_NAMESPACE_OPEN
+template<> ::social_network::ComposePostData* Arena::CreateMaybeMessage<::social_network::ComposePostData>(Arena*);
+template<> ::social_network::Creator* Arena::CreateMaybeMessage<::social_network::Creator>(Arena*);
+template<> ::social_network::Media* Arena::CreateMaybeMessage<::social_network::Media>(Arena*);
+template<> ::social_network::Post* Arena::CreateMaybeMessage<::social_network::Post>(Arena*);
 template<> ::social_network::Text* Arena::CreateMaybeMessage<::social_network::Text>(Arena*);
+template<> ::social_network::Url* Arena::CreateMaybeMessage<::social_network::Url>(Arena*);
+template<> ::social_network::UserMention* Arena::CreateMaybeMessage<::social_network::UserMention>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace social_network {
 
+enum PostType : int {
+  POST_TYPE_POST = 0,
+  POST_TYPE_REPOST = 1,
+  POST_TYPE_REPLY = 2,
+  POST_TYPE_DM = 3,
+  PostType_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
+  PostType_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
+};
+bool PostType_IsValid(int value);
+constexpr PostType PostType_MIN = POST_TYPE_POST;
+constexpr PostType PostType_MAX = POST_TYPE_DM;
+constexpr int PostType_ARRAYSIZE = PostType_MAX + 1;
+
+const std::string& PostType_Name(PostType value);
+template<typename T>
+inline const std::string& PostType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, PostType>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function PostType_Name.");
+  return PostType_Name(static_cast<PostType>(enum_t_value));
+}
+bool PostType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, PostType* value);
 // ===================================================================
 
 class Text final :
@@ -188,6 +237,1159 @@ class Text final :
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr text_;
   friend struct ::TableStruct_social_5fnetwork_2eproto;
 };
+// -------------------------------------------------------------------
+
+class ComposePostData final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:social_network.ComposePostData) */ {
+ public:
+  inline ComposePostData() : ComposePostData(nullptr) {}
+  ~ComposePostData() override;
+  explicit PROTOBUF_CONSTEXPR ComposePostData(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  ComposePostData(const ComposePostData& from);
+  ComposePostData(ComposePostData&& from) noexcept
+    : ComposePostData() {
+    *this = ::std::move(from);
+  }
+
+  inline ComposePostData& operator=(const ComposePostData& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ComposePostData& operator=(ComposePostData&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ComposePostData& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ComposePostData* internal_default_instance() {
+    return reinterpret_cast<const ComposePostData*>(
+               &_ComposePostData_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    1;
+
+  friend void swap(ComposePostData& a, ComposePostData& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(ComposePostData* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ComposePostData* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ComposePostData* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<ComposePostData>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const ComposePostData& from);
+  void MergeFrom(const ComposePostData& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(ComposePostData* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "social_network.ComposePostData";
+  }
+  protected:
+  explicit ComposePostData(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kMediaIdsFieldNumber = 5,
+    kMediaTypesFieldNumber = 6,
+    kUsernameFieldNumber = 2,
+    kUserIdFieldNumber = 3,
+    kTextFieldNumber = 4,
+    kReqIdFieldNumber = 1,
+    kPostTypeFieldNumber = 7,
+  };
+  // repeated int64 media_ids = 5;
+  int media_ids_size() const;
+  private:
+  int _internal_media_ids_size() const;
+  public:
+  void clear_media_ids();
+  private:
+  int64_t _internal_media_ids(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
+      _internal_media_ids() const;
+  void _internal_add_media_ids(int64_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
+      _internal_mutable_media_ids();
+  public:
+  int64_t media_ids(int index) const;
+  void set_media_ids(int index, int64_t value);
+  void add_media_ids(int64_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
+      media_ids() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
+      mutable_media_ids();
+
+  // repeated string media_types = 6;
+  int media_types_size() const;
+  private:
+  int _internal_media_types_size() const;
+  public:
+  void clear_media_types();
+  const std::string& media_types(int index) const;
+  std::string* mutable_media_types(int index);
+  void set_media_types(int index, const std::string& value);
+  void set_media_types(int index, std::string&& value);
+  void set_media_types(int index, const char* value);
+  void set_media_types(int index, const char* value, size_t size);
+  std::string* add_media_types();
+  void add_media_types(const std::string& value);
+  void add_media_types(std::string&& value);
+  void add_media_types(const char* value);
+  void add_media_types(const char* value, size_t size);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>& media_types() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>* mutable_media_types();
+  private:
+  const std::string& _internal_media_types(int index) const;
+  std::string* _internal_add_media_types();
+  public:
+
+  // optional string username = 2;
+  bool has_username() const;
+  private:
+  bool _internal_has_username() const;
+  public:
+  void clear_username();
+  const std::string& username() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_username(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_username();
+  PROTOBUF_NODISCARD std::string* release_username();
+  void set_allocated_username(std::string* username);
+  private:
+  const std::string& _internal_username() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_username(const std::string& value);
+  std::string* _internal_mutable_username();
+  public:
+
+  // optional string user_id = 3;
+  bool has_user_id() const;
+  private:
+  bool _internal_has_user_id() const;
+  public:
+  void clear_user_id();
+  const std::string& user_id() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_user_id(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_user_id();
+  PROTOBUF_NODISCARD std::string* release_user_id();
+  void set_allocated_user_id(std::string* user_id);
+  private:
+  const std::string& _internal_user_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_user_id(const std::string& value);
+  std::string* _internal_mutable_user_id();
+  public:
+
+  // optional string text = 4;
+  bool has_text() const;
+  private:
+  bool _internal_has_text() const;
+  public:
+  void clear_text();
+  const std::string& text() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_text(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_text();
+  PROTOBUF_NODISCARD std::string* release_text();
+  void set_allocated_text(std::string* text);
+  private:
+  const std::string& _internal_text() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_text(const std::string& value);
+  std::string* _internal_mutable_text();
+  public:
+
+  // optional int64 req_id = 1;
+  bool has_req_id() const;
+  private:
+  bool _internal_has_req_id() const;
+  public:
+  void clear_req_id();
+  int64_t req_id() const;
+  void set_req_id(int64_t value);
+  private:
+  int64_t _internal_req_id() const;
+  void _internal_set_req_id(int64_t value);
+  public:
+
+  // optional .social_network.PostType post_type = 7;
+  bool has_post_type() const;
+  private:
+  bool _internal_has_post_type() const;
+  public:
+  void clear_post_type();
+  ::social_network::PostType post_type() const;
+  void set_post_type(::social_network::PostType value);
+  private:
+  ::social_network::PostType _internal_post_type() const;
+  void _internal_set_post_type(::social_network::PostType value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:social_network.ComposePostData)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t > media_ids_;
+  mutable std::atomic<int> _media_ids_cached_byte_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> media_types_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr username_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr user_id_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr text_;
+  int64_t req_id_;
+  int post_type_;
+  friend struct ::TableStruct_social_5fnetwork_2eproto;
+};
+// -------------------------------------------------------------------
+
+class Creator final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:social_network.Creator) */ {
+ public:
+  inline Creator() : Creator(nullptr) {}
+  ~Creator() override;
+  explicit PROTOBUF_CONSTEXPR Creator(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  Creator(const Creator& from);
+  Creator(Creator&& from) noexcept
+    : Creator() {
+    *this = ::std::move(from);
+  }
+
+  inline Creator& operator=(const Creator& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline Creator& operator=(Creator&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const Creator& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const Creator* internal_default_instance() {
+    return reinterpret_cast<const Creator*>(
+               &_Creator_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    2;
+
+  friend void swap(Creator& a, Creator& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(Creator* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(Creator* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  Creator* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<Creator>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const Creator& from);
+  void MergeFrom(const Creator& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(Creator* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "social_network.Creator";
+  }
+  protected:
+  explicit Creator(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kUsernameFieldNumber = 2,
+    kUserIdFieldNumber = 1,
+  };
+  // optional string username = 2;
+  bool has_username() const;
+  private:
+  bool _internal_has_username() const;
+  public:
+  void clear_username();
+  const std::string& username() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_username(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_username();
+  PROTOBUF_NODISCARD std::string* release_username();
+  void set_allocated_username(std::string* username);
+  private:
+  const std::string& _internal_username() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_username(const std::string& value);
+  std::string* _internal_mutable_username();
+  public:
+
+  // optional int64 user_id = 1;
+  bool has_user_id() const;
+  private:
+  bool _internal_has_user_id() const;
+  public:
+  void clear_user_id();
+  int64_t user_id() const;
+  void set_user_id(int64_t value);
+  private:
+  int64_t _internal_user_id() const;
+  void _internal_set_user_id(int64_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:social_network.Creator)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr username_;
+  int64_t user_id_;
+  friend struct ::TableStruct_social_5fnetwork_2eproto;
+};
+// -------------------------------------------------------------------
+
+class UserMention final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:social_network.UserMention) */ {
+ public:
+  inline UserMention() : UserMention(nullptr) {}
+  ~UserMention() override;
+  explicit PROTOBUF_CONSTEXPR UserMention(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  UserMention(const UserMention& from);
+  UserMention(UserMention&& from) noexcept
+    : UserMention() {
+    *this = ::std::move(from);
+  }
+
+  inline UserMention& operator=(const UserMention& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline UserMention& operator=(UserMention&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const UserMention& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const UserMention* internal_default_instance() {
+    return reinterpret_cast<const UserMention*>(
+               &_UserMention_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    3;
+
+  friend void swap(UserMention& a, UserMention& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(UserMention* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(UserMention* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  UserMention* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<UserMention>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const UserMention& from);
+  void MergeFrom(const UserMention& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(UserMention* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "social_network.UserMention";
+  }
+  protected:
+  explicit UserMention(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kUsernameFieldNumber = 2,
+    kUserIdFieldNumber = 1,
+  };
+  // optional string username = 2;
+  bool has_username() const;
+  private:
+  bool _internal_has_username() const;
+  public:
+  void clear_username();
+  const std::string& username() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_username(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_username();
+  PROTOBUF_NODISCARD std::string* release_username();
+  void set_allocated_username(std::string* username);
+  private:
+  const std::string& _internal_username() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_username(const std::string& value);
+  std::string* _internal_mutable_username();
+  public:
+
+  // optional int64 user_id = 1;
+  bool has_user_id() const;
+  private:
+  bool _internal_has_user_id() const;
+  public:
+  void clear_user_id();
+  int64_t user_id() const;
+  void set_user_id(int64_t value);
+  private:
+  int64_t _internal_user_id() const;
+  void _internal_set_user_id(int64_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:social_network.UserMention)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr username_;
+  int64_t user_id_;
+  friend struct ::TableStruct_social_5fnetwork_2eproto;
+};
+// -------------------------------------------------------------------
+
+class Media final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:social_network.Media) */ {
+ public:
+  inline Media() : Media(nullptr) {}
+  ~Media() override;
+  explicit PROTOBUF_CONSTEXPR Media(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  Media(const Media& from);
+  Media(Media&& from) noexcept
+    : Media() {
+    *this = ::std::move(from);
+  }
+
+  inline Media& operator=(const Media& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline Media& operator=(Media&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const Media& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const Media* internal_default_instance() {
+    return reinterpret_cast<const Media*>(
+               &_Media_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    4;
+
+  friend void swap(Media& a, Media& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(Media* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(Media* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  Media* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<Media>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const Media& from);
+  void MergeFrom(const Media& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(Media* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "social_network.Media";
+  }
+  protected:
+  explicit Media(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kMediaTypeFieldNumber = 2,
+    kMediaIdFieldNumber = 1,
+  };
+  // optional string media_type = 2;
+  bool has_media_type() const;
+  private:
+  bool _internal_has_media_type() const;
+  public:
+  void clear_media_type();
+  const std::string& media_type() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_media_type(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_media_type();
+  PROTOBUF_NODISCARD std::string* release_media_type();
+  void set_allocated_media_type(std::string* media_type);
+  private:
+  const std::string& _internal_media_type() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_media_type(const std::string& value);
+  std::string* _internal_mutable_media_type();
+  public:
+
+  // optional int64 media_id = 1;
+  bool has_media_id() const;
+  private:
+  bool _internal_has_media_id() const;
+  public:
+  void clear_media_id();
+  int64_t media_id() const;
+  void set_media_id(int64_t value);
+  private:
+  int64_t _internal_media_id() const;
+  void _internal_set_media_id(int64_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:social_network.Media)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr media_type_;
+  int64_t media_id_;
+  friend struct ::TableStruct_social_5fnetwork_2eproto;
+};
+// -------------------------------------------------------------------
+
+class Url final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:social_network.Url) */ {
+ public:
+  inline Url() : Url(nullptr) {}
+  ~Url() override;
+  explicit PROTOBUF_CONSTEXPR Url(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  Url(const Url& from);
+  Url(Url&& from) noexcept
+    : Url() {
+    *this = ::std::move(from);
+  }
+
+  inline Url& operator=(const Url& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline Url& operator=(Url&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const Url& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const Url* internal_default_instance() {
+    return reinterpret_cast<const Url*>(
+               &_Url_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    5;
+
+  friend void swap(Url& a, Url& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(Url* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(Url* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  Url* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<Url>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const Url& from);
+  void MergeFrom(const Url& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(Url* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "social_network.Url";
+  }
+  protected:
+  explicit Url(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kShortenedUrlFieldNumber = 1,
+    kExpandedUrlFieldNumber = 2,
+  };
+  // optional string shortened_url = 1;
+  bool has_shortened_url() const;
+  private:
+  bool _internal_has_shortened_url() const;
+  public:
+  void clear_shortened_url();
+  const std::string& shortened_url() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_shortened_url(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_shortened_url();
+  PROTOBUF_NODISCARD std::string* release_shortened_url();
+  void set_allocated_shortened_url(std::string* shortened_url);
+  private:
+  const std::string& _internal_shortened_url() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_shortened_url(const std::string& value);
+  std::string* _internal_mutable_shortened_url();
+  public:
+
+  // optional string expanded_url = 2;
+  bool has_expanded_url() const;
+  private:
+  bool _internal_has_expanded_url() const;
+  public:
+  void clear_expanded_url();
+  const std::string& expanded_url() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_expanded_url(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_expanded_url();
+  PROTOBUF_NODISCARD std::string* release_expanded_url();
+  void set_allocated_expanded_url(std::string* expanded_url);
+  private:
+  const std::string& _internal_expanded_url() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_expanded_url(const std::string& value);
+  std::string* _internal_mutable_expanded_url();
+  public:
+
+  // @@protoc_insertion_point(class_scope:social_network.Url)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr shortened_url_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr expanded_url_;
+  friend struct ::TableStruct_social_5fnetwork_2eproto;
+};
+// -------------------------------------------------------------------
+
+class Post final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:social_network.Post) */ {
+ public:
+  inline Post() : Post(nullptr) {}
+  ~Post() override;
+  explicit PROTOBUF_CONSTEXPR Post(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  Post(const Post& from);
+  Post(Post&& from) noexcept
+    : Post() {
+    *this = ::std::move(from);
+  }
+
+  inline Post& operator=(const Post& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline Post& operator=(Post&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const Post& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const Post* internal_default_instance() {
+    return reinterpret_cast<const Post*>(
+               &_Post_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    6;
+
+  friend void swap(Post& a, Post& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(Post* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(Post* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  Post* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<Post>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const Post& from);
+  void MergeFrom(const Post& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(Post* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "social_network.Post";
+  }
+  protected:
+  explicit Post(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kUserMentionsFieldNumber = 5,
+    kMediaFieldNumber = 6,
+    kUrlsFieldNumber = 7,
+    kTextFieldNumber = 4,
+    kCreatorFieldNumber = 2,
+    kTimestampFieldNumber = 8,
+    kPostIdFieldNumber = 1,
+    kReqIdFieldNumber = 3,
+    kPostTypeFieldNumber = 9,
+  };
+  // repeated .social_network.UserMention user_mentions = 5;
+  int user_mentions_size() const;
+  private:
+  int _internal_user_mentions_size() const;
+  public:
+  void clear_user_mentions();
+  ::social_network::UserMention* mutable_user_mentions(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::UserMention >*
+      mutable_user_mentions();
+  private:
+  const ::social_network::UserMention& _internal_user_mentions(int index) const;
+  ::social_network::UserMention* _internal_add_user_mentions();
+  public:
+  const ::social_network::UserMention& user_mentions(int index) const;
+  ::social_network::UserMention* add_user_mentions();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::UserMention >&
+      user_mentions() const;
+
+  // repeated .social_network.Media media = 6;
+  int media_size() const;
+  private:
+  int _internal_media_size() const;
+  public:
+  void clear_media();
+  ::social_network::Media* mutable_media(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Media >*
+      mutable_media();
+  private:
+  const ::social_network::Media& _internal_media(int index) const;
+  ::social_network::Media* _internal_add_media();
+  public:
+  const ::social_network::Media& media(int index) const;
+  ::social_network::Media* add_media();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Media >&
+      media() const;
+
+  // repeated .social_network.Url urls = 7;
+  int urls_size() const;
+  private:
+  int _internal_urls_size() const;
+  public:
+  void clear_urls();
+  ::social_network::Url* mutable_urls(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Url >*
+      mutable_urls();
+  private:
+  const ::social_network::Url& _internal_urls(int index) const;
+  ::social_network::Url* _internal_add_urls();
+  public:
+  const ::social_network::Url& urls(int index) const;
+  ::social_network::Url* add_urls();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Url >&
+      urls() const;
+
+  // optional string text = 4;
+  bool has_text() const;
+  private:
+  bool _internal_has_text() const;
+  public:
+  void clear_text();
+  const std::string& text() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_text(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_text();
+  PROTOBUF_NODISCARD std::string* release_text();
+  void set_allocated_text(std::string* text);
+  private:
+  const std::string& _internal_text() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_text(const std::string& value);
+  std::string* _internal_mutable_text();
+  public:
+
+  // optional .social_network.Creator creator = 2;
+  bool has_creator() const;
+  private:
+  bool _internal_has_creator() const;
+  public:
+  void clear_creator();
+  const ::social_network::Creator& creator() const;
+  PROTOBUF_NODISCARD ::social_network::Creator* release_creator();
+  ::social_network::Creator* mutable_creator();
+  void set_allocated_creator(::social_network::Creator* creator);
+  private:
+  const ::social_network::Creator& _internal_creator() const;
+  ::social_network::Creator* _internal_mutable_creator();
+  public:
+  void unsafe_arena_set_allocated_creator(
+      ::social_network::Creator* creator);
+  ::social_network::Creator* unsafe_arena_release_creator();
+
+  // optional .google.protobuf.Timestamp timestamp = 8;
+  bool has_timestamp() const;
+  private:
+  bool _internal_has_timestamp() const;
+  public:
+  void clear_timestamp();
+  const ::PROTOBUF_NAMESPACE_ID::Timestamp& timestamp() const;
+  PROTOBUF_NODISCARD ::PROTOBUF_NAMESPACE_ID::Timestamp* release_timestamp();
+  ::PROTOBUF_NAMESPACE_ID::Timestamp* mutable_timestamp();
+  void set_allocated_timestamp(::PROTOBUF_NAMESPACE_ID::Timestamp* timestamp);
+  private:
+  const ::PROTOBUF_NAMESPACE_ID::Timestamp& _internal_timestamp() const;
+  ::PROTOBUF_NAMESPACE_ID::Timestamp* _internal_mutable_timestamp();
+  public:
+  void unsafe_arena_set_allocated_timestamp(
+      ::PROTOBUF_NAMESPACE_ID::Timestamp* timestamp);
+  ::PROTOBUF_NAMESPACE_ID::Timestamp* unsafe_arena_release_timestamp();
+
+  // optional int64 post_id = 1;
+  bool has_post_id() const;
+  private:
+  bool _internal_has_post_id() const;
+  public:
+  void clear_post_id();
+  int64_t post_id() const;
+  void set_post_id(int64_t value);
+  private:
+  int64_t _internal_post_id() const;
+  void _internal_set_post_id(int64_t value);
+  public:
+
+  // optional int64 req_id = 3;
+  bool has_req_id() const;
+  private:
+  bool _internal_has_req_id() const;
+  public:
+  void clear_req_id();
+  int64_t req_id() const;
+  void set_req_id(int64_t value);
+  private:
+  int64_t _internal_req_id() const;
+  void _internal_set_req_id(int64_t value);
+  public:
+
+  // optional .social_network.PostType post_type = 9;
+  bool has_post_type() const;
+  private:
+  bool _internal_has_post_type() const;
+  public:
+  void clear_post_type();
+  ::social_network::PostType post_type() const;
+  void set_post_type(::social_network::PostType value);
+  private:
+  ::social_network::PostType _internal_post_type() const;
+  void _internal_set_post_type(::social_network::PostType value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:social_network.Post)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::UserMention > user_mentions_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Media > media_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Url > urls_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr text_;
+  ::social_network::Creator* creator_;
+  ::PROTOBUF_NAMESPACE_ID::Timestamp* timestamp_;
+  int64_t post_id_;
+  int64_t req_id_;
+  int post_type_;
+  friend struct ::TableStruct_social_5fnetwork_2eproto;
+};
 // ===================================================================
 
 
@@ -267,13 +1469,1310 @@ inline void Text::set_allocated_text(std::string* text) {
   // @@protoc_insertion_point(field_set_allocated:social_network.Text.text)
 }
 
+// -------------------------------------------------------------------
+
+// ComposePostData
+
+// optional int64 req_id = 1;
+inline bool ComposePostData::_internal_has_req_id() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool ComposePostData::has_req_id() const {
+  return _internal_has_req_id();
+}
+inline void ComposePostData::clear_req_id() {
+  req_id_ = int64_t{0};
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline int64_t ComposePostData::_internal_req_id() const {
+  return req_id_;
+}
+inline int64_t ComposePostData::req_id() const {
+  // @@protoc_insertion_point(field_get:social_network.ComposePostData.req_id)
+  return _internal_req_id();
+}
+inline void ComposePostData::_internal_set_req_id(int64_t value) {
+  _has_bits_[0] |= 0x00000008u;
+  req_id_ = value;
+}
+inline void ComposePostData::set_req_id(int64_t value) {
+  _internal_set_req_id(value);
+  // @@protoc_insertion_point(field_set:social_network.ComposePostData.req_id)
+}
+
+// optional string username = 2;
+inline bool ComposePostData::_internal_has_username() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool ComposePostData::has_username() const {
+  return _internal_has_username();
+}
+inline void ComposePostData::clear_username() {
+  username_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const std::string& ComposePostData::username() const {
+  // @@protoc_insertion_point(field_get:social_network.ComposePostData.username)
+  return _internal_username();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void ComposePostData::set_username(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000001u;
+ username_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:social_network.ComposePostData.username)
+}
+inline std::string* ComposePostData::mutable_username() {
+  std::string* _s = _internal_mutable_username();
+  // @@protoc_insertion_point(field_mutable:social_network.ComposePostData.username)
+  return _s;
+}
+inline const std::string& ComposePostData::_internal_username() const {
+  return username_.Get();
+}
+inline void ComposePostData::_internal_set_username(const std::string& value) {
+  _has_bits_[0] |= 0x00000001u;
+  username_.Set(value, GetArenaForAllocation());
+}
+inline std::string* ComposePostData::_internal_mutable_username() {
+  _has_bits_[0] |= 0x00000001u;
+  return username_.Mutable(GetArenaForAllocation());
+}
+inline std::string* ComposePostData::release_username() {
+  // @@protoc_insertion_point(field_release:social_network.ComposePostData.username)
+  if (!_internal_has_username()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000001u;
+  auto* p = username_.Release();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (username_.IsDefault()) {
+    username_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void ComposePostData::set_allocated_username(std::string* username) {
+  if (username != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  username_.SetAllocated(username, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (username_.IsDefault()) {
+    username_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:social_network.ComposePostData.username)
+}
+
+// optional string user_id = 3;
+inline bool ComposePostData::_internal_has_user_id() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool ComposePostData::has_user_id() const {
+  return _internal_has_user_id();
+}
+inline void ComposePostData::clear_user_id() {
+  user_id_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline const std::string& ComposePostData::user_id() const {
+  // @@protoc_insertion_point(field_get:social_network.ComposePostData.user_id)
+  return _internal_user_id();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void ComposePostData::set_user_id(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000002u;
+ user_id_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:social_network.ComposePostData.user_id)
+}
+inline std::string* ComposePostData::mutable_user_id() {
+  std::string* _s = _internal_mutable_user_id();
+  // @@protoc_insertion_point(field_mutable:social_network.ComposePostData.user_id)
+  return _s;
+}
+inline const std::string& ComposePostData::_internal_user_id() const {
+  return user_id_.Get();
+}
+inline void ComposePostData::_internal_set_user_id(const std::string& value) {
+  _has_bits_[0] |= 0x00000002u;
+  user_id_.Set(value, GetArenaForAllocation());
+}
+inline std::string* ComposePostData::_internal_mutable_user_id() {
+  _has_bits_[0] |= 0x00000002u;
+  return user_id_.Mutable(GetArenaForAllocation());
+}
+inline std::string* ComposePostData::release_user_id() {
+  // @@protoc_insertion_point(field_release:social_network.ComposePostData.user_id)
+  if (!_internal_has_user_id()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000002u;
+  auto* p = user_id_.Release();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (user_id_.IsDefault()) {
+    user_id_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void ComposePostData::set_allocated_user_id(std::string* user_id) {
+  if (user_id != nullptr) {
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  user_id_.SetAllocated(user_id, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (user_id_.IsDefault()) {
+    user_id_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:social_network.ComposePostData.user_id)
+}
+
+// optional string text = 4;
+inline bool ComposePostData::_internal_has_text() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool ComposePostData::has_text() const {
+  return _internal_has_text();
+}
+inline void ComposePostData::clear_text() {
+  text_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline const std::string& ComposePostData::text() const {
+  // @@protoc_insertion_point(field_get:social_network.ComposePostData.text)
+  return _internal_text();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void ComposePostData::set_text(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000004u;
+ text_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:social_network.ComposePostData.text)
+}
+inline std::string* ComposePostData::mutable_text() {
+  std::string* _s = _internal_mutable_text();
+  // @@protoc_insertion_point(field_mutable:social_network.ComposePostData.text)
+  return _s;
+}
+inline const std::string& ComposePostData::_internal_text() const {
+  return text_.Get();
+}
+inline void ComposePostData::_internal_set_text(const std::string& value) {
+  _has_bits_[0] |= 0x00000004u;
+  text_.Set(value, GetArenaForAllocation());
+}
+inline std::string* ComposePostData::_internal_mutable_text() {
+  _has_bits_[0] |= 0x00000004u;
+  return text_.Mutable(GetArenaForAllocation());
+}
+inline std::string* ComposePostData::release_text() {
+  // @@protoc_insertion_point(field_release:social_network.ComposePostData.text)
+  if (!_internal_has_text()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000004u;
+  auto* p = text_.Release();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (text_.IsDefault()) {
+    text_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void ComposePostData::set_allocated_text(std::string* text) {
+  if (text != nullptr) {
+    _has_bits_[0] |= 0x00000004u;
+  } else {
+    _has_bits_[0] &= ~0x00000004u;
+  }
+  text_.SetAllocated(text, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (text_.IsDefault()) {
+    text_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:social_network.ComposePostData.text)
+}
+
+// repeated int64 media_ids = 5;
+inline int ComposePostData::_internal_media_ids_size() const {
+  return media_ids_.size();
+}
+inline int ComposePostData::media_ids_size() const {
+  return _internal_media_ids_size();
+}
+inline void ComposePostData::clear_media_ids() {
+  media_ids_.Clear();
+}
+inline int64_t ComposePostData::_internal_media_ids(int index) const {
+  return media_ids_.Get(index);
+}
+inline int64_t ComposePostData::media_ids(int index) const {
+  // @@protoc_insertion_point(field_get:social_network.ComposePostData.media_ids)
+  return _internal_media_ids(index);
+}
+inline void ComposePostData::set_media_ids(int index, int64_t value) {
+  media_ids_.Set(index, value);
+  // @@protoc_insertion_point(field_set:social_network.ComposePostData.media_ids)
+}
+inline void ComposePostData::_internal_add_media_ids(int64_t value) {
+  media_ids_.Add(value);
+}
+inline void ComposePostData::add_media_ids(int64_t value) {
+  _internal_add_media_ids(value);
+  // @@protoc_insertion_point(field_add:social_network.ComposePostData.media_ids)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
+ComposePostData::_internal_media_ids() const {
+  return media_ids_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
+ComposePostData::media_ids() const {
+  // @@protoc_insertion_point(field_list:social_network.ComposePostData.media_ids)
+  return _internal_media_ids();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
+ComposePostData::_internal_mutable_media_ids() {
+  return &media_ids_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
+ComposePostData::mutable_media_ids() {
+  // @@protoc_insertion_point(field_mutable_list:social_network.ComposePostData.media_ids)
+  return _internal_mutable_media_ids();
+}
+
+// repeated string media_types = 6;
+inline int ComposePostData::_internal_media_types_size() const {
+  return media_types_.size();
+}
+inline int ComposePostData::media_types_size() const {
+  return _internal_media_types_size();
+}
+inline void ComposePostData::clear_media_types() {
+  media_types_.Clear();
+}
+inline std::string* ComposePostData::add_media_types() {
+  std::string* _s = _internal_add_media_types();
+  // @@protoc_insertion_point(field_add_mutable:social_network.ComposePostData.media_types)
+  return _s;
+}
+inline const std::string& ComposePostData::_internal_media_types(int index) const {
+  return media_types_.Get(index);
+}
+inline const std::string& ComposePostData::media_types(int index) const {
+  // @@protoc_insertion_point(field_get:social_network.ComposePostData.media_types)
+  return _internal_media_types(index);
+}
+inline std::string* ComposePostData::mutable_media_types(int index) {
+  // @@protoc_insertion_point(field_mutable:social_network.ComposePostData.media_types)
+  return media_types_.Mutable(index);
+}
+inline void ComposePostData::set_media_types(int index, const std::string& value) {
+  media_types_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set:social_network.ComposePostData.media_types)
+}
+inline void ComposePostData::set_media_types(int index, std::string&& value) {
+  media_types_.Mutable(index)->assign(std::move(value));
+  // @@protoc_insertion_point(field_set:social_network.ComposePostData.media_types)
+}
+inline void ComposePostData::set_media_types(int index, const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  media_types_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:social_network.ComposePostData.media_types)
+}
+inline void ComposePostData::set_media_types(int index, const char* value, size_t size) {
+  media_types_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:social_network.ComposePostData.media_types)
+}
+inline std::string* ComposePostData::_internal_add_media_types() {
+  return media_types_.Add();
+}
+inline void ComposePostData::add_media_types(const std::string& value) {
+  media_types_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:social_network.ComposePostData.media_types)
+}
+inline void ComposePostData::add_media_types(std::string&& value) {
+  media_types_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:social_network.ComposePostData.media_types)
+}
+inline void ComposePostData::add_media_types(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  media_types_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:social_network.ComposePostData.media_types)
+}
+inline void ComposePostData::add_media_types(const char* value, size_t size) {
+  media_types_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:social_network.ComposePostData.media_types)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
+ComposePostData::media_types() const {
+  // @@protoc_insertion_point(field_list:social_network.ComposePostData.media_types)
+  return media_types_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
+ComposePostData::mutable_media_types() {
+  // @@protoc_insertion_point(field_mutable_list:social_network.ComposePostData.media_types)
+  return &media_types_;
+}
+
+// optional .social_network.PostType post_type = 7;
+inline bool ComposePostData::_internal_has_post_type() const {
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  return value;
+}
+inline bool ComposePostData::has_post_type() const {
+  return _internal_has_post_type();
+}
+inline void ComposePostData::clear_post_type() {
+  post_type_ = 0;
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline ::social_network::PostType ComposePostData::_internal_post_type() const {
+  return static_cast< ::social_network::PostType >(post_type_);
+}
+inline ::social_network::PostType ComposePostData::post_type() const {
+  // @@protoc_insertion_point(field_get:social_network.ComposePostData.post_type)
+  return _internal_post_type();
+}
+inline void ComposePostData::_internal_set_post_type(::social_network::PostType value) {
+  _has_bits_[0] |= 0x00000010u;
+  post_type_ = value;
+}
+inline void ComposePostData::set_post_type(::social_network::PostType value) {
+  _internal_set_post_type(value);
+  // @@protoc_insertion_point(field_set:social_network.ComposePostData.post_type)
+}
+
+// -------------------------------------------------------------------
+
+// Creator
+
+// optional int64 user_id = 1;
+inline bool Creator::_internal_has_user_id() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool Creator::has_user_id() const {
+  return _internal_has_user_id();
+}
+inline void Creator::clear_user_id() {
+  user_id_ = int64_t{0};
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline int64_t Creator::_internal_user_id() const {
+  return user_id_;
+}
+inline int64_t Creator::user_id() const {
+  // @@protoc_insertion_point(field_get:social_network.Creator.user_id)
+  return _internal_user_id();
+}
+inline void Creator::_internal_set_user_id(int64_t value) {
+  _has_bits_[0] |= 0x00000002u;
+  user_id_ = value;
+}
+inline void Creator::set_user_id(int64_t value) {
+  _internal_set_user_id(value);
+  // @@protoc_insertion_point(field_set:social_network.Creator.user_id)
+}
+
+// optional string username = 2;
+inline bool Creator::_internal_has_username() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool Creator::has_username() const {
+  return _internal_has_username();
+}
+inline void Creator::clear_username() {
+  username_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const std::string& Creator::username() const {
+  // @@protoc_insertion_point(field_get:social_network.Creator.username)
+  return _internal_username();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void Creator::set_username(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000001u;
+ username_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:social_network.Creator.username)
+}
+inline std::string* Creator::mutable_username() {
+  std::string* _s = _internal_mutable_username();
+  // @@protoc_insertion_point(field_mutable:social_network.Creator.username)
+  return _s;
+}
+inline const std::string& Creator::_internal_username() const {
+  return username_.Get();
+}
+inline void Creator::_internal_set_username(const std::string& value) {
+  _has_bits_[0] |= 0x00000001u;
+  username_.Set(value, GetArenaForAllocation());
+}
+inline std::string* Creator::_internal_mutable_username() {
+  _has_bits_[0] |= 0x00000001u;
+  return username_.Mutable(GetArenaForAllocation());
+}
+inline std::string* Creator::release_username() {
+  // @@protoc_insertion_point(field_release:social_network.Creator.username)
+  if (!_internal_has_username()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000001u;
+  auto* p = username_.Release();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (username_.IsDefault()) {
+    username_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void Creator::set_allocated_username(std::string* username) {
+  if (username != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  username_.SetAllocated(username, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (username_.IsDefault()) {
+    username_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:social_network.Creator.username)
+}
+
+// -------------------------------------------------------------------
+
+// UserMention
+
+// optional int64 user_id = 1;
+inline bool UserMention::_internal_has_user_id() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool UserMention::has_user_id() const {
+  return _internal_has_user_id();
+}
+inline void UserMention::clear_user_id() {
+  user_id_ = int64_t{0};
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline int64_t UserMention::_internal_user_id() const {
+  return user_id_;
+}
+inline int64_t UserMention::user_id() const {
+  // @@protoc_insertion_point(field_get:social_network.UserMention.user_id)
+  return _internal_user_id();
+}
+inline void UserMention::_internal_set_user_id(int64_t value) {
+  _has_bits_[0] |= 0x00000002u;
+  user_id_ = value;
+}
+inline void UserMention::set_user_id(int64_t value) {
+  _internal_set_user_id(value);
+  // @@protoc_insertion_point(field_set:social_network.UserMention.user_id)
+}
+
+// optional string username = 2;
+inline bool UserMention::_internal_has_username() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool UserMention::has_username() const {
+  return _internal_has_username();
+}
+inline void UserMention::clear_username() {
+  username_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const std::string& UserMention::username() const {
+  // @@protoc_insertion_point(field_get:social_network.UserMention.username)
+  return _internal_username();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void UserMention::set_username(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000001u;
+ username_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:social_network.UserMention.username)
+}
+inline std::string* UserMention::mutable_username() {
+  std::string* _s = _internal_mutable_username();
+  // @@protoc_insertion_point(field_mutable:social_network.UserMention.username)
+  return _s;
+}
+inline const std::string& UserMention::_internal_username() const {
+  return username_.Get();
+}
+inline void UserMention::_internal_set_username(const std::string& value) {
+  _has_bits_[0] |= 0x00000001u;
+  username_.Set(value, GetArenaForAllocation());
+}
+inline std::string* UserMention::_internal_mutable_username() {
+  _has_bits_[0] |= 0x00000001u;
+  return username_.Mutable(GetArenaForAllocation());
+}
+inline std::string* UserMention::release_username() {
+  // @@protoc_insertion_point(field_release:social_network.UserMention.username)
+  if (!_internal_has_username()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000001u;
+  auto* p = username_.Release();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (username_.IsDefault()) {
+    username_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void UserMention::set_allocated_username(std::string* username) {
+  if (username != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  username_.SetAllocated(username, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (username_.IsDefault()) {
+    username_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:social_network.UserMention.username)
+}
+
+// -------------------------------------------------------------------
+
+// Media
+
+// optional int64 media_id = 1;
+inline bool Media::_internal_has_media_id() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool Media::has_media_id() const {
+  return _internal_has_media_id();
+}
+inline void Media::clear_media_id() {
+  media_id_ = int64_t{0};
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline int64_t Media::_internal_media_id() const {
+  return media_id_;
+}
+inline int64_t Media::media_id() const {
+  // @@protoc_insertion_point(field_get:social_network.Media.media_id)
+  return _internal_media_id();
+}
+inline void Media::_internal_set_media_id(int64_t value) {
+  _has_bits_[0] |= 0x00000002u;
+  media_id_ = value;
+}
+inline void Media::set_media_id(int64_t value) {
+  _internal_set_media_id(value);
+  // @@protoc_insertion_point(field_set:social_network.Media.media_id)
+}
+
+// optional string media_type = 2;
+inline bool Media::_internal_has_media_type() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool Media::has_media_type() const {
+  return _internal_has_media_type();
+}
+inline void Media::clear_media_type() {
+  media_type_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const std::string& Media::media_type() const {
+  // @@protoc_insertion_point(field_get:social_network.Media.media_type)
+  return _internal_media_type();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void Media::set_media_type(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000001u;
+ media_type_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:social_network.Media.media_type)
+}
+inline std::string* Media::mutable_media_type() {
+  std::string* _s = _internal_mutable_media_type();
+  // @@protoc_insertion_point(field_mutable:social_network.Media.media_type)
+  return _s;
+}
+inline const std::string& Media::_internal_media_type() const {
+  return media_type_.Get();
+}
+inline void Media::_internal_set_media_type(const std::string& value) {
+  _has_bits_[0] |= 0x00000001u;
+  media_type_.Set(value, GetArenaForAllocation());
+}
+inline std::string* Media::_internal_mutable_media_type() {
+  _has_bits_[0] |= 0x00000001u;
+  return media_type_.Mutable(GetArenaForAllocation());
+}
+inline std::string* Media::release_media_type() {
+  // @@protoc_insertion_point(field_release:social_network.Media.media_type)
+  if (!_internal_has_media_type()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000001u;
+  auto* p = media_type_.Release();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (media_type_.IsDefault()) {
+    media_type_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void Media::set_allocated_media_type(std::string* media_type) {
+  if (media_type != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  media_type_.SetAllocated(media_type, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (media_type_.IsDefault()) {
+    media_type_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:social_network.Media.media_type)
+}
+
+// -------------------------------------------------------------------
+
+// Url
+
+// optional string shortened_url = 1;
+inline bool Url::_internal_has_shortened_url() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool Url::has_shortened_url() const {
+  return _internal_has_shortened_url();
+}
+inline void Url::clear_shortened_url() {
+  shortened_url_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const std::string& Url::shortened_url() const {
+  // @@protoc_insertion_point(field_get:social_network.Url.shortened_url)
+  return _internal_shortened_url();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void Url::set_shortened_url(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000001u;
+ shortened_url_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:social_network.Url.shortened_url)
+}
+inline std::string* Url::mutable_shortened_url() {
+  std::string* _s = _internal_mutable_shortened_url();
+  // @@protoc_insertion_point(field_mutable:social_network.Url.shortened_url)
+  return _s;
+}
+inline const std::string& Url::_internal_shortened_url() const {
+  return shortened_url_.Get();
+}
+inline void Url::_internal_set_shortened_url(const std::string& value) {
+  _has_bits_[0] |= 0x00000001u;
+  shortened_url_.Set(value, GetArenaForAllocation());
+}
+inline std::string* Url::_internal_mutable_shortened_url() {
+  _has_bits_[0] |= 0x00000001u;
+  return shortened_url_.Mutable(GetArenaForAllocation());
+}
+inline std::string* Url::release_shortened_url() {
+  // @@protoc_insertion_point(field_release:social_network.Url.shortened_url)
+  if (!_internal_has_shortened_url()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000001u;
+  auto* p = shortened_url_.Release();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (shortened_url_.IsDefault()) {
+    shortened_url_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void Url::set_allocated_shortened_url(std::string* shortened_url) {
+  if (shortened_url != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  shortened_url_.SetAllocated(shortened_url, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (shortened_url_.IsDefault()) {
+    shortened_url_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:social_network.Url.shortened_url)
+}
+
+// optional string expanded_url = 2;
+inline bool Url::_internal_has_expanded_url() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool Url::has_expanded_url() const {
+  return _internal_has_expanded_url();
+}
+inline void Url::clear_expanded_url() {
+  expanded_url_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline const std::string& Url::expanded_url() const {
+  // @@protoc_insertion_point(field_get:social_network.Url.expanded_url)
+  return _internal_expanded_url();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void Url::set_expanded_url(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000002u;
+ expanded_url_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:social_network.Url.expanded_url)
+}
+inline std::string* Url::mutable_expanded_url() {
+  std::string* _s = _internal_mutable_expanded_url();
+  // @@protoc_insertion_point(field_mutable:social_network.Url.expanded_url)
+  return _s;
+}
+inline const std::string& Url::_internal_expanded_url() const {
+  return expanded_url_.Get();
+}
+inline void Url::_internal_set_expanded_url(const std::string& value) {
+  _has_bits_[0] |= 0x00000002u;
+  expanded_url_.Set(value, GetArenaForAllocation());
+}
+inline std::string* Url::_internal_mutable_expanded_url() {
+  _has_bits_[0] |= 0x00000002u;
+  return expanded_url_.Mutable(GetArenaForAllocation());
+}
+inline std::string* Url::release_expanded_url() {
+  // @@protoc_insertion_point(field_release:social_network.Url.expanded_url)
+  if (!_internal_has_expanded_url()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000002u;
+  auto* p = expanded_url_.Release();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (expanded_url_.IsDefault()) {
+    expanded_url_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void Url::set_allocated_expanded_url(std::string* expanded_url) {
+  if (expanded_url != nullptr) {
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  expanded_url_.SetAllocated(expanded_url, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (expanded_url_.IsDefault()) {
+    expanded_url_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:social_network.Url.expanded_url)
+}
+
+// -------------------------------------------------------------------
+
+// Post
+
+// optional int64 post_id = 1;
+inline bool Post::_internal_has_post_id() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool Post::has_post_id() const {
+  return _internal_has_post_id();
+}
+inline void Post::clear_post_id() {
+  post_id_ = int64_t{0};
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline int64_t Post::_internal_post_id() const {
+  return post_id_;
+}
+inline int64_t Post::post_id() const {
+  // @@protoc_insertion_point(field_get:social_network.Post.post_id)
+  return _internal_post_id();
+}
+inline void Post::_internal_set_post_id(int64_t value) {
+  _has_bits_[0] |= 0x00000008u;
+  post_id_ = value;
+}
+inline void Post::set_post_id(int64_t value) {
+  _internal_set_post_id(value);
+  // @@protoc_insertion_point(field_set:social_network.Post.post_id)
+}
+
+// optional .social_network.Creator creator = 2;
+inline bool Post::_internal_has_creator() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  PROTOBUF_ASSUME(!value || creator_ != nullptr);
+  return value;
+}
+inline bool Post::has_creator() const {
+  return _internal_has_creator();
+}
+inline void Post::clear_creator() {
+  if (creator_ != nullptr) creator_->Clear();
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline const ::social_network::Creator& Post::_internal_creator() const {
+  const ::social_network::Creator* p = creator_;
+  return p != nullptr ? *p : reinterpret_cast<const ::social_network::Creator&>(
+      ::social_network::_Creator_default_instance_);
+}
+inline const ::social_network::Creator& Post::creator() const {
+  // @@protoc_insertion_point(field_get:social_network.Post.creator)
+  return _internal_creator();
+}
+inline void Post::unsafe_arena_set_allocated_creator(
+    ::social_network::Creator* creator) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(creator_);
+  }
+  creator_ = creator;
+  if (creator) {
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:social_network.Post.creator)
+}
+inline ::social_network::Creator* Post::release_creator() {
+  _has_bits_[0] &= ~0x00000002u;
+  ::social_network::Creator* temp = creator_;
+  creator_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::social_network::Creator* Post::unsafe_arena_release_creator() {
+  // @@protoc_insertion_point(field_release:social_network.Post.creator)
+  _has_bits_[0] &= ~0x00000002u;
+  ::social_network::Creator* temp = creator_;
+  creator_ = nullptr;
+  return temp;
+}
+inline ::social_network::Creator* Post::_internal_mutable_creator() {
+  _has_bits_[0] |= 0x00000002u;
+  if (creator_ == nullptr) {
+    auto* p = CreateMaybeMessage<::social_network::Creator>(GetArenaForAllocation());
+    creator_ = p;
+  }
+  return creator_;
+}
+inline ::social_network::Creator* Post::mutable_creator() {
+  ::social_network::Creator* _msg = _internal_mutable_creator();
+  // @@protoc_insertion_point(field_mutable:social_network.Post.creator)
+  return _msg;
+}
+inline void Post::set_allocated_creator(::social_network::Creator* creator) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete creator_;
+  }
+  if (creator) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(creator);
+    if (message_arena != submessage_arena) {
+      creator = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, creator, submessage_arena);
+    }
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  creator_ = creator;
+  // @@protoc_insertion_point(field_set_allocated:social_network.Post.creator)
+}
+
+// optional int64 req_id = 3;
+inline bool Post::_internal_has_req_id() const {
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  return value;
+}
+inline bool Post::has_req_id() const {
+  return _internal_has_req_id();
+}
+inline void Post::clear_req_id() {
+  req_id_ = int64_t{0};
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline int64_t Post::_internal_req_id() const {
+  return req_id_;
+}
+inline int64_t Post::req_id() const {
+  // @@protoc_insertion_point(field_get:social_network.Post.req_id)
+  return _internal_req_id();
+}
+inline void Post::_internal_set_req_id(int64_t value) {
+  _has_bits_[0] |= 0x00000010u;
+  req_id_ = value;
+}
+inline void Post::set_req_id(int64_t value) {
+  _internal_set_req_id(value);
+  // @@protoc_insertion_point(field_set:social_network.Post.req_id)
+}
+
+// optional string text = 4;
+inline bool Post::_internal_has_text() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool Post::has_text() const {
+  return _internal_has_text();
+}
+inline void Post::clear_text() {
+  text_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const std::string& Post::text() const {
+  // @@protoc_insertion_point(field_get:social_network.Post.text)
+  return _internal_text();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void Post::set_text(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000001u;
+ text_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:social_network.Post.text)
+}
+inline std::string* Post::mutable_text() {
+  std::string* _s = _internal_mutable_text();
+  // @@protoc_insertion_point(field_mutable:social_network.Post.text)
+  return _s;
+}
+inline const std::string& Post::_internal_text() const {
+  return text_.Get();
+}
+inline void Post::_internal_set_text(const std::string& value) {
+  _has_bits_[0] |= 0x00000001u;
+  text_.Set(value, GetArenaForAllocation());
+}
+inline std::string* Post::_internal_mutable_text() {
+  _has_bits_[0] |= 0x00000001u;
+  return text_.Mutable(GetArenaForAllocation());
+}
+inline std::string* Post::release_text() {
+  // @@protoc_insertion_point(field_release:social_network.Post.text)
+  if (!_internal_has_text()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000001u;
+  auto* p = text_.Release();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (text_.IsDefault()) {
+    text_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void Post::set_allocated_text(std::string* text) {
+  if (text != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  text_.SetAllocated(text, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (text_.IsDefault()) {
+    text_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:social_network.Post.text)
+}
+
+// repeated .social_network.UserMention user_mentions = 5;
+inline int Post::_internal_user_mentions_size() const {
+  return user_mentions_.size();
+}
+inline int Post::user_mentions_size() const {
+  return _internal_user_mentions_size();
+}
+inline void Post::clear_user_mentions() {
+  user_mentions_.Clear();
+}
+inline ::social_network::UserMention* Post::mutable_user_mentions(int index) {
+  // @@protoc_insertion_point(field_mutable:social_network.Post.user_mentions)
+  return user_mentions_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::UserMention >*
+Post::mutable_user_mentions() {
+  // @@protoc_insertion_point(field_mutable_list:social_network.Post.user_mentions)
+  return &user_mentions_;
+}
+inline const ::social_network::UserMention& Post::_internal_user_mentions(int index) const {
+  return user_mentions_.Get(index);
+}
+inline const ::social_network::UserMention& Post::user_mentions(int index) const {
+  // @@protoc_insertion_point(field_get:social_network.Post.user_mentions)
+  return _internal_user_mentions(index);
+}
+inline ::social_network::UserMention* Post::_internal_add_user_mentions() {
+  return user_mentions_.Add();
+}
+inline ::social_network::UserMention* Post::add_user_mentions() {
+  ::social_network::UserMention* _add = _internal_add_user_mentions();
+  // @@protoc_insertion_point(field_add:social_network.Post.user_mentions)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::UserMention >&
+Post::user_mentions() const {
+  // @@protoc_insertion_point(field_list:social_network.Post.user_mentions)
+  return user_mentions_;
+}
+
+// repeated .social_network.Media media = 6;
+inline int Post::_internal_media_size() const {
+  return media_.size();
+}
+inline int Post::media_size() const {
+  return _internal_media_size();
+}
+inline void Post::clear_media() {
+  media_.Clear();
+}
+inline ::social_network::Media* Post::mutable_media(int index) {
+  // @@protoc_insertion_point(field_mutable:social_network.Post.media)
+  return media_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Media >*
+Post::mutable_media() {
+  // @@protoc_insertion_point(field_mutable_list:social_network.Post.media)
+  return &media_;
+}
+inline const ::social_network::Media& Post::_internal_media(int index) const {
+  return media_.Get(index);
+}
+inline const ::social_network::Media& Post::media(int index) const {
+  // @@protoc_insertion_point(field_get:social_network.Post.media)
+  return _internal_media(index);
+}
+inline ::social_network::Media* Post::_internal_add_media() {
+  return media_.Add();
+}
+inline ::social_network::Media* Post::add_media() {
+  ::social_network::Media* _add = _internal_add_media();
+  // @@protoc_insertion_point(field_add:social_network.Post.media)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Media >&
+Post::media() const {
+  // @@protoc_insertion_point(field_list:social_network.Post.media)
+  return media_;
+}
+
+// repeated .social_network.Url urls = 7;
+inline int Post::_internal_urls_size() const {
+  return urls_.size();
+}
+inline int Post::urls_size() const {
+  return _internal_urls_size();
+}
+inline void Post::clear_urls() {
+  urls_.Clear();
+}
+inline ::social_network::Url* Post::mutable_urls(int index) {
+  // @@protoc_insertion_point(field_mutable:social_network.Post.urls)
+  return urls_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Url >*
+Post::mutable_urls() {
+  // @@protoc_insertion_point(field_mutable_list:social_network.Post.urls)
+  return &urls_;
+}
+inline const ::social_network::Url& Post::_internal_urls(int index) const {
+  return urls_.Get(index);
+}
+inline const ::social_network::Url& Post::urls(int index) const {
+  // @@protoc_insertion_point(field_get:social_network.Post.urls)
+  return _internal_urls(index);
+}
+inline ::social_network::Url* Post::_internal_add_urls() {
+  return urls_.Add();
+}
+inline ::social_network::Url* Post::add_urls() {
+  ::social_network::Url* _add = _internal_add_urls();
+  // @@protoc_insertion_point(field_add:social_network.Post.urls)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Url >&
+Post::urls() const {
+  // @@protoc_insertion_point(field_list:social_network.Post.urls)
+  return urls_;
+}
+
+// optional .google.protobuf.Timestamp timestamp = 8;
+inline bool Post::_internal_has_timestamp() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  PROTOBUF_ASSUME(!value || timestamp_ != nullptr);
+  return value;
+}
+inline bool Post::has_timestamp() const {
+  return _internal_has_timestamp();
+}
+inline const ::PROTOBUF_NAMESPACE_ID::Timestamp& Post::_internal_timestamp() const {
+  const ::PROTOBUF_NAMESPACE_ID::Timestamp* p = timestamp_;
+  return p != nullptr ? *p : reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Timestamp&>(
+      ::PROTOBUF_NAMESPACE_ID::_Timestamp_default_instance_);
+}
+inline const ::PROTOBUF_NAMESPACE_ID::Timestamp& Post::timestamp() const {
+  // @@protoc_insertion_point(field_get:social_network.Post.timestamp)
+  return _internal_timestamp();
+}
+inline void Post::unsafe_arena_set_allocated_timestamp(
+    ::PROTOBUF_NAMESPACE_ID::Timestamp* timestamp) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(timestamp_);
+  }
+  timestamp_ = timestamp;
+  if (timestamp) {
+    _has_bits_[0] |= 0x00000004u;
+  } else {
+    _has_bits_[0] &= ~0x00000004u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:social_network.Post.timestamp)
+}
+inline ::PROTOBUF_NAMESPACE_ID::Timestamp* Post::release_timestamp() {
+  _has_bits_[0] &= ~0x00000004u;
+  ::PROTOBUF_NAMESPACE_ID::Timestamp* temp = timestamp_;
+  timestamp_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::PROTOBUF_NAMESPACE_ID::Timestamp* Post::unsafe_arena_release_timestamp() {
+  // @@protoc_insertion_point(field_release:social_network.Post.timestamp)
+  _has_bits_[0] &= ~0x00000004u;
+  ::PROTOBUF_NAMESPACE_ID::Timestamp* temp = timestamp_;
+  timestamp_ = nullptr;
+  return temp;
+}
+inline ::PROTOBUF_NAMESPACE_ID::Timestamp* Post::_internal_mutable_timestamp() {
+  _has_bits_[0] |= 0x00000004u;
+  if (timestamp_ == nullptr) {
+    auto* p = CreateMaybeMessage<::PROTOBUF_NAMESPACE_ID::Timestamp>(GetArenaForAllocation());
+    timestamp_ = p;
+  }
+  return timestamp_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::Timestamp* Post::mutable_timestamp() {
+  ::PROTOBUF_NAMESPACE_ID::Timestamp* _msg = _internal_mutable_timestamp();
+  // @@protoc_insertion_point(field_mutable:social_network.Post.timestamp)
+  return _msg;
+}
+inline void Post::set_allocated_timestamp(::PROTOBUF_NAMESPACE_ID::Timestamp* timestamp) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(timestamp_);
+  }
+  if (timestamp) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
+                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(timestamp));
+    if (message_arena != submessage_arena) {
+      timestamp = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, timestamp, submessage_arena);
+    }
+    _has_bits_[0] |= 0x00000004u;
+  } else {
+    _has_bits_[0] &= ~0x00000004u;
+  }
+  timestamp_ = timestamp;
+  // @@protoc_insertion_point(field_set_allocated:social_network.Post.timestamp)
+}
+
+// optional .social_network.PostType post_type = 9;
+inline bool Post::_internal_has_post_type() const {
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  return value;
+}
+inline bool Post::has_post_type() const {
+  return _internal_has_post_type();
+}
+inline void Post::clear_post_type() {
+  post_type_ = 0;
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline ::social_network::PostType Post::_internal_post_type() const {
+  return static_cast< ::social_network::PostType >(post_type_);
+}
+inline ::social_network::PostType Post::post_type() const {
+  // @@protoc_insertion_point(field_get:social_network.Post.post_type)
+  return _internal_post_type();
+}
+inline void Post::_internal_set_post_type(::social_network::PostType value) {
+  _has_bits_[0] |= 0x00000020u;
+  post_type_ = value;
+}
+inline void Post::set_post_type(::social_network::PostType value) {
+  _internal_set_post_type(value);
+  // @@protoc_insertion_point(field_set:social_network.Post.post_type)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 
 // @@protoc_insertion_point(namespace_scope)
 
 }  // namespace social_network
+
+PROTOBUF_NAMESPACE_OPEN
+
+template <> struct is_proto_enum< ::social_network::PostType> : ::std::true_type {};
+
+PROTOBUF_NAMESPACE_CLOSE
 
 // @@protoc_insertion_point(global_scope)
 

@@ -14,7 +14,12 @@
     "bandwidth_file": "bandwidth.txt"
   },
   "load_balance": {
-    "server_addr": "192.168.189.8:31851",
-    "load_balance_servers": "192.168.189.9:31851"
+    "server_addr": "192.168.189.8:31851"
+  },
+  "client": {
+    "server_addr": "192.168.189.8:31852"
+  },
+  "nginx": {
+    "server_addr": "192.168.189.8:31853"
   }
 }

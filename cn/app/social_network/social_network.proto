@@ -2,9 +2,60 @@ syntax = "proto3";
 
 package social_network;
 
+import "google/protobuf/timestamp.proto";
+
 
 option optimize_for = LITE_RUNTIME;
 
+enum PostType {
+    POST_TYPE_POST = 0;
+    POST_TYPE_REPOST = 1;
+    POST_TYPE_REPLY = 2;
+    POST_TYPE_DM = 3;
+}
+
 message Text {
     optional string text = 1;
+}
+
+message ComposePostData {
+    optional int64 req_id = 1;
+    optional string username = 2;
+    optional string user_id = 3;
+    optional string text = 4;
+    repeated int64 media_ids = 5;
+    repeated string media_types = 6;
+    optional PostType post_type = 7;
+}
+
+message Creator {
+    optional int64 user_id = 1;
+    optional string  username = 2;
+}
+
+message UserMention {
+    optional int64 user_id = 1;
+    optional string username = 2;
+}
+
+message Media {
+    optional int64 media_id = 1;
+    optional string media_type = 2;
+}
+
+message Url {
+    optional string shortened_url = 1;
+    optional string expanded_url = 2;
+}
+
+message Post {
+    optional int64 post_id = 1;
+    optional Creator creator = 2;
+    optional int64 req_id = 3;
+    optional string text = 4;
+    repeated UserMention user_mentions = 5;
+    repeated Media media = 6;
+    repeated Url urls = 7;
+    optional google.protobuf.Timestamp timestamp = 8;
+    optional PostType post_type = 9;
 }

@@ -147,11 +147,11 @@ std::vector<size_t> flags_get_numa_ports(size_t numa_node)
 
     std::string port_str =
             numa_node == 0 ? FLAGS_numa_0_ports : FLAGS_numa_1_ports;
-    if (port_str.size() == 0)
+    if (port_str.empty())
         return ret;
 
     std::vector<std::string> split_vec = rmem::split(port_str, ',');
-    rmem::rt_assert(split_vec.size() > 0);
+    rmem::rt_assert(!split_vec.empty());
 
     for (auto &s : split_vec)
         ret.push_back(std::stoull(s)); // stoull trims ' '
