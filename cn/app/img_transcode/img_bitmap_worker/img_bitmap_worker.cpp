@@ -188,7 +188,6 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
 
     while (true)
     {
-        // only can have ping and tc in forward
         unsigned size = ctx->backward_spsc_queue->was_size();
         for (unsigned i = 0; i < size; i++)
         {
