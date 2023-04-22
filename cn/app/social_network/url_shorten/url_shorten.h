@@ -2,6 +2,9 @@
 #include <hdr/hdr_histogram.h>
 #include "atomic_queue/atomic_queue.h"
 #include "../social_network_commons.h"
+#include "../social_network.pb.h"
+
+#define HOSTNAME "http://short-url/"
 
 using SPSC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>;
 
@@ -44,13 +47,13 @@ public:
     = default;
     size_t server_id_{};
     size_t stat_req_ping_tot{};
-    size_t stat_req_unique_id_tot{};
+    size_t stat_req_url_shorten_tot{};
     size_t stat_req_err_tot{};
 
     void reset_stat()
     {
         stat_req_ping_tot = 0;
-        stat_req_unique_id_tot = 0;
+        stat_req_url_shorten_tot = 0;
         stat_req_err_tot = 0;
     }
 
@@ -126,10 +129,32 @@ void init_specific_config(){
 
 }
 
-size_t get_unique_id(){
-    static std::mutex mtx;
-    static size_t now_id = 100000000; // regard it as machine id
 
-    std::lock_guard<std::mutex> lock(mtx);
-    return now_id++;
+std::string generate_random_string() {
+    static const char charset[] =
+            "0123456789"
+            "abcdefghijklmnopqrstuvwxyz"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    static constexpr size_t kLength = 10;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, sizeof(charset) - 2);
+
+    std::string result(kLength, '\0');
+    for (size_t i = 0; i < kLength; ++i) {
+        result[i] = charset[dis(gen)];
+    }
+    return result;
+}
+
+social_network::UrlShortenResp generate_shorten_urls(const social_network::UrlShortenReq& req)
+{
+    social_network::UrlShortenResp resp;
+    for(auto url: req.urls()){
+        auto new_url = resp.add_urls();
+        new_url->set_shortened_url(std::move(url));
+        new_url->set_expanded_url(HOSTNAME + generate_random_string());
+    }
+    return resp;
 }

@@ -13,6 +13,7 @@ enum class RPC_TYPE : uint8_t
     RPC_HOME_TIMELINE,
     RPC_HOME_TIMELINE_RESP,
     RPC_UNIQUE_ID,
+    RPC_URL_SHORTEN,
 };
 
 class CommonReq
@@ -61,13 +62,6 @@ class ComposePostReq
             size_t flags;
         };
 
-//class ComposePostResp
-//        {
-//        public:
-//            size_t data_length;
-//            size_t flags;
-//        };
-
 class UserTimeLineReq
         {
         public:
@@ -77,14 +71,6 @@ class UserTimeLineReq
             int stop;
         };
 
-//class UserTimeLineResp
-//        {
-//        public:
-//            size_t data_length; // maybe most time is 0
-//            size_t user_id;
-//            int start;
-//            int stop;
-//        };
 
 class HomeTimeLineReq
         {
@@ -95,14 +81,10 @@ class HomeTimeLineReq
             int stop_idx;
         };
 
-//class HomeTimeLineResp
-//        {
-//        public:
-//            size_t data_length; //maybe most time is 0
-//            size_t user_id;
-//            int start_idx;
-//            int stop_idx;
-//        };
+class CommonRPCReq {
+public:
+    size_t data_length;
+};
 
 class CommonRPCResp {
 public:

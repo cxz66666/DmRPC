@@ -18,16 +18,6 @@ message Text {
     optional string text = 1;
 }
 
-message ComposePostData {
-    optional int64 req_id = 1;
-    optional string username = 2;
-    optional string user_id = 3;
-    optional string text = 4;
-    repeated int64 media_ids = 5;
-    repeated string media_types = 6;
-    optional PostType post_type = 7;
-}
-
 message Creator {
     optional int64 user_id = 1;
     optional string  username = 2;
@@ -48,6 +38,17 @@ message Url {
     optional string expanded_url = 2;
 }
 
+message ComposePostData {
+    optional int64 req_id = 1;
+    optional string username = 2;
+    optional string user_id = 3;
+    optional string text = 4;
+    repeated int64 media_ids = 5;
+    repeated string media_types = 6;
+    optional PostType post_type = 7;
+}
+
+
 message Post {
     optional int64 post_id = 1;
     optional Creator creator = 2;
@@ -58,4 +59,12 @@ message Post {
     repeated Url urls = 7;
     optional google.protobuf.Timestamp timestamp = 8;
     optional PostType post_type = 9;
+}
+
+message UrlShortenReq {
+    repeated string urls = 1;
+}
+
+message UrlShortenResp {
+    repeated Url urls = 1;
 }
