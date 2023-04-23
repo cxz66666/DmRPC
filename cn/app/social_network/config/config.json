@@ -27,5 +27,14 @@
   },
   "url_shorten": {
     "server_addr": "192.168.189.8:31855"
+  },
+  "compose_pose": {
+    "server_addr": "192.168.189.8:31856"
+  },
+  "user_timeline": {
+    "server_addr": "192.168.189.8:31857"
+  },
+  "home_timeline": {
+    "server_addr": "192.168.189.8:31858"
   }
 }

@@ -1,14 +1,14 @@
 #include <thread>
 #include "numautil.h"
 #include "spinlock_mutex.h"
-#include "load_balance.h"
+#include "nginx.h"
 
 
 
 void connect_sessions(ClientContext *c)
 {
     // connect to image server
-    std::vector<std::string> forward_server_addr = flags_get_balance_servers_index();
+    std::vector<std::string> forward_server_addr = get_forward_addrs();
 
     c->servers_num_ = static_cast<int>(forward_server_addr.size());
     for (const auto& m : forward_server_addr)
@@ -19,7 +19,7 @@ void connect_sessions(ClientContext *c)
     }
 
     // connect to backward server
-    c->backward_session_num_ = c->rpc_->create_session(client_addr, c->server_receiver_id_);
+    c->backward_session_num_ = c->rpc_->create_session(load_balance_addr, c->server_receiver_id_);
     rmem::rt_assert(c->backward_session_num_ >= 0, "Failed to create session");
     c->session_num_vec_.push_back(c->backward_session_num_);
 
@@ -93,7 +93,7 @@ void common_req_handler(erpc::ReqHandle *req_handle, void *_context)
             ctx->stat_req_home_timeline_tot++;
             break;
         default:
-        RMEM_ERROR("error req type %u\n", static_cast<uint>(req->type));
+            RMEM_ERROR("error req type %u\n", static_cast<uint>(req->type));
     }
 
     // printf("receive new transcode resp, length is %zu, req number is %u\n", req->extra.length, req->req.req_number);
@@ -134,7 +134,7 @@ void common_resp_handler(erpc::ReqHandle *req_handle, void *_context)
             ctx->stat_req_home_timeline_resp_tot++;
             break;
         default:
-        RMEM_ERROR("error req type %u\n", static_cast<uint>(req->type));
+            RMEM_ERROR("error req type %u\n", static_cast<uint>(req->type));
     }
 
     new (req_handle->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->type, req->req_number, 0, {0});
@@ -363,7 +363,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
             erpc::MsgBuffer req_msg = ctx->backward_spsc_queue->pop();
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
             if (req->type != RPC_TYPE::RPC_PING_RESP && req->type != RPC_TYPE::RPC_COMPOSE_POST_RESP &&
-            req->type != RPC_TYPE::RPC_USER_TIMELINE_RESP && req->type != RPC_TYPE::RPC_HOME_TIMELINE_RESP)
+                req->type != RPC_TYPE::RPC_USER_TIMELINE_RESP && req->type != RPC_TYPE::RPC_HOME_TIMELINE_RESP)
                 printf("req->type=%u\n", static_cast<uint32_t>(req->type));
             rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP || req->type == RPC_TYPE::RPC_COMPOSE_POST_RESP ||
                             req->type == RPC_TYPE::RPC_USER_TIMELINE_RESP || req->type == RPC_TYPE::RPC_HOME_TIMELINE_RESP, "only ping_resp and tc_resp in backward queue");
@@ -481,7 +481,7 @@ int main(int argc, char **argv)
     // only config_file is required!!!
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    init_service_config(FLAGS_config_file,"load_balance");
+    init_service_config(FLAGS_config_file,"nginx");
     init_specific_config();
 
     std::thread leader_thread(leader_thread_func);
