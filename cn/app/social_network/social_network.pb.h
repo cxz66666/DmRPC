@@ -71,6 +71,12 @@ extern UrlShortenRespDefaultTypeInternal _UrlShortenResp_default_instance_;
 class UserMention;
 struct UserMentionDefaultTypeInternal;
 extern UserMentionDefaultTypeInternal _UserMention_default_instance_;
+class UserMentionReq;
+struct UserMentionReqDefaultTypeInternal;
+extern UserMentionReqDefaultTypeInternal _UserMentionReq_default_instance_;
+class UserMentionResp;
+struct UserMentionRespDefaultTypeInternal;
+extern UserMentionRespDefaultTypeInternal _UserMentionResp_default_instance_;
 }  // namespace social_network
 PROTOBUF_NAMESPACE_OPEN
 template<> ::social_network::ComposePostData* Arena::CreateMaybeMessage<::social_network::ComposePostData>(Arena*);
@@ -82,6 +88,8 @@ template<> ::social_network::Url* Arena::CreateMaybeMessage<::social_network::Ur
 template<> ::social_network::UrlShortenReq* Arena::CreateMaybeMessage<::social_network::UrlShortenReq>(Arena*);
 template<> ::social_network::UrlShortenResp* Arena::CreateMaybeMessage<::social_network::UrlShortenResp>(Arena*);
 template<> ::social_network::UserMention* Arena::CreateMaybeMessage<::social_network::UserMention>(Arena*);
+template<> ::social_network::UserMentionReq* Arena::CreateMaybeMessage<::social_network::UserMentionReq>(Arena*);
+template<> ::social_network::UserMentionResp* Arena::CreateMaybeMessage<::social_network::UserMentionResp>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace social_network {
 
@@ -1676,6 +1684,284 @@ class UrlShortenResp final :
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_social_5fnetwork_2eproto;
 };
+// -------------------------------------------------------------------
+
+class UserMentionReq final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:social_network.UserMentionReq) */ {
+ public:
+  inline UserMentionReq() : UserMentionReq(nullptr) {}
+  ~UserMentionReq() override;
+  explicit PROTOBUF_CONSTEXPR UserMentionReq(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  UserMentionReq(const UserMentionReq& from);
+  UserMentionReq(UserMentionReq&& from) noexcept
+    : UserMentionReq() {
+    *this = ::std::move(from);
+  }
+
+  inline UserMentionReq& operator=(UserMentionResp from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline UserMentionReq& operator=(UserMentionReq&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const UserMentionReq& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const UserMentionReq* internal_default_instance() {
+    return reinterpret_cast<const UserMentionReq*>(
+               &_UserMentionReq_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    9;
+
+  friend void swap(UserMentionReq& a, UserMentionReq& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(UserMentionReq* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(UserMentionReq* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  UserMentionReq* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<UserMentionReq>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const UserMentionReq& from);
+  void MergeFrom(const UserMentionReq& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(UserMentionReq* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "social_network.UserMentionReq";
+  }
+  protected:
+  explicit UserMentionReq(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kNamesFieldNumber = 1,
+  };
+  // repeated string names = 1;
+  int names_size() const;
+  private:
+  int _internal_names_size() const;
+  public:
+  void clear_names();
+  const std::string& names(int index) const;
+  std::string* mutable_names(int index);
+  void set_names(int index, const std::string& value);
+  void set_names(int index, std::string&& value);
+  void set_names(int index, const char* value);
+  void set_names(int index, const char* value, size_t size);
+  std::string* add_names();
+  void add_names(const std::string& value);
+  void add_names(std::string&& value);
+  void add_names(const char* value);
+  void add_names(const char* value, size_t size);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>& names() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>* mutable_names();
+  private:
+  const std::string& _internal_names(int index) const;
+  std::string* _internal_add_names();
+  public:
+
+  // @@protoc_insertion_point(class_scope:social_network.UserMentionReq)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> names_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_social_5fnetwork_2eproto;
+};
+// -------------------------------------------------------------------
+
+class UserMentionResp final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:social_network.UserMentionResp) */ {
+ public:
+  inline UserMentionResp() : UserMentionResp(nullptr) {}
+  ~UserMentionResp() override;
+  explicit PROTOBUF_CONSTEXPR UserMentionResp(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  UserMentionResp(const UserMentionResp& from);
+  UserMentionResp(UserMentionResp&& from) noexcept
+    : UserMentionResp() {
+    *this = ::std::move(from);
+  }
+
+  inline UserMentionResp& operator=(const UserMentionResp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline UserMentionResp& operator=(UserMentionResp&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const UserMentionResp& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const UserMentionResp* internal_default_instance() {
+    return reinterpret_cast<const UserMentionResp*>(
+               &_UserMentionResp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    10;
+
+  friend void swap(UserMentionResp& a, UserMentionResp& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(UserMentionResp* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(UserMentionResp* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  UserMentionResp* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<UserMentionResp>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const UserMentionResp& from);
+  void MergeFrom(const UserMentionResp& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(UserMentionResp* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "social_network.UserMentionResp";
+  }
+  protected:
+  explicit UserMentionResp(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kUserMentionsFieldNumber = 1,
+  };
+  // repeated .social_network.UserMention user_mentions = 1;
+  int user_mentions_size() const;
+  private:
+  int _internal_user_mentions_size() const;
+  public:
+  void clear_user_mentions();
+  ::social_network::UserMention* mutable_user_mentions(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::UserMention >*
+      mutable_user_mentions();
+  private:
+  const ::social_network::UserMention& _internal_user_mentions(int index) const;
+  ::social_network::UserMention* _internal_add_user_mentions();
+  public:
+  const ::social_network::UserMention& user_mentions(int index) const;
+  ::social_network::UserMention* add_user_mentions();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::UserMention >&
+      user_mentions() const;
+
+  // @@protoc_insertion_point(class_scope:social_network.UserMentionResp)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::UserMention > user_mentions_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_social_5fnetwork_2eproto;
+};
 // ===================================================================
 
 
@@ -3157,9 +3443,136 @@ UrlShortenResp::urls() const {
   return urls_;
 }
 
+// -------------------------------------------------------------------
+
+// UserMentionReq
+
+// repeated string names = 1;
+inline int UserMentionReq::_internal_names_size() const {
+  return names_.size();
+}
+inline int UserMentionReq::names_size() const {
+  return _internal_names_size();
+}
+inline void UserMentionReq::clear_names() {
+  names_.Clear();
+}
+inline std::string* UserMentionReq::add_names() {
+  std::string* _s = _internal_add_names();
+  // @@protoc_insertion_point(field_add_mutable:social_network.UserMentionReq.names)
+  return _s;
+}
+inline const std::string& UserMentionReq::_internal_names(int index) const {
+  return names_.Get(index);
+}
+inline const std::string& UserMentionReq::names(int index) const {
+  // @@protoc_insertion_point(field_get:social_network.UserMentionReq.names)
+  return _internal_names(index);
+}
+inline std::string* UserMentionReq::mutable_names(int index) {
+  // @@protoc_insertion_point(field_mutable:social_network.UserMentionReq.names)
+  return names_.Mutable(index);
+}
+inline void UserMentionReq::set_names(int index, const std::string& value) {
+  names_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set:social_network.UserMentionReq.names)
+}
+inline void UserMentionReq::set_names(int index, std::string&& value) {
+  names_.Mutable(index)->assign(std::move(value));
+  // @@protoc_insertion_point(field_set:social_network.UserMentionReq.names)
+}
+inline void UserMentionReq::set_names(int index, const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  names_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:social_network.UserMentionReq.names)
+}
+inline void UserMentionReq::set_names(int index, const char* value, size_t size) {
+  names_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:social_network.UserMentionReq.names)
+}
+inline std::string* UserMentionReq::_internal_add_names() {
+  return names_.Add();
+}
+inline void UserMentionReq::add_names(const std::string& value) {
+  names_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:social_network.UserMentionReq.names)
+}
+inline void UserMentionReq::add_names(std::string&& value) {
+  names_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:social_network.UserMentionReq.names)
+}
+inline void UserMentionReq::add_names(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  names_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:social_network.UserMentionReq.names)
+}
+inline void UserMentionReq::add_names(const char* value, size_t size) {
+  names_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:social_network.UserMentionReq.names)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
+UserMentionReq::names() const {
+  // @@protoc_insertion_point(field_list:social_network.UserMentionReq.names)
+  return names_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
+UserMentionReq::mutable_names() {
+  // @@protoc_insertion_point(field_mutable_list:social_network.UserMentionReq.names)
+  return &names_;
+}
+
+// -------------------------------------------------------------------
+
+// UserMentionResp
+
+// repeated .social_network.UserMention user_mentions = 1;
+inline int UserMentionResp::_internal_user_mentions_size() const {
+  return user_mentions_.size();
+}
+inline int UserMentionResp::user_mentions_size() const {
+  return _internal_user_mentions_size();
+}
+inline void UserMentionResp::clear_user_mentions() {
+  user_mentions_.Clear();
+}
+inline ::social_network::UserMention* UserMentionResp::mutable_user_mentions(int index) {
+  // @@protoc_insertion_point(field_mutable:social_network.UserMentionResp.user_mentions)
+  return user_mentions_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::UserMention >*
+UserMentionResp::mutable_user_mentions() {
+  // @@protoc_insertion_point(field_mutable_list:social_network.UserMentionResp.user_mentions)
+  return &user_mentions_;
+}
+inline const ::social_network::UserMention& UserMentionResp::_internal_user_mentions(int index) const {
+  return user_mentions_.Get(index);
+}
+inline const ::social_network::UserMention& UserMentionResp::user_mentions(int index) const {
+  // @@protoc_insertion_point(field_get:social_network.UserMentionResp.user_mentions)
+  return _internal_user_mentions(index);
+}
+inline ::social_network::UserMention* UserMentionResp::_internal_add_user_mentions() {
+  return user_mentions_.Add();
+}
+inline ::social_network::UserMention* UserMentionResp::add_user_mentions() {
+  ::social_network::UserMention* _add = _internal_add_user_mentions();
+  // @@protoc_insertion_point(field_add:social_network.UserMentionResp.user_mentions)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::UserMention >&
+UserMentionResp::user_mentions() const {
+  // @@protoc_insertion_point(field_list:social_network.UserMentionResp.user_mentions)
+  return user_mentions_;
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

@@ -68,3 +68,11 @@ message UrlShortenReq {
 message UrlShortenResp {
     repeated Url urls = 1;
 }
+
+message UserMentionReq {
+    repeated string names = 1;
+}
+
+message UserMentionResp {
+    repeated UserMention user_mentions = 1;
+}

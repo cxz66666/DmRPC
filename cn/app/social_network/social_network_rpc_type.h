@@ -14,6 +14,7 @@ enum class RPC_TYPE : uint8_t
     RPC_HOME_TIMELINE_RESP,
     RPC_UNIQUE_ID,
     RPC_URL_SHORTEN,
+    RPC_USER_MENTION,
 };
 
 class CommonReq

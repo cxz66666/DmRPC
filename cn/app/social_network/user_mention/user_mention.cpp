@@ -1,7 +1,7 @@
 #include <thread>
 #include "numautil.h"
 #include "spinlock_mutex.h"
-#include "url_shorten.h"
+#include "user_mention.h"
 
 
 void connect_sessions(ClientContext *c)
@@ -35,17 +35,27 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
     new (req_handle->pre_resp_msgbuf_.buf_) RPCMsgResp<PingRPCResp>(req->req_common.type, req->req_common.req_number, 0, {req->req_control.timestamp});
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(RPCMsgResp<PingRPCResp>));
 
-    ctx->forward_spsc_queue->push(*req_msgbuf);
-
-    req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
+    ctx->init_mutex.lock();
+    if(ctx->mongodb_init_finished){
+        ctx->forward_spsc_queue->push(*req_msgbuf);
+        req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
+    } else {
+        ctx->is_pinged = true;
+    }
+    ctx->init_mutex.unlock();
 
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 }
 
-void url_shorten_handler(erpc::ReqHandle *req_handler, void *_context)
+void user_mention_handler(erpc::ReqHandle *req_handler, void *_context)
 {
     auto *ctx = static_cast<ServerContext *>(_context);
-    ctx->stat_req_url_shorten_tot++;
+    ctx->stat_req_user_mention_tot++;
+
+    ctx->init_mutex.lock();
+    rmem::rt_assert(ctx->mongodb_init_finished,"mongodb not init finished!!");
+    ctx->init_mutex.unlock();
+
 
     auto *req_msgbuf = req_handler->get_req_msgbuf();
     auto *req = reinterpret_cast<RPCMsgReq<CommonRPCReq> *>(req_msgbuf->buf_);
@@ -53,20 +63,20 @@ void url_shorten_handler(erpc::ReqHandle *req_handler, void *_context)
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<CommonRPCReq>) + req->req_control.data_length, "data size not match");
 
     // 现在先用RTC模式来做，后面有需要再改成异步
-    social_network::UrlShortenReq url_shorten_req;
-    url_shorten_req.ParseFromArray(req+1,req->req_control.data_length);
-    rmem::rt_assert(url_shorten_req.IsInitialized(),"req parsed error");
+    social_network::UserMentionReq user_mention_req;
+    user_mention_req.ParseFromArray(req+1,req->req_control.data_length);
+    rmem::rt_assert(user_mention_req.IsInitialized(),"req parsed error");
 
-    social_network::UrlShortenResp url_shorten_resp;
-    url_shorten_resp = generate_shorten_urls(url_shorten_req) ;
+    social_network::UserMentionResp user_mention_resp;
+    user_mention_resp = generate_user_mentions(user_mention_req);
 
-    size_t resp_data_length = url_shorten_resp.ByteSizeLong();
+    size_t resp_data_length = user_mention_resp.ByteSizeLong();
 
     rmem::rt_assert(resp_data_length< 1000, "url shorten resp too large");
 
     new (req_handler->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {resp_data_length});
 
-    url_shorten_resp.SerializeToArray(req_handler->pre_resp_msgbuf_.buf_ + sizeof(RPCMsgResp<CommonRPCResp>), resp_data_length);
+    user_mention_resp.SerializeToArray(req_handler->pre_resp_msgbuf_.buf_ + sizeof(RPCMsgResp<CommonRPCResp>), resp_data_length);
 
     ctx->rpc_->resize_msg_buffer(&req_handler->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>) + resp_data_length);
 
@@ -185,8 +195,8 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
         start.reset();
         rpc.run_event_loop(kAppEvLoopMs);
         const double seconds = start.get_sec();
-        printf("thread %zu: ping_req : %.2f, url_shorten_req : %.2f \n", thread_id,
-               ctx->stat_req_ping_tot / seconds, ctx->stat_req_url_shorten_tot / seconds);
+        printf("thread %zu: ping_req : %.2f, user_mention_req : %.2f \n", thread_id,
+               ctx->stat_req_ping_tot / seconds, ctx->stat_req_user_mention_tot / seconds);
 
         ctx->rpc_->reset_dpath_stats();
         // more handler
@@ -219,19 +229,86 @@ void worker_thread_func(size_t thread_id, SPSC_QUEUE *producer, SPSC_QUEUE *cons
         }
     }
 }
+
+void mongodb_init(AppContext *ctx){
+    mongodb_client_pool = init_mongodb_client_pool(config_json_all, "user", mongodb_conns_num);
+    mongoc_client_t *mongodb_client =  mongoc_client_pool_pop(mongodb_client_pool);
+
+    auto collection = mongoc_client_get_collection(mongodb_client, "user", "user");
+
+    rmem::rt_assert(collection, "Failed to get user collection from DB User");
+
+    bson_t* query = bson_new();
+    mongoc_cursor_t* cursor = mongoc_collection_find_with_opts(collection, query, nullptr, nullptr);
+
+    const bson_t *doc;
+
+    while(mongoc_cursor_next(cursor,&doc)) {
+        bson_iter_t iter;
+        auto *new_user_mention = new social_network::UserMention();
+
+        if (bson_iter_init_find(&iter, doc, "user_id")) {
+            new_user_mention->set_user_id(bson_iter_value(&iter)->value.v_int64);
+        } else {
+            RMEM_ERROR("cant't find user_id in mongodb");
+            exit(1);
+        }
+
+        if (bson_iter_init_find(&iter, doc, "username")) {
+            new_user_mention->set_username(bson_iter_value(&iter)->value.v_utf8.str);
+        } else {
+            RMEM_ERROR("cant find username in mongodb");
+            exit(1);
+        }
+        user_mention_map[new_user_mention->username()] = new_user_mention;
+
+        if(ctrl_c_pressed){
+            return;
+        }
+    }
+
+    bson_destroy(query);
+    mongoc_cursor_destroy(cursor);
+    mongoc_collection_destroy(collection);
+    mongoc_client_pool_push(mongodb_client_pool, mongodb_client);
+
+    for(auto item : ctx->server_contexts_){
+        item->init_mutex.lock();
+        if(item->is_pinged){
+            auto _buf = item->rpc_->alloc_msg_buffer(sizeof(RPCMsgReq<PingRPCReq>));
+            auto *req = reinterpret_cast<RPCMsgReq<PingRPCReq> *>(_buf.buf_);
+            req->req_common.type = RPC_TYPE::RPC_PING;
+            req->req_common.req_number = 0;
+            req->req_control.timestamp = 0;
+
+            item->forward_spsc_queue->push(_buf);
+        }
+
+
+        item->mongodb_init_finished = true;
+        item->init_mutex.unlock();
+    }
+
+    RMEM_INFO("mongodb init finished!");
+}
+
 void leader_thread_func()
 {
     erpc::Nexus nexus(rmem::extract_hostname_from_uri(FLAGS_server_addr),
                       rmem::extract_udp_port_from_uri(FLAGS_server_addr), 0);
 
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING), ping_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_URL_SHORTEN), url_shorten_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_MENTION), user_mention_handler);
 
     std::vector<std::thread> clients(FLAGS_client_num);
     std::vector<std::thread> servers(FLAGS_server_num);
     std::vector<std::thread> workers(FLAGS_client_num);
 
     auto *context = new AppContext();
+
+    std::thread mongodb_init_thread(mongodb_init, context);
+    rmem::bind_to_core(mongodb_init_thread, 1, get_bind_core(2));
+
 
     clients[0] = std::thread(client_thread_func, 0, context->client_contexts_[0], &nexus);
     sleep(2);
@@ -269,6 +346,7 @@ void leader_thread_func()
         ctrl_c_pressed = true;
     }
 
+    mongodb_init_thread.join();
     for (size_t i = 0; i < FLAGS_client_num; i++)
     {
         clients[i].join();
@@ -287,7 +365,7 @@ int main(int argc, char **argv)
     // only config_file is required!!!
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    init_service_config(FLAGS_config_file,"url_shorten");
+    init_service_config(FLAGS_config_file,"user_mention");
     init_specific_config();
 
     std::thread leader_thread(leader_thread_func);
