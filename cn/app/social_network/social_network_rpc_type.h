@@ -6,19 +6,36 @@ enum class RPC_TYPE : uint8_t
 {
     RPC_PING = 0,
     RPC_PING_RESP,
+
     RPC_COMPOSE_POST,
     RPC_COMPOSE_POST_RESP,
+
     RPC_USER_TIMELINE,
     RPC_USER_TIMELINE_RESP,
+
     RPC_HOME_TIMELINE,
     RPC_HOME_TIMELINE_RESP,
+
+    // unique_id_service
     RPC_UNIQUE_ID,
+
+    // url_shorten_service
     RPC_URL_SHORTEN,
+
+    // user_mention_service
     RPC_USER_MENTION,
+
+    // user_timeline_service
     RPC_USER_TIMELINE_WRITE_REQ,
     RPC_USER_TIMELINE_WRITE_RESP,
     RPC_USER_TIMELINE_READ_REQ,
     RPC_USER_TIMELINE_READ_RESP,
+
+    // post_storage_service
+    RPC_POST_STORAGE_READ_REQ,
+    RPC_POST_STORAGE_READ_RESP,
+    RPC_POST_STORAGE_WRITE_REQ,
+    RPC_POST_STORAGE_WRITE_RESP,
 };
 
 class CommonReq
@@ -113,8 +130,21 @@ public:
 
 class UniqueIDResp {
 public:
-    size_t post_id;
+    int64_t post_id;
 };
+
+class UserTimeLineWriteReq {
+    int64_t post_id;
+    int64_t user_id;
+    int64_t timestamp;
+};
+
+class UserTimeLineReadReq {
+    int64_t user_id;
+    int start;
+    int stop;
+};
+
 
 #if defined(ERPC_PROGRAM)
 

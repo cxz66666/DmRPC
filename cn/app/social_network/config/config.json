@@ -40,9 +40,14 @@
   "user_mention": {
     "server_addr": "192.168.189.8:31859"
   },
-  "user-mongodb": {
+  "user_mongodb": {
     "addr": "192.168.189.8",
     "port": "10012",
+    "connections": 512
+  },
+  "user_timeline_mongodb": {
+    "addr": "192.168.189.8",
+    "port": "10013",
     "connections": 512
   }
 }

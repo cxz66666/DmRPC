@@ -57,8 +57,6 @@ public:
     }
 
     SPSC_QUEUE *forward_spsc_queue{};
-
-    erpc::MsgBuffer *req_backward_msgbuf_ptr{};
 };
 
 class AppContext
@@ -81,7 +79,6 @@ public:
         {
             auto *ctx = new ServerContext(i);
             ctx->forward_spsc_queue = client_contexts_[i]->forward_spsc_queue;
-            ctx->req_backward_msgbuf_ptr = client_contexts_[i]->req_backward_msgbuf;
             server_contexts_.push_back(ctx);
         }
     }

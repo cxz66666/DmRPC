@@ -54,8 +54,6 @@ public:
     }
 
     SPSC_QUEUE *forward_spsc_queue{};
-
-    erpc::MsgBuffer *req_backward_msgbuf_ptr{};
 };
 
 class AppContext
@@ -78,7 +76,6 @@ public:
         {
             auto *ctx = new ServerContext(i);
             ctx->forward_spsc_queue = client_contexts_[i]->forward_spsc_queue;
-            ctx->req_backward_msgbuf_ptr = client_contexts_[i]->req_backward_msgbuf;
             server_contexts_.push_back(ctx);
         }
     }
@@ -125,9 +122,9 @@ void init_specific_config(){
 
 }
 
-size_t get_unique_id(){
+int64_t get_unique_id(){
     static std::mutex mtx;
-    static size_t now_id = 100000000; // regard it as machine id
+    static int64_t now_id = 100000000; // regard it as machine id
 
     std::lock_guard<std::mutex> lock(mtx);
     return now_id++;

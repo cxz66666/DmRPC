@@ -13,8 +13,8 @@ mongoc_client_pool_t* init_mongodb_client_pool(
         const std::string &service_name,
         uint32_t max_size
         ){
-    std::string addr = config_json[service_name + "-mongodb"]["addr"];
-    int port = config_json[service_name + "-mongodb"]["port"];
+    std::string addr = config_json[service_name + "_mongodb"]["addr"];
+    int port = config_json[service_name + "_mongodb"]["port"];
     std::string uri_str = "mongodb://" + addr + ":" +
         std::to_string(port) + "/?appname=" + service_name + "-service";
 

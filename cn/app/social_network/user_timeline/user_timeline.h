@@ -1,20 +1,17 @@
 #pragma once
 #include <hdr/hdr_histogram.h>
 #include <mongoc.h>
-#include "atomic_queue/atomic_queue.h"
 #include "../social_network_commons.h"
 #include "../social_network.pb.h"
 #include "phmap.h"
 #include "spinlock_mutex.h"
 #include "../utils_mongodb.h"
 
-using SPSC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>;
-
 std::string compose_post_addr;
 
 static mongoc_client_pool_t* mongodb_client_pool;
 int mongodb_conns_num;
-phmap::flat_hash_map<std::string , social_network::UserMention *> user_mention_map;
+phmap::flat_hash_map<int64_t , std::vector<int64_t>> user_timeline_map;
 
 
 class ClientContext : public BasicContext
@@ -22,26 +19,32 @@ class ClientContext : public BasicContext
 public:
     ClientContext(size_t cid, size_t sid, size_t rid) : client_id_(cid), server_sender_id_(sid), server_receiver_id_(rid), backward_session_num_(-1)
     {
-        forward_spsc_queue = new SPSC_QUEUE(kAppMaxBuffer);
-        backward_spsc_queue = new SPSC_QUEUE(kAppMaxBuffer);
+        forward_mpmc_queue = new MPMC_QUEUE(kAppMaxBuffer);
+        forward_all_mpmc_queue = new MPMC_QUEUE(kAppMaxBuffer);
+        backward_mpmc_queue = new MPMC_QUEUE(kAppMaxBuffer);
     }
     ~ClientContext()
     {
-        delete forward_spsc_queue;
-        delete backward_spsc_queue;
+        delete forward_mpmc_queue;
+        delete forward_all_mpmc_queue;
+        delete backward_mpmc_queue;
     }
+    erpc::MsgBuffer req_forward_msgbuf[kAppMaxBuffer];
     erpc::MsgBuffer req_backward_msgbuf[kAppMaxBuffer];
 
+    erpc::MsgBuffer resp_forward_msgbuf[kAppMaxBuffer];
     erpc::MsgBuffer resp_backward_msgbuf[kAppMaxBuffer];
 
     size_t client_id_;
     size_t server_sender_id_;
     size_t server_receiver_id_;
 
-    int backward_session_num_;
+    int nginx_session_number;
+    int compose_pose_session_number;
 
-    SPSC_QUEUE *forward_spsc_queue;
-    SPSC_QUEUE *backward_spsc_queue;
+    MPMC_QUEUE *forward_mpmc_queue;
+    MPMC_QUEUE *forward_all_mpmc_queue;
+    MPMC_QUEUE *backward_mpmc_queue;
 };
 
 class ServerContext : public BasicContext
@@ -54,7 +57,9 @@ public:
     = default;
     size_t server_id_{};
     size_t stat_req_ping_tot{};
-    size_t stat_req_user_mention_tot{};
+    size_t stat_req_user_timeline_write_req_tot{};
+    size_t stat_req_user_timeline_read_req_tot{};
+    size_t stat_req_post_storage_read_resp_tot{};
     size_t stat_req_err_tot{};
 
     spinlock_mutex init_mutex;
@@ -64,11 +69,17 @@ public:
     void reset_stat()
     {
         stat_req_ping_tot = 0;
-        stat_req_user_mention_tot = 0;
+        stat_req_user_timeline_write_req_tot = 0;
+        stat_req_user_timeline_read_req_tot = 0;
+        stat_req_post_storage_read_resp_tot = 0;
         stat_req_err_tot = 0;
     }
 
-    SPSC_QUEUE *forward_spsc_queue{};
+    MPMC_QUEUE *forward_all_mpmc_queue{};
+    MPMC_QUEUE *backward_mpmc_queue{};
+
+    erpc::MsgBuffer *req_forward_msgbuf_ptr{};
+    erpc::MsgBuffer *req_backward_msgbuf_ptr{};
 };
 
 class AppContext
@@ -90,7 +101,10 @@ public:
         for (size_t i = 0; i < FLAGS_server_num; i++)
         {
             auto *ctx = new ServerContext(i);
-            ctx->forward_spsc_queue = client_contexts_[i]->forward_spsc_queue;
+            ctx->forward_all_mpmc_queue = client_contexts_[i]->forward_all_mpmc_queue;
+            ctx->backward_mpmc_queue = client_contexts_[i]->backward_mpmc_queue;
+            ctx->req_forward_msgbuf_ptr = client_contexts_[i]->req_forward_msgbuf;
+            ctx->req_backward_msgbuf_ptr = client_contexts_[i]->req_backward_msgbuf;
             server_contexts_.push_back(ctx);
         }
     }
@@ -140,18 +154,10 @@ void init_specific_config(){
     mongodb_conns_num = conns;
 }
 
-social_network::UserMentionResp generate_user_mentions(const social_network::UserMentionReq& req)
-{
-    social_network::UserMentionResp resp;
-    for(auto &name : req.names()) {
-        if(user_mention_map.contains(name)) {
-            social_network::UserMention *target_user_mention = user_mention_map[name];
-            social_network::UserMention *new_user_mention = resp.add_user_mentions();
-            new_user_mention->set_user_id(target_user_mention->user_id());
-            new_user_mention->set_username(target_user_mention->username());
-        } else {
-            RMEM_WARN("don't find user: %s", name.c_str());
-        }
-    }
-    return resp;
+void read_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MPMC_QUEUE *consumer_fwd) {
+
+}
+
+void write_post_ids_and_return(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MPMC_QUEUE *consumer_back) {
+
 }

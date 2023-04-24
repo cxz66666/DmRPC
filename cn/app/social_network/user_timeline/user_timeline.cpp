@@ -1,7 +1,7 @@
 #include <thread>
 #include "numautil.h"
 #include "spinlock_mutex.h"
-#include "user_mention.h"
+#include "user_timeline.h"
 
 
 void connect_sessions(ClientContext *c)
@@ -37,7 +37,7 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
 
     ctx->init_mutex.lock();
     if(ctx->mongodb_init_finished){
-        ctx->forward_spsc_queue->push(*req_msgbuf);
+        ctx->forward_all_mpmc_queue->push(*req_msgbuf);
         req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
     } else {
         ctx->is_pinged = true;
@@ -47,40 +47,88 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 }
 
-void user_mention_handler(erpc::ReqHandle *req_handler, void *_context)
+void user_timeline_write_req_handler(erpc::ReqHandle *req_handle, void *_context)
 {
     auto *ctx = static_cast<ServerContext *>(_context);
-    ctx->stat_req_user_mention_tot++;
+    ctx->stat_req_user_timeline_write_req_tot++;
 
     ctx->init_mutex.lock();
     rmem::rt_assert(ctx->mongodb_init_finished,"mongodb not init finished!!");
     ctx->init_mutex.unlock();
 
+    auto *req_msgbuf = req_handle->get_req_msgbuf();
+    auto *req = reinterpret_cast<RPCMsgReq<UserTimeLineWriteReq> *>(req_msgbuf->buf_);
 
-    auto *req_msgbuf = req_handler->get_req_msgbuf();
+    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<UserTimeLineWriteReq>), "data size not match");
+
+    new (req_handle->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
+    ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
+
+
+    ctx->forward_all_mpmc_queue->push(*req_msgbuf);
+    req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
+
+    ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
+
+}
+
+void user_timeline_read_req_handler(erpc::ReqHandle *req_handle, void *_context)
+{
+    auto *ctx = static_cast<ServerContext *>(_context);
+    ctx->stat_req_user_timeline_read_req_tot++;
+
+    ctx->init_mutex.lock();
+    rmem::rt_assert(ctx->mongodb_init_finished,"mongodb not init finished!!");
+    ctx->init_mutex.unlock();
+
+    auto *req_msgbuf = req_handle->get_req_msgbuf();
+    auto *req = reinterpret_cast<RPCMsgReq<UserTimeLineReadReq> *>(req_msgbuf->buf_);
+
+    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<UserTimeLineReadReq>), "data size not match");
+
+    new (req_handle->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
+    ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
+
+    if (likely(ctx->req_forward_msgbuf_ptr[req->req_common.req_number % kAppMaxBuffer].buf_ != nullptr))
+    {
+        ctx->rpc_->free_msg_buffer(ctx->req_forward_msgbuf_ptr[req->req_common.req_number % kAppMaxBuffer]);
+    }
+
+    ctx->forward_all_mpmc_queue->push(*req_msgbuf);
+    req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
+
+    ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
+
+}
+
+void post_storage_read_resp_handler(erpc::ReqHandle *req_handle, void *_context)
+{
+    auto *ctx = static_cast<ServerContext *>(_context);
+    ctx->stat_req_post_storage_read_resp_tot++;
+
+    ctx->init_mutex.lock();
+    rmem::rt_assert(ctx->mongodb_init_finished,"mongodb not init finished!!");
+    ctx->init_mutex.unlock();
+
+    auto *req_msgbuf = req_handle->get_req_msgbuf();
     auto *req = reinterpret_cast<RPCMsgReq<CommonRPCReq> *>(req_msgbuf->buf_);
 
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<CommonRPCReq>) + req->req_control.data_length, "data size not match");
+    new (req_handle->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
 
-    // 现在先用RTC模式来做，后面有需要再改成异步
-    social_network::UserMentionReq user_mention_req;
-    user_mention_req.ParseFromArray(req+1,req->req_control.data_length);
-    rmem::rt_assert(user_mention_req.IsInitialized(),"req parsed error");
+    if (likely(ctx->req_backward_msgbuf_ptr[req->req_common.req_number % kAppMaxBuffer].buf_ != nullptr))
+    {
+        ctx->rpc_->free_msg_buffer(ctx->req_backward_msgbuf_ptr[req->req_common.req_number % kAppMaxBuffer]);
+    }
 
-    social_network::UserMentionResp user_mention_resp;
-    user_mention_resp = generate_user_mentions(user_mention_req);
+    // IMPORTANT!
+    req->req_common.type = RPC_TYPE::RPC_USER_TIMELINE_READ_RESP;
 
-    size_t resp_data_length = user_mention_resp.ByteSizeLong();
+    ctx->forward_all_mpmc_queue->push(*req_msgbuf);
+    req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
 
-    rmem::rt_assert(resp_data_length< 1000, "url shorten resp too large");
+    ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 
-    new (req_handler->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {resp_data_length});
-
-    user_mention_resp.SerializeToArray(req_handler->pre_resp_msgbuf_.buf_ + sizeof(RPCMsgResp<CommonRPCResp>), resp_data_length);
-
-    ctx->rpc_->resize_msg_buffer(&req_handler->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>) + resp_data_length);
-
-    ctx->rpc_->enqueue_response(req_handler, &req_handler->pre_resp_msgbuf_);
 }
 
 void callback_ping_resp(void *_context, void *_tag)
@@ -116,7 +164,7 @@ void handler_ping_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer];
 
-    ctx->rpc_->enqueue_request(ctx->backward_session_num_, static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP),
+    ctx->rpc_->enqueue_request(ctx->nginx_session_number, static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP),
                                &ctx->req_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer], &resp_msgbuf,
                                callback_ping_resp, reinterpret_cast<void *>(req->req_common.req_number % kAppMaxBuffer));
 }
@@ -141,25 +189,41 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     ctx->rpc_ = &rpc;
     for (auto & i : ctx->resp_backward_msgbuf)
     {
-        // TODO
+        i = rpc.alloc_msg_buffer_or_die(sizeof(RPCMsgResp<CommonRPCResp>));
+    }
+
+    for(auto & i : ctx->resp_forward_msgbuf)
+    {
         i = rpc.alloc_msg_buffer_or_die(sizeof(RPCMsgResp<CommonRPCResp>));
     }
 
     connect_sessions(ctx);
 
     using FUNC_HANDLER = std::function<void(ClientContext *, erpc::MsgBuffer)>;
-    FUNC_HANDLER handlers[] = {nullptr, handler_ping_resp};
+    FUNC_HANDLER handlers[] = {nullptr, handler_ping_resp, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                               nullptr, nullptr, nullptr, nullptr, handler_user_timeline_write_resp, nullptr,
+                               handler_user_timeline_read_resp, handler_post_storage_read_req };
 
     while (true)
     {
-        unsigned size = ctx->backward_spsc_queue->was_size();
+        unsigned size = ctx->forward_mpmc_queue->was_size();
         for (unsigned i = 0; i < size; i++)
         {
-            erpc::MsgBuffer req_msg = ctx->backward_spsc_queue->pop();
+            erpc::MsgBuffer req_msg = ctx->forward_mpmc_queue->pop();
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
-            if (req->type != RPC_TYPE::RPC_PING_RESP)
-                printf("req->type=%u\n", static_cast<uint32_t>(req->type));
-            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP, "only ping_resp and tc_resp in backward queue");
+            rmem::rt_assert(req->type == RPC_TYPE::RPC_POST_STORAGE_READ_REQ, "only RPC_POST_STORAGE_READ_REQ in forward queue");
+            handlers[static_cast<uint8_t>(req->type)](ctx, req_msg);
+        }
+
+        size = ctx->backward_mpmc_queue->was_size();
+        for (unsigned i = 0; i < size; i++)
+        {
+            erpc::MsgBuffer req_msg = ctx->backward_mpmc_queue->pop();
+            auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
+
+            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP || req->type == RPC_TYPE::RPC_USER_TIMELINE_WRITE_RESP ||
+                            req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_RESP
+                            , "only ping_resp and tc_resp in backward queue");
             handlers[static_cast<uint8_t>(req->type)](ctx, req_msg);
         }
         ctx->rpc_->run_event_loop_once();
@@ -195,8 +259,9 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
         start.reset();
         rpc.run_event_loop(kAppEvLoopMs);
         const double seconds = start.get_sec();
-        printf("thread %zu: ping_req : %.2f, user_mention_req : %.2f \n", thread_id,
-               ctx->stat_req_ping_tot / seconds, ctx->stat_req_user_mention_tot / seconds);
+        printf("thread %zu: ping_req : %.2f, user_timeline write: %.2f read: %.2f, post_storage read: %.2f \n", thread_id,
+               ctx->stat_req_ping_tot / seconds, ctx->stat_req_user_timeline_write_req_tot / seconds,
+               ctx->stat_req_user_timeline_read_req_tot/ seconds, ctx->stat_req_post_storage_read_resp_tot / seconds);
 
         ctx->rpc_->reset_dpath_stats();
         // more handler
@@ -206,7 +271,7 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
         }
     }
 }
-void worker_thread_func(size_t thread_id, SPSC_QUEUE *producer, SPSC_QUEUE *consumer, erpc::Rpc<erpc::CTransport> *rpc_, erpc::Rpc<erpc::CTransport> *server_rpc_)
+void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *consumer_back, MPMC_QUEUE *consumer_fwd, erpc::Rpc<erpc::CTransport> *rpc_, erpc::Rpc<erpc::CTransport> *server_rpc_)
 {
     _unused(thread_id);
     _unused(rpc_);
@@ -219,9 +284,19 @@ void worker_thread_func(size_t thread_id, SPSC_QUEUE *producer, SPSC_QUEUE *cons
             erpc::MsgBuffer req_msg = producer->pop();
 
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
-            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING, "req type error");
-            req->type = RPC_TYPE::RPC_PING_RESP;
-            consumer->push(req_msg);
+            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_USER_TIMELINE_WRITE_REQ
+                            || req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_REQ, "req type error");
+
+            if(req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_REQ){
+                read_post_details(req_msg.buf_,rpc_,consumer_fwd);
+                server_rpc_->free_msg_buffer(req_msg);
+            } else if(req->type == RPC_TYPE::RPC_USER_TIMELINE_WRITE_REQ){
+                write_post_ids_and_return(req_msg.buf_,rpc_,consumer_back);
+                server_rpc_->free_msg_buffer(req_msg);
+            } else {
+                req->type = RPC_TYPE::RPC_PING_RESP;
+                consumer_back->push(req_msg);
+            }
         }
         if (ctrl_c_pressed == 1)
         {
@@ -231,10 +306,10 @@ void worker_thread_func(size_t thread_id, SPSC_QUEUE *producer, SPSC_QUEUE *cons
 }
 
 void mongodb_init(AppContext *ctx){
-    mongodb_client_pool = init_mongodb_client_pool(config_json_all, "user", mongodb_conns_num);
+    mongodb_client_pool = init_mongodb_client_pool(config_json_all, "user_timeline", mongodb_conns_num);
     mongoc_client_t *mongodb_client =  mongoc_client_pool_pop(mongodb_client_pool);
 
-    auto collection = mongoc_client_get_collection(mongodb_client, "user", "user");
+    auto collection = mongoc_client_get_collection(mongodb_client, "user_timeline", "user_timeline");
 
     rmem::rt_assert(collection, "Failed to get user collection from DB User");
 
@@ -245,22 +320,28 @@ void mongodb_init(AppContext *ctx){
 
     while(mongoc_cursor_next(cursor,&doc)) {
         bson_iter_t iter;
-        auto *new_user_mention = new social_network::UserMention();
 
+        int64_t user_id;
+        std::vector<int64_t> post_ids;
         if (bson_iter_init_find(&iter, doc, "user_id")) {
-            new_user_mention->set_user_id(bson_iter_value(&iter)->value.v_int64);
+            user_id = bson_iter_value(&iter)->value.v_int64;
         } else {
             RMEM_ERROR("cant't find user_id in mongodb");
             exit(1);
         }
 
-        if (bson_iter_init_find(&iter, doc, "username")) {
-            new_user_mention->set_username(bson_iter_value(&iter)->value.v_utf8.str);
-        } else {
-            RMEM_ERROR("cant find username in mongodb");
-            exit(1);
+        if (bson_iter_init_find(&iter, doc, "posts") && BSON_ITER_HOLDS_ARRAY(&iter)) {
+            // get the values from array posts, and push them into post_ids
+            bson_iter_t array_iter;
+            bson_iter_recurse(&iter, &array_iter);
+            while (bson_iter_next(&array_iter)) {
+                if (BSON_ITER_HOLDS_INT64(&array_iter)) {
+                    post_ids.push_back(bson_iter_value(&array_iter)->value.v_int64);
+                }
+            }
         }
-        user_mention_map[new_user_mention->username()] = new_user_mention;
+
+        user_timeline_map[user_id] = std::move(post_ids);
 
         if(ctrl_c_pressed){
             return;
@@ -281,7 +362,7 @@ void mongodb_init(AppContext *ctx){
             req->req_common.req_number = 0;
             req->req_control.timestamp = 0;
 
-            item->forward_spsc_queue->push(_buf);
+            item->forward_all_mpmc_queue->push(_buf);
         }
 
 
@@ -289,7 +370,7 @@ void mongodb_init(AppContext *ctx){
         item->init_mutex.unlock();
     }
 
-    RMEM_INFO("mongodb init finished! Total user num: %ld", user_mention_map.size());
+    RMEM_INFO("mongodb init finished! Total init %ld users", user_timeline_map.size());
 }
 
 void leader_thread_func()
@@ -298,7 +379,10 @@ void leader_thread_func()
                       rmem::extract_udp_port_from_uri(FLAGS_server_addr), 0);
 
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING), ping_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_MENTION), user_mention_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_WRITE_REQ), user_timeline_write_req_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_READ_REQ), user_timeline_read_req_handler);
+
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_POST_STORAGE_READ_RESP), post_storage_read_resp_handler);
 
     std::vector<std::thread> clients(FLAGS_client_num);
     std::vector<std::thread> servers(FLAGS_server_num);
@@ -332,7 +416,9 @@ void leader_thread_func()
     for (size_t i = 0; i < FLAGS_client_num; i++)
     {
         rmem::rt_assert(context->server_contexts_[i]->rpc_ != nullptr, "server rpc is null");
-        workers[i] = std::thread(worker_thread_func, i, context->client_contexts_[i]->forward_spsc_queue, context->client_contexts_[i]->backward_spsc_queue, context->client_contexts_[i]->rpc_, context->server_contexts_[i]->rpc_);
+        workers[i] = std::thread(worker_thread_func, i, context->client_contexts_[i]->forward_all_mpmc_queue,
+                                 context->client_contexts_[i]->backward_mpmc_queue, context->client_contexts_[i]->forward_mpmc_queue,
+                                 context->client_contexts_[i]->rpc_, context->server_contexts_[i]->rpc_);
 //        uint64_t worker_offset = FLAGS_worker_bind_core_offset == UINT64_MAX ? FLAGS_bind_core_offset : FLAGS_worker_bind_core_offset;
 //        rmem::bind_to_core(workers[i], FLAGS_numa_worker_node, get_bind_core(FLAGS_numa_worker_node) + worker_offset);
         rmem::bind_to_core(clients[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
@@ -365,7 +451,7 @@ int main(int argc, char **argv)
     // only config_file is required!!!
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    init_service_config(FLAGS_config_file,"user_mention");
+    init_service_config(FLAGS_config_file,"user_timeline");
     init_specific_config();
 
     std::thread leader_thread(leader_thread_func);
