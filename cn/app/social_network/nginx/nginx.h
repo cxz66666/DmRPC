@@ -1,6 +1,5 @@
 #pragma once
 #include <hdr/hdr_histogram.h>
-#include "atomic_queue/atomic_queue.h"
 #include "../social_network_commons.h"
 
 std::string load_balance_addr;
@@ -16,8 +15,8 @@ class ClientContext : public BasicContext
 public:
     ClientContext(size_t cid, size_t sid, size_t rid) : client_id_(cid), server_sender_id_(sid), server_receiver_id_(rid), backward_session_num_(-1)
     {
-        forward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>(kAppMaxBuffer);
-        backward_spsc_queue = new atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>(kAppMaxBuffer);
+        forward_spsc_queue = new SPSC_QUEUE(kAppMaxBuffer);
+        backward_spsc_queue = new SPSC_QUEUE(kAppMaxBuffer);
     }
     ~ClientContext()
     {
@@ -38,8 +37,8 @@ public:
 
     int servers_num_{};
 
-    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *forward_spsc_queue;
-    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *backward_spsc_queue;
+    SPSC_QUEUE *forward_spsc_queue;
+    SPSC_QUEUE *backward_spsc_queue;
 };
 
 class ServerContext : public BasicContext
@@ -74,8 +73,8 @@ public:
         stat_req_err_tot = 0;
     }
 
-    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *forward_spsc_queue{};
-    atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true> *backward_spsc_queue{};
+    SPSC_QUEUE *forward_spsc_queue{};
+    SPSC_QUEUE *backward_spsc_queue{};
 
     erpc::MsgBuffer *req_forward_msgbuf_ptr{};
     erpc::MsgBuffer *req_backward_msgbuf_ptr{};

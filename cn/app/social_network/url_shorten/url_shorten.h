@@ -1,6 +1,5 @@
 #pragma once
 #include <hdr/hdr_histogram.h>
-#include "atomic_queue/atomic_queue.h"
 #include "../social_network_commons.h"
 #include "../social_network.pb.h"
 

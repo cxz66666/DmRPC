@@ -6,6 +6,7 @@
 #include <app_helpers.h>
 #include "rpc.h"
 #include "social_network_rpc_type.h"
+#include "atomic_queue/atomic_queue.h"
 
 using json = nlohmann::json;
 
@@ -37,6 +38,10 @@ DEFINE_uint64(timeout_second, UINT64_MAX, "Timeout second for each request, defa
 
 DEFINE_string(latency_file, "latency.txt", "Latency file name");
 DEFINE_string(bandwidth_file, "bandwidth.txt", "Bandwidth file name");
+
+using SPSC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>;
+using MPMC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, true, false>;
+
 
 
 static constexpr size_t kAppMaxConcurrency = 128;       // Outstanding reqs per thread
