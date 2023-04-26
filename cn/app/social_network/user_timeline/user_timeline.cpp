@@ -8,11 +8,16 @@ void connect_sessions(ClientContext *c)
 {
 
     // connect to backward server
-    c->backward_session_num_ = c->rpc_->create_session(compose_post_addr, c->server_receiver_id_);
-    rmem::rt_assert(c->backward_session_num_ >= 0, "Failed to create session");
-    c->session_num_vec_.push_back(c->backward_session_num_);
+    c->compose_post_session_number = c->rpc_->create_session(compose_post_addr, c->server_receiver_id_);
+    rmem::rt_assert(c->compose_post_session_number >= 0, "Failed to create session");
 
-    while (c->num_sm_resps_ != 1)
+    c->nginx_session_number = c->rpc_->create_session(nginx_addr, c->server_receiver_id_);
+    rmem::rt_assert(c->nginx_session_number >= 0, "Failed to create session");
+
+    c->post_storage_session_number = c->rpc_->create_session(post_storage_addr, c->server_receiver_id_);
+    rmem::rt_assert(c->post_storage_session_number >= 0, "Failed to create session");
+
+    while (c->num_sm_resps_ != 3)
     {
         c->rpc_->run_event_loop(kAppEvLoopMs);
         if (unlikely(ctrl_c_pressed == 1))
@@ -82,9 +87,9 @@ void user_timeline_read_req_handler(erpc::ReqHandle *req_handle, void *_context)
     ctx->init_mutex.unlock();
 
     auto *req_msgbuf = req_handle->get_req_msgbuf();
-    auto *req = reinterpret_cast<RPCMsgReq<UserTimeLineReadReq> *>(req_msgbuf->buf_);
+    auto *req = reinterpret_cast<RPCMsgReq<UserTimeLineReq> *>(req_msgbuf->buf_);
 
-    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<UserTimeLineReadReq>), "data size not match");
+    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<UserTimeLineReq>), "data size not match");
 
     new (req_handle->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
@@ -120,9 +125,6 @@ void post_storage_read_resp_handler(erpc::ReqHandle *req_handle, void *_context)
     {
         ctx->rpc_->free_msg_buffer(ctx->req_backward_msgbuf_ptr[req->req_common.req_number % kAppMaxBuffer]);
     }
-
-    // IMPORTANT!
-    req->req_common.type = RPC_TYPE::RPC_USER_TIMELINE_READ_RESP;
 
     ctx->forward_all_mpmc_queue->push(*req_msgbuf);
     req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
@@ -169,6 +171,82 @@ void handler_ping_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
                                callback_ping_resp, reinterpret_cast<void *>(req->req_common.req_number % kAppMaxBuffer));
 }
 
+void callback_user_timeline_write_resp(void *_context, void *_tag)
+{
+    auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
+    uint32_t req_id = req_id_ptr;
+    auto *ctx = static_cast<ClientContext *>(_context);
+
+    // erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req_id];
+
+    rmem::rt_assert(resp_msgbuf.get_data_size() == sizeof(RPCMsgResp<CommonRPCResp>), "data size not match");
+
+}
+
+void handler_user_timeline_write_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
+{
+    auto *req = reinterpret_cast<RPCMsgReq<UserTimeLineWriteReq> *>(req_msgbuf.buf_);
+    ctx->req_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer] = req_msgbuf;
+
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer];
+
+    ctx->rpc_->enqueue_request(ctx->compose_post_session_number, static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_WRITE_RESP),
+                               &ctx->req_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer], &resp_msgbuf,
+                               callback_user_timeline_write_resp, reinterpret_cast<void *>(req->req_common.req_number % kAppMaxBuffer));
+}
+
+void callback_user_timeline_read_resp(void *_context, void *_tag)
+{
+    auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
+    uint32_t req_id = req_id_ptr;
+    auto *ctx = static_cast<ClientContext *>(_context);
+
+    // erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req_id];
+
+    rmem::rt_assert(resp_msgbuf.get_data_size() == sizeof(RPCMsgResp<CommonRPCResp>), "data size not match");
+
+}
+
+void handler_user_timeline_read_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
+{
+    auto *req = reinterpret_cast<RPCMsgReq<UserTimeLineReq> *>(req_msgbuf.buf_);
+    ctx->req_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer] = req_msgbuf;
+
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer];
+
+    ctx->rpc_->enqueue_request(ctx->nginx_session_number, static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_READ_RESP),
+                               &ctx->req_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer], &resp_msgbuf,
+                               callback_user_timeline_read_resp, reinterpret_cast<void *>(req->req_common.req_number % kAppMaxBuffer));
+
+}
+
+void callback_post_storage_read_req(void *_context, void *_tag)
+{
+    auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
+    uint32_t req_id = req_id_ptr;
+    auto *ctx = static_cast<ClientContext *>(_context);
+
+    // erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req_id];
+
+    rmem::rt_assert(resp_msgbuf.get_data_size() == sizeof(RPCMsgResp<CommonRPCResp>), "data size not match");
+
+}
+
+void handler_post_storage_read_req(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
+{
+    auto *req = reinterpret_cast<RPCMsgReq<CommonRPCReq> *>(req_msgbuf.buf_);
+    ctx->req_forward_msgbuf[req->req_common.req_number % kAppMaxBuffer] = req_msgbuf;
+
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req_common.req_number % kAppMaxBuffer];
+
+    ctx->rpc_->enqueue_request(ctx->post_storage_session_number, static_cast<uint8_t>(RPC_TYPE::RPC_POST_STORAGE_READ_REQ),
+                               &ctx->req_forward_msgbuf[req->req_common.req_number % kAppMaxBuffer], &resp_msgbuf,
+                               callback_post_storage_read_req, reinterpret_cast<void *>(req->req_common.req_number % kAppMaxBuffer));
+
+}
 
 void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus)
 {
@@ -284,15 +362,19 @@ void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *cons
             erpc::MsgBuffer req_msg = producer->pop();
 
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
-            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_USER_TIMELINE_WRITE_REQ
-                            || req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_REQ, "req type error");
+            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_USER_TIMELINE_WRITE_REQ ||
+                            req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_REQ || req->type == RPC_TYPE::RPC_POST_STORAGE_READ_RESP,
+                             "req type error");
 
             if(req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_REQ){
-                read_post_details(req_msg.buf_,rpc_,consumer_fwd);
+                read_post_details(req_msg.buf_,rpc_,consumer_fwd,consumer_back);
                 server_rpc_->free_msg_buffer(req_msg);
             } else if(req->type == RPC_TYPE::RPC_USER_TIMELINE_WRITE_REQ){
                 write_post_ids_and_return(req_msg.buf_,rpc_,consumer_back);
                 server_rpc_->free_msg_buffer(req_msg);
+            } else if(req->type == RPC_TYPE::RPC_POST_STORAGE_READ_RESP){
+                req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_RESP;
+                consumer_back->push(req_msg);
             } else {
                 req->type = RPC_TYPE::RPC_PING_RESP;
                 consumer_back->push(req_msg);
@@ -322,7 +404,7 @@ void mongodb_init(AppContext *ctx){
         bson_iter_t iter;
 
         int64_t user_id;
-        std::vector<int64_t> post_ids;
+        std::set<int64_t> post_ids;
         if (bson_iter_init_find(&iter, doc, "user_id")) {
             user_id = bson_iter_value(&iter)->value.v_int64;
         } else {
@@ -336,7 +418,7 @@ void mongodb_init(AppContext *ctx){
             bson_iter_recurse(&iter, &array_iter);
             while (bson_iter_next(&array_iter)) {
                 if (BSON_ITER_HOLDS_INT64(&array_iter)) {
-                    post_ids.push_back(bson_iter_value(&array_iter)->value.v_int64);
+                    post_ids.insert(bson_iter_value(&array_iter)->value.v_int64);
                 }
             }
         }

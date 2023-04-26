@@ -10,7 +10,6 @@ void connect_sessions(ClientContext *c)
     // connect to backward server
     c->backward_session_num_ = c->rpc_->create_session(compose_post_addr, c->server_receiver_id_);
     rmem::rt_assert(c->backward_session_num_ >= 0, "Failed to create session");
-    c->session_num_vec_.push_back(c->backward_session_num_);
 
     while (c->num_sm_resps_ != 1)
     {

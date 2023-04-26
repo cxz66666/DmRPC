@@ -76,3 +76,11 @@ message UserMentionReq {
 message UserMentionResp {
     repeated UserMention user_mentions = 1;
 }
+
+message PostStorageReadReq {
+    repeated int64 post_ids = 1;
+}
+
+message PostStorageReadResp {
+    repeated Post posts = 1;
+}

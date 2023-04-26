@@ -135,7 +135,7 @@ void init_specific_config(){
     rmem::rt_assert(!value.is_null(),"value is null");
     compose_post_addr = value;
 
-    auto conns = config_json_all["user-mongodb"]["connections"];
+    auto conns = config_json_all["user_mongodb"]["connections"];
     rmem::rt_assert(!conns.is_null(),"value is null");
     mongodb_conns_num = conns;
 }

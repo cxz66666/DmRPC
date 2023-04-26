@@ -171,6 +171,31 @@ struct UserMentionRespDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 UserMentionRespDefaultTypeInternal _UserMentionResp_default_instance_;
+PROTOBUF_CONSTEXPR PostStorageReadReq::PostStorageReadReq(
+    ::_pbi::ConstantInitialized)
+  : post_ids_()
+  , _post_ids_cached_byte_size_(0){}
+struct PostStorageReadReqDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR PostStorageReadReqDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~PostStorageReadReqDefaultTypeInternal() {}
+  union {
+    PostStorageReadReq _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PostStorageReadReqDefaultTypeInternal _PostStorageReadReq_default_instance_;
+PROTOBUF_CONSTEXPR PostStorageReadResp::PostStorageReadResp(
+    ::_pbi::ConstantInitialized)
+  : posts_(){}
+struct PostStorageReadRespDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR PostStorageReadRespDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~PostStorageReadRespDefaultTypeInternal() {}
+  union {
+    PostStorageReadResp _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PostStorageReadRespDefaultTypeInternal _PostStorageReadResp_default_instance_;
 }  // namespace social_network
 namespace social_network {
 bool PostType_IsValid(int value) {
@@ -3104,6 +3129,362 @@ std::string UserMentionResp::GetTypeName() const {
 }
 
 
+// ===================================================================
+
+class PostStorageReadReq::_Internal {
+ public:
+};
+
+PostStorageReadReq::PostStorageReadReq(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned),
+  post_ids_(arena) {
+  SharedCtor();
+  // @@protoc_insertion_point(arena_constructor:social_network.PostStorageReadReq)
+}
+PostStorageReadReq::PostStorageReadReq(const PostStorageReadReq& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      post_ids_(from.post_ids_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  // @@protoc_insertion_point(copy_constructor:social_network.PostStorageReadReq)
+}
+
+inline void PostStorageReadReq::SharedCtor() {
+}
+
+PostStorageReadReq::~PostStorageReadReq() {
+  // @@protoc_insertion_point(destructor:social_network.PostStorageReadReq)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<std::string>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void PostStorageReadReq::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void PostStorageReadReq::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void PostStorageReadReq::Clear() {
+// @@protoc_insertion_point(message_clear_start:social_network.PostStorageReadReq)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  post_ids_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* PostStorageReadReq::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // repeated int64 post_ids = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedInt64Parser(_internal_mutable_post_ids(), ptr, ctx);
+          CHK_(ptr);
+        } else if (static_cast<uint8_t>(tag) == 8) {
+          _internal_add_post_ids(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr));
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* PostStorageReadReq::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:social_network.PostStorageReadReq)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // repeated int64 post_ids = 1;
+  {
+    int byte_size = _post_ids_cached_byte_size_.load(std::memory_order_relaxed);
+    if (byte_size > 0) {
+      target = stream->WriteInt64Packed(
+          1, _internal_post_ids(), byte_size, target);
+    }
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:social_network.PostStorageReadReq)
+  return target;
+}
+
+size_t PostStorageReadReq::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:social_network.PostStorageReadReq)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated int64 post_ids = 1;
+  {
+    size_t data_size = ::_pbi::WireFormatLite::
+      Int64Size(this->post_ids_);
+    if (data_size > 0) {
+      total_size += 1 +
+        ::_pbi::WireFormatLite::Int32Size(static_cast<int32_t>(data_size));
+    }
+    int cached_size = ::_pbi::ToCachedSize(data_size);
+    _post_ids_cached_byte_size_.store(cached_size,
+                                    std::memory_order_relaxed);
+    total_size += data_size;
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::_pbi::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void PostStorageReadReq::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::_pbi::DownCast<const PostStorageReadReq*>(
+      &from));
+}
+
+void PostStorageReadReq::MergeFrom(const PostStorageReadReq& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:social_network.PostStorageReadReq)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  post_ids_.MergeFrom(from.post_ids_);
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void PostStorageReadReq::CopyFrom(const PostStorageReadReq& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:social_network.PostStorageReadReq)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool PostStorageReadReq::IsInitialized() const {
+  return true;
+}
+
+void PostStorageReadReq::InternalSwap(PostStorageReadReq* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  post_ids_.InternalSwap(&other->post_ids_);
+}
+
+std::string PostStorageReadReq::GetTypeName() const {
+  return "social_network.PostStorageReadReq";
+}
+
+
+// ===================================================================
+
+class PostStorageReadResp::_Internal {
+ public:
+};
+
+PostStorageReadResp::PostStorageReadResp(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned),
+  posts_(arena) {
+  SharedCtor();
+  // @@protoc_insertion_point(arena_constructor:social_network.PostStorageReadResp)
+}
+PostStorageReadResp::PostStorageReadResp(const PostStorageReadResp& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      posts_(from.posts_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  // @@protoc_insertion_point(copy_constructor:social_network.PostStorageReadResp)
+}
+
+inline void PostStorageReadResp::SharedCtor() {
+}
+
+PostStorageReadResp::~PostStorageReadResp() {
+  // @@protoc_insertion_point(destructor:social_network.PostStorageReadResp)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<std::string>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void PostStorageReadResp::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void PostStorageReadResp::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void PostStorageReadResp::Clear() {
+// @@protoc_insertion_point(message_clear_start:social_network.PostStorageReadResp)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  posts_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* PostStorageReadResp::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // repeated .social_network.Post posts = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_posts(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<10>(ptr));
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* PostStorageReadResp::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:social_network.PostStorageReadResp)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // repeated .social_network.Post posts = 1;
+  for (unsigned i = 0,
+      n = static_cast<unsigned>(this->_internal_posts_size()); i < n; i++) {
+    const auto& repfield = this->_internal_posts(i);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+        InternalWriteMessage(1, repfield, repfield.GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:social_network.PostStorageReadResp)
+  return target;
+}
+
+size_t PostStorageReadResp::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:social_network.PostStorageReadResp)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated .social_network.Post posts = 1;
+  total_size += 1UL * this->_internal_posts_size();
+  for (const auto& msg : this->posts_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::_pbi::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void PostStorageReadResp::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::_pbi::DownCast<const PostStorageReadResp*>(
+      &from));
+}
+
+void PostStorageReadResp::MergeFrom(const PostStorageReadResp& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:social_network.PostStorageReadResp)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  posts_.MergeFrom(from.posts_);
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void PostStorageReadResp::CopyFrom(const PostStorageReadResp& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:social_network.PostStorageReadResp)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool PostStorageReadResp::IsInitialized() const {
+  return true;
+}
+
+void PostStorageReadResp::InternalSwap(PostStorageReadResp* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  posts_.InternalSwap(&other->posts_);
+}
+
+std::string PostStorageReadResp::GetTypeName() const {
+  return "social_network.PostStorageReadResp";
+}
+
+
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace social_network
 PROTOBUF_NAMESPACE_OPEN
@@ -3150,6 +3531,14 @@ Arena::CreateMaybeMessage< ::social_network::UserMentionReq >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::social_network::UserMentionResp*
 Arena::CreateMaybeMessage< ::social_network::UserMentionResp >(Arena* arena) {
   return Arena::CreateMessageInternal< ::social_network::UserMentionResp >(arena);
+}
+template<> PROTOBUF_NOINLINE ::social_network::PostStorageReadReq*
+Arena::CreateMaybeMessage< ::social_network::PostStorageReadReq >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::social_network::PostStorageReadReq >(arena);
+}
+template<> PROTOBUF_NOINLINE ::social_network::PostStorageReadResp*
+Arena::CreateMaybeMessage< ::social_network::PostStorageReadResp >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::social_network::PostStorageReadResp >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

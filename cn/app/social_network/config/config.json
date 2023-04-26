@@ -40,6 +40,9 @@
   "user_mention": {
     "server_addr": "192.168.189.8:31859"
   },
+  "post_storage": {
+    "server_addr": "192.168.189.8:31860"
+  },
   "user_mongodb": {
     "addr": "192.168.189.8",
     "port": "10012",

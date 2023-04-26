@@ -88,7 +88,7 @@ class UserTimeLineReq
         {
         public:
             size_t data_length;
-            size_t user_id;
+            int64_t user_id;
             int start;
             int stop;
         };
@@ -134,15 +134,10 @@ public:
 };
 
 class UserTimeLineWriteReq {
+public:
     int64_t post_id;
     int64_t user_id;
     int64_t timestamp;
-};
-
-class UserTimeLineReadReq {
-    int64_t user_id;
-    int start;
-    int stop;
 };
 
 

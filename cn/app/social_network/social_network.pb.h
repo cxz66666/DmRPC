@@ -56,6 +56,12 @@ extern MediaDefaultTypeInternal _Media_default_instance_;
 class Post;
 struct PostDefaultTypeInternal;
 extern PostDefaultTypeInternal _Post_default_instance_;
+class PostStorageReadReq;
+struct PostStorageReadReqDefaultTypeInternal;
+extern PostStorageReadReqDefaultTypeInternal _PostStorageReadReq_default_instance_;
+class PostStorageReadResp;
+struct PostStorageReadRespDefaultTypeInternal;
+extern PostStorageReadRespDefaultTypeInternal _PostStorageReadResp_default_instance_;
 class Text;
 struct TextDefaultTypeInternal;
 extern TextDefaultTypeInternal _Text_default_instance_;
@@ -83,6 +89,8 @@ template<> ::social_network::ComposePostData* Arena::CreateMaybeMessage<::social
 template<> ::social_network::Creator* Arena::CreateMaybeMessage<::social_network::Creator>(Arena*);
 template<> ::social_network::Media* Arena::CreateMaybeMessage<::social_network::Media>(Arena*);
 template<> ::social_network::Post* Arena::CreateMaybeMessage<::social_network::Post>(Arena*);
+template<> ::social_network::PostStorageReadReq* Arena::CreateMaybeMessage<::social_network::PostStorageReadReq>(Arena*);
+template<> ::social_network::PostStorageReadResp* Arena::CreateMaybeMessage<::social_network::PostStorageReadResp>(Arena*);
 template<> ::social_network::Text* Arena::CreateMaybeMessage<::social_network::Text>(Arena*);
 template<> ::social_network::Url* Arena::CreateMaybeMessage<::social_network::Url>(Arena*);
 template<> ::social_network::UrlShortenReq* Arena::CreateMaybeMessage<::social_network::UrlShortenReq>(Arena*);
@@ -1699,7 +1707,7 @@ class UserMentionReq final :
     *this = ::std::move(from);
   }
 
-  inline UserMentionReq& operator=(UserMentionResp from) {
+  inline UserMentionReq& operator=(const UserMentionReq& from) {
     CopyFrom(from);
     return *this;
   }
@@ -1959,6 +1967,283 @@ class UserMentionResp final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::UserMention > user_mentions_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_social_5fnetwork_2eproto;
+};
+// -------------------------------------------------------------------
+
+class PostStorageReadReq final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:social_network.PostStorageReadReq) */ {
+ public:
+  inline PostStorageReadReq() : PostStorageReadReq(nullptr) {}
+  ~PostStorageReadReq() override;
+  explicit PROTOBUF_CONSTEXPR PostStorageReadReq(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  PostStorageReadReq(const PostStorageReadReq& from);
+  PostStorageReadReq(PostStorageReadReq&& from) noexcept
+    : PostStorageReadReq() {
+    *this = ::std::move(from);
+  }
+
+  inline PostStorageReadReq& operator=(const PostStorageReadReq& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline PostStorageReadReq& operator=(PostStorageReadReq&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const PostStorageReadReq& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const PostStorageReadReq* internal_default_instance() {
+    return reinterpret_cast<const PostStorageReadReq*>(
+               &_PostStorageReadReq_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    11;
+
+  friend void swap(PostStorageReadReq& a, PostStorageReadReq& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(PostStorageReadReq* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(PostStorageReadReq* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  PostStorageReadReq* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<PostStorageReadReq>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const PostStorageReadReq& from);
+  void MergeFrom(const PostStorageReadReq& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(PostStorageReadReq* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "social_network.PostStorageReadReq";
+  }
+  protected:
+  explicit PostStorageReadReq(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kPostIdsFieldNumber = 1,
+  };
+  // repeated int64 post_ids = 1;
+  int post_ids_size() const;
+  private:
+  int _internal_post_ids_size() const;
+  public:
+  void clear_post_ids();
+  private:
+  int64_t _internal_post_ids(int index) const;
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
+      _internal_post_ids() const;
+  void _internal_add_post_ids(int64_t value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
+      _internal_mutable_post_ids();
+  public:
+  int64_t post_ids(int index) const;
+  void set_post_ids(int index, int64_t value);
+  void add_post_ids(int64_t value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
+      post_ids() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
+      mutable_post_ids();
+
+  // @@protoc_insertion_point(class_scope:social_network.PostStorageReadReq)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t > post_ids_;
+  mutable std::atomic<int> _post_ids_cached_byte_size_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_social_5fnetwork_2eproto;
+};
+// -------------------------------------------------------------------
+
+class PostStorageReadResp final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:social_network.PostStorageReadResp) */ {
+ public:
+  inline PostStorageReadResp() : PostStorageReadResp(nullptr) {}
+  ~PostStorageReadResp() override;
+  explicit PROTOBUF_CONSTEXPR PostStorageReadResp(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  PostStorageReadResp(const PostStorageReadResp& from);
+  PostStorageReadResp(PostStorageReadResp&& from) noexcept
+    : PostStorageReadResp() {
+    *this = ::std::move(from);
+  }
+
+  inline PostStorageReadResp& operator=(const PostStorageReadResp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline PostStorageReadResp& operator=(PostStorageReadResp&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const PostStorageReadResp& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const PostStorageReadResp* internal_default_instance() {
+    return reinterpret_cast<const PostStorageReadResp*>(
+               &_PostStorageReadResp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    12;
+
+  friend void swap(PostStorageReadResp& a, PostStorageReadResp& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(PostStorageReadResp* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(PostStorageReadResp* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  PostStorageReadResp* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<PostStorageReadResp>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const PostStorageReadResp& from);
+  void MergeFrom(const PostStorageReadResp& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(PostStorageReadResp* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "social_network.PostStorageReadResp";
+  }
+  protected:
+  explicit PostStorageReadResp(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kPostsFieldNumber = 1,
+  };
+  // repeated .social_network.Post posts = 1;
+  int posts_size() const;
+  private:
+  int _internal_posts_size() const;
+  public:
+  void clear_posts();
+  ::social_network::Post* mutable_posts(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Post >*
+      mutable_posts();
+  private:
+  const ::social_network::Post& _internal_posts(int index) const;
+  ::social_network::Post* _internal_add_posts();
+  public:
+  const ::social_network::Post& posts(int index) const;
+  ::social_network::Post* add_posts();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Post >&
+      posts() const;
+
+  // @@protoc_insertion_point(class_scope:social_network.PostStorageReadResp)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Post > posts_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_social_5fnetwork_2eproto;
 };
@@ -3566,9 +3851,108 @@ UserMentionResp::user_mentions() const {
   return user_mentions_;
 }
 
+// -------------------------------------------------------------------
+
+// PostStorageReadReq
+
+// repeated int64 post_ids = 1;
+inline int PostStorageReadReq::_internal_post_ids_size() const {
+  return post_ids_.size();
+}
+inline int PostStorageReadReq::post_ids_size() const {
+  return _internal_post_ids_size();
+}
+inline void PostStorageReadReq::clear_post_ids() {
+  post_ids_.Clear();
+}
+inline int64_t PostStorageReadReq::_internal_post_ids(int index) const {
+  return post_ids_.Get(index);
+}
+inline int64_t PostStorageReadReq::post_ids(int index) const {
+  // @@protoc_insertion_point(field_get:social_network.PostStorageReadReq.post_ids)
+  return _internal_post_ids(index);
+}
+inline void PostStorageReadReq::set_post_ids(int index, int64_t value) {
+  post_ids_.Set(index, value);
+  // @@protoc_insertion_point(field_set:social_network.PostStorageReadReq.post_ids)
+}
+inline void PostStorageReadReq::_internal_add_post_ids(int64_t value) {
+  post_ids_.Add(value);
+}
+inline void PostStorageReadReq::add_post_ids(int64_t value) {
+  _internal_add_post_ids(value);
+  // @@protoc_insertion_point(field_add:social_network.PostStorageReadReq.post_ids)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
+PostStorageReadReq::_internal_post_ids() const {
+  return post_ids_;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >&
+PostStorageReadReq::post_ids() const {
+  // @@protoc_insertion_point(field_list:social_network.PostStorageReadReq.post_ids)
+  return _internal_post_ids();
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
+PostStorageReadReq::_internal_mutable_post_ids() {
+  return &post_ids_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
+PostStorageReadReq::mutable_post_ids() {
+  // @@protoc_insertion_point(field_mutable_list:social_network.PostStorageReadReq.post_ids)
+  return _internal_mutable_post_ids();
+}
+
+// -------------------------------------------------------------------
+
+// PostStorageReadResp
+
+// repeated .social_network.Post posts = 1;
+inline int PostStorageReadResp::_internal_posts_size() const {
+  return posts_.size();
+}
+inline int PostStorageReadResp::posts_size() const {
+  return _internal_posts_size();
+}
+inline void PostStorageReadResp::clear_posts() {
+  posts_.Clear();
+}
+inline ::social_network::Post* PostStorageReadResp::mutable_posts(int index) {
+  // @@protoc_insertion_point(field_mutable:social_network.PostStorageReadResp.posts)
+  return posts_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Post >*
+PostStorageReadResp::mutable_posts() {
+  // @@protoc_insertion_point(field_mutable_list:social_network.PostStorageReadResp.posts)
+  return &posts_;
+}
+inline const ::social_network::Post& PostStorageReadResp::_internal_posts(int index) const {
+  return posts_.Get(index);
+}
+inline const ::social_network::Post& PostStorageReadResp::posts(int index) const {
+  // @@protoc_insertion_point(field_get:social_network.PostStorageReadResp.posts)
+  return _internal_posts(index);
+}
+inline ::social_network::Post* PostStorageReadResp::_internal_add_posts() {
+  return posts_.Add();
+}
+inline ::social_network::Post* PostStorageReadResp::add_posts() {
+  ::social_network::Post* _add = _internal_add_posts();
+  // @@protoc_insertion_point(field_add:social_network.PostStorageReadResp.posts)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Post >&
+PostStorageReadResp::posts() const {
+  // @@protoc_insertion_point(field_list:social_network.PostStorageReadResp.posts)
+  return posts_;
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
