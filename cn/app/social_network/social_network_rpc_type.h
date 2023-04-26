@@ -36,6 +36,13 @@ enum class RPC_TYPE : uint8_t
     RPC_POST_STORAGE_READ_RESP,
     RPC_POST_STORAGE_WRITE_REQ,
     RPC_POST_STORAGE_WRITE_RESP,
+
+    // home_timeline_service
+    RPC_HOME_TIMELINE_WRITE_REQ,
+    RPC_HOME_TIMELINE_WRITE_RESP,
+    RPC_HOME_TIMELINE_READ_REQ,
+    RPC_HOME_TIMELINE_READ_RESP,
+
 };
 
 class CommonReq
@@ -98,7 +105,7 @@ class HomeTimeLineReq
         {
         public:
             size_t data_length; //most time is not 0, because data field is not empty
-            size_t user_id;
+            int64_t user_id;
             int start_idx;
             int stop_idx;
         };

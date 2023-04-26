@@ -1,7 +1,7 @@
 #include <thread>
 #include "numautil.h"
 #include "spinlock_mutex.h"
-#include "user_timeline.h"
+#include "home_timeline.h"
 
 
 void connect_sessions(ClientContext *c)
@@ -52,19 +52,19 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 }
 
-void user_timeline_write_req_handler(erpc::ReqHandle *req_handle, void *_context)
+void home_timeline_write_req_handler(erpc::ReqHandle *req_handle, void *_context)
 {
     auto *ctx = static_cast<ServerContext *>(_context);
-    ctx->stat_req_user_timeline_write_req_tot++;
+    ctx->stat_req_home_timeline_write_req_tot++;
 
     ctx->init_mutex.lock();
     rmem::rt_assert(ctx->mongodb_init_finished,"mongodb not init finished!!");
     ctx->init_mutex.unlock();
 
     auto *req_msgbuf = req_handle->get_req_msgbuf();
-    auto *req = reinterpret_cast<RPCMsgReq<UserTimeLineWriteReq> *>(req_msgbuf->buf_);
+    auto *req = reinterpret_cast<RPCMsgReq<CommonRPCReq> *>(req_msgbuf->buf_);
 
-    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<UserTimeLineWriteReq>), "data size not match");
+    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<CommonRPCReq>) + req->req_control.data_length, "data size not match");
 
     new (req_handle->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
@@ -81,19 +81,19 @@ void user_timeline_write_req_handler(erpc::ReqHandle *req_handle, void *_context
 
 }
 
-void user_timeline_read_req_handler(erpc::ReqHandle *req_handle, void *_context)
+void home_timeline_read_req_handler(erpc::ReqHandle *req_handle, void *_context)
 {
     auto *ctx = static_cast<ServerContext *>(_context);
-    ctx->stat_req_user_timeline_read_req_tot++;
+    ctx->stat_req_home_timeline_read_req_tot++;
 
     ctx->init_mutex.lock();
     rmem::rt_assert(ctx->mongodb_init_finished,"mongodb not init finished!!");
     ctx->init_mutex.unlock();
 
     auto *req_msgbuf = req_handle->get_req_msgbuf();
-    auto *req = reinterpret_cast<RPCMsgReq<UserTimeLineReq> *>(req_msgbuf->buf_);
+    auto *req = reinterpret_cast<RPCMsgReq<HomeTimeLineReq> *>(req_msgbuf->buf_);
 
-    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<UserTimeLineReq>), "data size not match");
+    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<HomeTimeLineReq>), "data size not match");
 
     new (req_handle->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
@@ -125,7 +125,6 @@ void post_storage_read_resp_handler(erpc::ReqHandle *req_handle, void *_context)
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<CommonRPCReq>) + req->req_control.data_length, "data size not match");
     new (req_handle->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
-
 
     if (likely(ctx->req_backward_msgbuf_ptr[req->req_common.req_number % kAppMaxBuffer].buf_ != nullptr))
     {
@@ -177,7 +176,7 @@ void handler_ping_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
                                callback_ping_resp, reinterpret_cast<void *>(req->req_common.req_number % kAppMaxBuffer));
 }
 
-void callback_user_timeline_write_resp(void *_context, void *_tag)
+void callback_home_timeline_write_resp(void *_context, void *_tag)
 {
     auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
     uint32_t req_id = req_id_ptr;
@@ -190,19 +189,19 @@ void callback_user_timeline_write_resp(void *_context, void *_tag)
 
 }
 
-void handler_user_timeline_write_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
+void handler_home_timeline_write_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 {
-    auto *req = reinterpret_cast<RPCMsgReq<UserTimeLineWriteReq> *>(req_msgbuf.buf_);
+    auto *req = reinterpret_cast<RPCMsgReq<CommonRPCReq> *>(req_msgbuf.buf_);
     ctx->req_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer] = req_msgbuf;
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer];
 
-    ctx->rpc_->enqueue_request(ctx->compose_post_session_number, static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_WRITE_RESP),
+    ctx->rpc_->enqueue_request(ctx->compose_post_session_number, static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_WRITE_RESP),
                                &ctx->req_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer], &resp_msgbuf,
-                               callback_user_timeline_write_resp, reinterpret_cast<void *>(req->req_common.req_number % kAppMaxBuffer));
+                               callback_home_timeline_write_resp, reinterpret_cast<void *>(req->req_common.req_number % kAppMaxBuffer));
 }
 
-void callback_user_timeline_read_resp(void *_context, void *_tag)
+void callback_home_timeline_read_resp(void *_context, void *_tag)
 {
     auto req_id_ptr = reinterpret_cast<std::uintptr_t>(_tag);
     uint32_t req_id = req_id_ptr;
@@ -215,16 +214,16 @@ void callback_user_timeline_read_resp(void *_context, void *_tag)
 
 }
 
-void handler_user_timeline_read_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
+void handler_home_timeline_read_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 {
-    auto *req = reinterpret_cast<RPCMsgReq<UserTimeLineReq> *>(req_msgbuf.buf_);
+    auto *req = reinterpret_cast<RPCMsgReq<HomeTimeLineReq> *>(req_msgbuf.buf_);
     ctx->req_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer] = req_msgbuf;
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer];
 
-    ctx->rpc_->enqueue_request(ctx->nginx_session_number, static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_READ_RESP),
+    ctx->rpc_->enqueue_request(ctx->nginx_session_number, static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP),
                                &ctx->req_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer], &resp_msgbuf,
-                               callback_user_timeline_read_resp, reinterpret_cast<void *>(req->req_common.req_number % kAppMaxBuffer));
+                               callback_home_timeline_read_resp, reinterpret_cast<void *>(req->req_common.req_number % kAppMaxBuffer));
 
 }
 
@@ -284,11 +283,10 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     connect_sessions(ctx);
 
     using FUNC_HANDLER = std::function<void(ClientContext *, erpc::MsgBuffer)>;
-
     std::map<RPC_TYPE ,FUNC_HANDLER > handlers{
             {RPC_TYPE::RPC_PING_RESP, handler_ping_resp},
-            {RPC_TYPE::RPC_USER_TIMELINE_WRITE_RESP, handler_user_timeline_write_resp},
-            {RPC_TYPE::RPC_USER_TIMELINE_READ_RESP, handler_user_timeline_read_resp},
+            {RPC_TYPE::RPC_HOME_TIMELINE_WRITE_RESP, handler_home_timeline_write_resp},
+            {RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP, handler_home_timeline_read_resp},
             {RPC_TYPE::RPC_POST_STORAGE_READ_REQ, handler_post_storage_read_req}
     };
 
@@ -309,9 +307,9 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
             erpc::MsgBuffer req_msg = ctx->backward_mpmc_queue->pop();
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
 
-            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP || req->type == RPC_TYPE::RPC_USER_TIMELINE_WRITE_RESP ||
-                            req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_RESP
-                            , "only ping_resp and tc_resp in backward queue");
+            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP || req->type == RPC_TYPE::RPC_HOME_TIMELINE_WRITE_RESP ||
+                            req->type == RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP
+                    , "only ping_resp and tc_resp in backward queue");
             handlers[req->type](ctx, req_msg);
         }
         ctx->rpc_->run_event_loop_once();
@@ -347,9 +345,9 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
         start.reset();
         rpc.run_event_loop(kAppEvLoopMs);
         const double seconds = start.get_sec();
-        printf("thread %zu: ping_req : %.2f, user_timeline write: %.2f read: %.2f, post_storage read: %.2f \n", thread_id,
-               ctx->stat_req_ping_tot / seconds, ctx->stat_req_user_timeline_write_req_tot / seconds,
-               ctx->stat_req_user_timeline_read_req_tot/ seconds, ctx->stat_req_post_storage_read_resp_tot / seconds);
+        printf("thread %zu: ping_req : %.2f, home_timeline write: %.2f read: %.2f, post_storage read: %.2f \n", thread_id,
+               ctx->stat_req_ping_tot / seconds, ctx->stat_req_home_timeline_write_req_tot / seconds,
+               ctx->stat_req_home_timeline_read_req_tot/ seconds, ctx->stat_req_post_storage_read_resp_tot / seconds);
 
         ctx->rpc_->reset_dpath_stats();
         // more handler
@@ -372,18 +370,18 @@ void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *cons
             erpc::MsgBuffer req_msg = producer->pop();
 
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
-            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_USER_TIMELINE_WRITE_REQ ||
-                            req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_REQ || req->type == RPC_TYPE::RPC_POST_STORAGE_READ_RESP,
-                             "req type error");
+            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_HOME_TIMELINE_WRITE_REQ ||
+                            req->type == RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ || req->type == RPC_TYPE::RPC_POST_STORAGE_READ_RESP,
+                            "req type error");
 
-            if(req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_REQ){
-                read_post_details(req_msg.buf_,rpc_,consumer_fwd,consumer_back);
+            if(req->type == RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ){
+                read_home_time_line_post_details(req_msg.buf_,rpc_,consumer_fwd,consumer_back);
                 server_rpc_->free_msg_buffer(req_msg);
-            } else if(req->type == RPC_TYPE::RPC_USER_TIMELINE_WRITE_REQ){
-                write_post_ids_and_return(req_msg.buf_,rpc_,consumer_back);
+            } else if(req->type == RPC_TYPE::RPC_HOME_TIMELINE_WRITE_REQ){
+                write_home_timeline_and_return(req_msg.buf_,rpc_,consumer_back);
                 server_rpc_->free_msg_buffer(req_msg);
             } else if(req->type == RPC_TYPE::RPC_POST_STORAGE_READ_RESP){
-                req->type = RPC_TYPE::RPC_USER_TIMELINE_READ_RESP;
+                req->type = RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP;
                 consumer_back->push(req_msg);
             } else {
                 req->type = RPC_TYPE::RPC_PING_RESP;
@@ -398,12 +396,12 @@ void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *cons
 }
 
 void mongodb_init(AppContext *ctx){
-    mongodb_client_pool = init_mongodb_client_pool(config_json_all, "user_timeline", mongodb_conns_num);
+    mongodb_client_pool = init_mongodb_client_pool(config_json_all, "social_graph", mongodb_conns_num);
     mongoc_client_t *mongodb_client =  mongoc_client_pool_pop(mongodb_client_pool);
 
-    auto collection = mongoc_client_get_collection(mongodb_client, "user_timeline", "user_timeline");
+    auto collection = mongoc_client_get_collection(mongodb_client, "social_graph", "social_graph");
 
-    rmem::rt_assert(collection, "Failed to get user collection from DB User");
+    rmem::rt_assert(collection, "Failed to get social_graph collection from DB social_graph");
 
     bson_t* query = bson_new();
     mongoc_cursor_t* cursor = mongoc_collection_find_with_opts(collection, query, nullptr, nullptr);
@@ -412,9 +410,15 @@ void mongodb_init(AppContext *ctx){
 
     while(mongoc_cursor_next(cursor,&doc)) {
         bson_iter_t iter;
-
+        bson_iter_t iter_0;
+        bson_iter_t iter_1;
+        bson_iter_t user_id_child;
+        bson_iter_t timestamp_child;
+        int index = 0;
+        bson_iter_init(&iter_0, doc);
+        bson_iter_init(&iter_1, doc);
+        std::set<int64_t> user_ids;
         int64_t user_id;
-        std::set<int64_t> post_ids;
         if (bson_iter_init_find(&iter, doc, "user_id")) {
             user_id = bson_iter_value(&iter)->value.v_int64;
         } else {
@@ -422,19 +426,27 @@ void mongodb_init(AppContext *ctx){
             exit(1);
         }
 
-        if (bson_iter_init_find(&iter, doc, "posts") && BSON_ITER_HOLDS_ARRAY(&iter)) {
-            // get the values from array posts, and push them into post_ids
-            bson_iter_t array_iter;
-            bson_iter_recurse(&iter, &array_iter);
-            while (bson_iter_next(&array_iter)) {
-                if (BSON_ITER_HOLDS_INT64(&array_iter)) {
-                    post_ids.insert(bson_iter_value(&array_iter)->value.v_int64);
-                }
-            }
+        while (bson_iter_find_descendant(
+                &iter_0,
+                ("followers." + std::to_string(index) + ".user_id").c_str(),
+                &user_id_child) &&
+               BSON_ITER_HOLDS_INT64(&user_id_child) &&
+               bson_iter_find_descendant(
+                       &iter_1,
+                       ("followers." + std::to_string(index) + ".timestamp").c_str(),
+                       &timestamp_child) &&
+               BSON_ITER_HOLDS_INT64(&timestamp_child)) {
+            auto iter_user_id = bson_iter_int64(&user_id_child);
+            //maybe unused
+            [[maybe_unused]] auto iter_timestamp = bson_iter_int64(&timestamp_child);
+
+            user_ids.insert(iter_user_id);
+            bson_iter_init(&iter_0, doc);
+            bson_iter_init(&iter_1, doc);
+            index++;
         }
 
-        user_timeline_map[user_id] = std::move(post_ids);
-
+        user_followers_map[user_id] = std::move(user_ids);
         if(ctrl_c_pressed){
             return;
         }
@@ -462,7 +474,7 @@ void mongodb_init(AppContext *ctx){
         item->init_mutex.unlock();
     }
 
-    RMEM_INFO("mongodb init finished! Total init %ld users", user_timeline_map.size());
+    RMEM_INFO("mongodb init finished! Total init %ld users", user_followers_map.size());
 }
 
 void leader_thread_func()
@@ -471,8 +483,8 @@ void leader_thread_func()
                       rmem::extract_udp_port_from_uri(FLAGS_server_addr), 0);
 
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING), ping_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_WRITE_REQ), user_timeline_write_req_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_READ_REQ), user_timeline_read_req_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_WRITE_REQ), home_timeline_write_req_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ), home_timeline_read_req_handler);
 
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_POST_STORAGE_READ_RESP), post_storage_read_resp_handler);
 
@@ -543,10 +555,13 @@ int main(int argc, char **argv)
     // only config_file is required!!!
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    init_service_config(FLAGS_config_file,"user_timeline");
+    init_service_config(FLAGS_config_file,"home_timeline");
     init_specific_config();
+    load_timeline_storage(data_file_path);
 
     std::thread leader_thread(leader_thread_func);
     rmem::bind_to_core(leader_thread, 1, get_bind_core(1));
     leader_thread.join();
+
+    store_timeline_storage(data_file_path);
 }

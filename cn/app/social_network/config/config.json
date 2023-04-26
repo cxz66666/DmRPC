@@ -35,7 +35,8 @@
     "server_addr": "192.168.189.8:31857"
   },
   "home_timeline": {
-    "server_addr": "192.168.189.8:31858"
+    "server_addr": "192.168.189.8:31858",
+    "data_file_path": "../home_timeline.data"
   },
   "user_mention": {
     "server_addr": "192.168.189.8:31859"
@@ -45,12 +46,17 @@
   },
   "user_mongodb": {
     "addr": "192.168.189.8",
-    "port": "10012",
+    "port": "10001",
     "connections": 512
   },
   "user_timeline_mongodb": {
     "addr": "192.168.189.8",
-    "port": "10013",
+    "port": "10002",
+    "connections": 512
+  },
+  "social_network_mongodb": {
+    "addr": "192.168.189.8",
+    "port": "10003",
     "connections": 512
   }
 }

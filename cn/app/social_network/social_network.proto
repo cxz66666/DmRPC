@@ -84,3 +84,18 @@ message PostStorageReadReq {
 message PostStorageReadResp {
     repeated Post posts = 1;
 }
+
+message VecPostID {
+    repeated int64 post_ids = 1;
+}
+
+message HomeTimelineStorage {
+     map<int64, VecPostID> users_to_posts = 1;
+}
+
+message HomeTimelineWriteReq {
+    optional int64 post_id = 2;
+    optional int64 user_id = 1;
+    optional int64 timestamp = 3;
+    repeated int64 user_mentions_id = 4;
+}

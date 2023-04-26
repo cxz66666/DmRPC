@@ -11,11 +11,13 @@
 std::string compose_post_addr;
 std::string nginx_addr;
 std::string post_storage_addr;
-
+std::string data_file_path;
 
 static mongoc_client_pool_t* mongodb_client_pool;
 int mongodb_conns_num;
-phmap::flat_hash_map<int64_t , std::set<int64_t>> user_timeline_map;
+phmap::flat_hash_map<int64_t , std::set<int64_t>> user_followers_map;
+
+phmap::flat_hash_map<int64_t , std::vector<int64_t>> user_home_timeline_map;
 
 
 class ClientContext : public BasicContext
@@ -26,9 +28,6 @@ public:
         forward_mpmc_queue = new MPMC_QUEUE(kAppMaxBuffer);
         forward_all_mpmc_queue = new MPMC_QUEUE(kAppMaxBuffer);
         backward_mpmc_queue = new MPMC_QUEUE(kAppMaxBuffer);
-        nginx_session_number = 0;
-        compose_post_session_number = 0;
-        post_storage_session_number = 0;
     }
     ~ClientContext()
     {
@@ -46,9 +45,9 @@ public:
     size_t server_sender_id_;
     size_t server_receiver_id_;
 
-    int nginx_session_number;
-    int compose_post_session_number;
-    int post_storage_session_number;
+    int nginx_session_number{};
+    int compose_post_session_number{};
+    int post_storage_session_number{};
 
     MPMC_QUEUE *forward_mpmc_queue;
     MPMC_QUEUE *forward_all_mpmc_queue;
@@ -65,8 +64,8 @@ public:
     = default;
     size_t server_id_{};
     size_t stat_req_ping_tot{};
-    size_t stat_req_user_timeline_write_req_tot{};
-    size_t stat_req_user_timeline_read_req_tot{};
+    size_t stat_req_home_timeline_write_req_tot{};
+    size_t stat_req_home_timeline_read_req_tot{};
     size_t stat_req_post_storage_read_resp_tot{};
     size_t stat_req_err_tot{};
 
@@ -77,8 +76,8 @@ public:
     void reset_stat()
     {
         stat_req_ping_tot = 0;
-        stat_req_user_timeline_write_req_tot = 0;
-        stat_req_user_timeline_read_req_tot = 0;
+        stat_req_home_timeline_write_req_tot = 0;
+        stat_req_home_timeline_read_req_tot = 0;
         stat_req_post_storage_read_resp_tot = 0;
         stat_req_err_tot = 0;
     }
@@ -148,6 +147,49 @@ public:
     hdr_histogram *latency_hist_{};
 };
 
+void load_timeline_storage(const std::string& file_path)
+{
+    social_network::HomeTimelineStorage home_timeline_storage;
+    std::ifstream input(file_path, std::ios::binary);
+    rmem::rt_assert(input.is_open(),"file open failed");
+
+    if (!home_timeline_storage.ParseFromIstream(&input)) {
+        RMEM_ERROR("Failed to parse home_timeline_storage.");
+        exit(-1);
+    }
+
+    for(const auto& pair : home_timeline_storage.users_to_posts()) {
+        std::vector<int64_t >vec;
+        for(const auto& value : pair.second.post_ids()) {
+            vec.push_back(value);
+        }
+        user_home_timeline_map[pair.first] = std::move(vec);
+    }
+    RMEM_INFO("Timeline storage load finished! Total init %ld users", user_home_timeline_map.size());
+
+}
+
+void store_timeline_storage(const std::string& file_path)
+{
+    social_network::HomeTimelineStorage home_timeline_storage;
+    for (const auto& pair : user_home_timeline_map) {
+        social_network::VecPostID &vec =  home_timeline_storage.mutable_users_to_posts()->at(pair.first) ;
+        for (const auto& value : pair.second) {
+            vec.add_post_ids(value);
+        }
+    }
+
+    std::ofstream output(file_path, std::ios::binary);
+    rmem::rt_assert(output.is_open(),"file open failed");
+
+    if (!home_timeline_storage.SerializeToOstream(&output)) {
+        RMEM_ERROR("Failed to serial home_timeline_storage.");
+        exit(-1);
+    }
+
+    RMEM_INFO("Timeline storage store finished! Total init %ld users", user_home_timeline_map.size());
+}
+
 // must be used after init_service_config
 
 void init_specific_config(){
@@ -163,32 +205,36 @@ void init_specific_config(){
     rmem::rt_assert(!value.is_null(),"value is null");
     post_storage_addr = value;
 
-    auto conns = config_json_all["user_timeline_mongodb"]["connections"];
+    value = config_json_all["home_timeline"]["data_file_path"];
+    rmem::rt_assert(!value.is_null(),"value is null");
+    data_file_path = value;
+
+    auto conns = config_json_all["social_network_mongodb"]["connections"];
     rmem::rt_assert(!conns.is_null(),"value is null");
     mongodb_conns_num = conns;
 }
 
-void read_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MPMC_QUEUE *consumer_fwd, MPMC_QUEUE *consumer_back) {
-    auto* req = static_cast<RPCMsgReq<UserTimeLineReq> *>(buf_);
+void read_home_time_line_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MPMC_QUEUE *consumer_fwd, MPMC_QUEUE *consumer_back) {
+    auto* req = static_cast<RPCMsgReq<HomeTimeLineReq> *>(buf_);
 
     bool is_fwd = true;
 
-    if(req->req_control.stop <= req->req_control.start || req->req_control.start < 0){
+    if(req->req_control.stop_idx <= req->req_control.start_idx || req->req_control.start_idx < 0){
         is_fwd = false;
     }
 
-    if(!user_timeline_map.contains(req->req_control.user_id)){
+    if(!user_home_timeline_map.contains(req->req_control.user_id)){
         is_fwd = false;
     }
-    std::set<int64_t> &post_ids = user_timeline_map[req->req_control.user_id];
-    if(req->req_control.start > static_cast<int>(post_ids.size())){
+    std::vector<int64_t> &post_ids = user_home_timeline_map[req->req_control.user_id];
+    if(req->req_control.start_idx > static_cast<int>(post_ids.size())){
         is_fwd = false;
     }
 
     if(!is_fwd){
-        erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<UserTimeLineReq>));
-        new (resp_buf.buf_) RPCMsgReq<UserTimeLineReq>(RPC_TYPE::RPC_USER_TIMELINE_READ_RESP, req->req_common.req_number,
-                                                                    {0, req->req_control.user_id, req->req_control.start, req->req_control.stop });
+        erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<HomeTimeLineReq>));
+        new (resp_buf.buf_) RPCMsgReq<HomeTimeLineReq>(RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP, req->req_common.req_number,
+                                                                    {0, req->req_control.user_id, req->req_control.start_idx, req->req_control.stop_idx });
         consumer_back->push(resp_buf);
         return;
     }
@@ -196,12 +242,12 @@ void read_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MPMC_QUEUE
     social_network::PostStorageReadReq post_storage_req;
 
     int now_index = 0;
-    for(int64_t post_id : post_ids){
-        if(req->req_control.start<=now_index && now_index<req->req_control.stop){
+    for(int64_t & post_id : post_ids){
+        if(req->req_control.start_idx<=now_index && now_index<req->req_control.stop_idx){
             post_storage_req.add_post_ids(post_id);
         }
         now_index++;
-        if(now_index==req->req_control.stop){
+        if(now_index==req->req_control.stop_idx){
             break;
         }
     }
@@ -214,59 +260,28 @@ void read_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MPMC_QUEUE
     consumer_fwd->push(fwd_req);
 }
 
-void write_post_ids_and_return(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MPMC_QUEUE *consumer_back) {
-    auto* req = static_cast<RPCMsgReq<UserTimeLineWriteReq> *>(buf_);
+void write_home_timeline_and_return(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MPMC_QUEUE *consumer_back) {
+    auto* req = static_cast<RPCMsgReq<CommonRPCReq> *>(buf_);
 
-    erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<UserTimeLineWriteReq>));
+    social_network::HomeTimelineWriteReq home_timeline_write_req;
+    home_timeline_write_req.ParseFromArray(req+1, static_cast<int>(req->req_control.data_length));
+    rmem::rt_assert(home_timeline_write_req.IsInitialized(),"req parsed error");
 
-    auto* resp = new (resp_buf.buf_) RPCMsgResp<UserTimeLineWriteReq>(RPC_TYPE::RPC_USER_TIMELINE_WRITE_RESP, req->req_common.req_number, 0,
-                                                                    {req->req_control.post_id, req->req_control.user_id, req->req_control.timestamp });
+    std::set<int64_t> user_followers = user_followers_map[home_timeline_write_req.user_id()];
 
-    std::set<int64_t> &post_ids = user_timeline_map[req->req_control.user_id];
-    if(post_ids.count(req->req_control.post_id)){
-        resp->resp_control.timestamp++;
-        consumer_back->push(resp_buf);
-        return;
+    for(auto m: home_timeline_write_req.user_mentions_id()) {
+        user_followers.insert(m);
     }
 
+    for(auto m: user_followers){
+        if(!user_home_timeline_map.contains(m)){
+            user_home_timeline_map[m] = std::vector<int64_t>();
+        }
+        user_home_timeline_map[m].push_back(home_timeline_write_req.post_id());
+    }
 
-    std::future<void> mongo_update_future =
-            std::async(std::launch::async, [&](UserTimeLineWriteReq r, const erpc::MsgBuffer& resp_buffer,MPMC_QUEUE *c_back) {
-                mongoc_client_t *mongodb_client = mongoc_client_pool_pop(mongodb_client_pool);
-                auto collection = mongoc_client_get_collection(mongodb_client, "user_timeline", "user_timeline");
+    erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>));
+    new (resp_buf.buf_) RPCMsgResp<CommonRPCReq>(RPC_TYPE::RPC_HOME_TIMELINE_WRITE_RESP, req->req_common.req_number, 0, {0});
 
-                bson_t *query = bson_new();
-
-                BSON_APPEND_INT64(query, "user_id", r.user_id);
-                bson_t *update =
-                        BCON_NEW("$push", "{", "posts", "{", "$each", "[", "{", "post_id",
-                                 BCON_INT64(r.post_id), "timestamp", BCON_INT64(r.timestamp), "}",
-                                 "]", "$position", BCON_INT32(0), "}", "}");
-
-                bson_error_t error;
-                bson_t reply;
-
-                bool updated = mongoc_collection_find_and_modify(collection, query, nullptr,
-                                                                 update, nullptr, false, true,
-                                                                 true, &reply, &error);
-
-                if (!updated) {
-                    // update the newly inserted document (upsert: false)
-                    updated = mongoc_collection_find_and_modify(collection, query, nullptr,
-                                                                update, nullptr, false, false,
-                                                                true, &reply, &error);
-                    if (!updated) {
-                        RMEM_ERROR("mongodb update error! %ld %ld %ld ", r.user_id, r.post_id, r.timestamp);
-                        exit(1);
-                    }
-                }
-                bson_destroy(update);
-                bson_destroy(&reply);
-                bson_destroy(query);
-                mongoc_collection_destroy(collection);
-                mongoc_client_pool_push(mongodb_client_pool, mongodb_client);
-
-                //闭包，烦死了
-                c_back->push(resp_buffer);
-            },req->req_control,resp_buf,consumer_back);
+    consumer_back->push(resp_buf);
 }

@@ -196,6 +196,58 @@ struct PostStorageReadRespDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PostStorageReadRespDefaultTypeInternal _PostStorageReadResp_default_instance_;
+PROTOBUF_CONSTEXPR VecPostID::VecPostID(
+    ::_pbi::ConstantInitialized)
+  : post_ids_()
+  , _post_ids_cached_byte_size_(0){}
+struct VecPostIDDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR VecPostIDDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~VecPostIDDefaultTypeInternal() {}
+  union {
+    VecPostID _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 VecPostIDDefaultTypeInternal _VecPostID_default_instance_;
+PROTOBUF_CONSTEXPR HomeTimelineStorage_UsersToPostsEntry_DoNotUse::HomeTimelineStorage_UsersToPostsEntry_DoNotUse(
+    ::_pbi::ConstantInitialized){}
+struct HomeTimelineStorage_UsersToPostsEntry_DoNotUseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR HomeTimelineStorage_UsersToPostsEntry_DoNotUseDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~HomeTimelineStorage_UsersToPostsEntry_DoNotUseDefaultTypeInternal() {}
+  union {
+    HomeTimelineStorage_UsersToPostsEntry_DoNotUse _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 HomeTimelineStorage_UsersToPostsEntry_DoNotUseDefaultTypeInternal _HomeTimelineStorage_UsersToPostsEntry_DoNotUse_default_instance_;
+PROTOBUF_CONSTEXPR HomeTimelineStorage::HomeTimelineStorage(
+    ::_pbi::ConstantInitialized)
+  : users_to_posts_(){}
+struct HomeTimelineStorageDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR HomeTimelineStorageDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~HomeTimelineStorageDefaultTypeInternal() {}
+  union {
+    HomeTimelineStorage _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 HomeTimelineStorageDefaultTypeInternal _HomeTimelineStorage_default_instance_;
+PROTOBUF_CONSTEXPR HomeTimelineWriteReq::HomeTimelineWriteReq(
+    ::_pbi::ConstantInitialized)
+  : user_mentions_id_()
+  , _user_mentions_id_cached_byte_size_(0)
+  , user_id_(int64_t{0})
+  , post_id_(int64_t{0})
+  , timestamp_(int64_t{0}){}
+struct HomeTimelineWriteReqDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR HomeTimelineWriteReqDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~HomeTimelineWriteReqDefaultTypeInternal() {}
+  union {
+    HomeTimelineWriteReq _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 HomeTimelineWriteReqDefaultTypeInternal _HomeTimelineWriteReq_default_instance_;
 }  // namespace social_network
 namespace social_network {
 bool PostType_IsValid(int value) {
@@ -3485,6 +3537,674 @@ std::string PostStorageReadResp::GetTypeName() const {
 }
 
 
+// ===================================================================
+
+class VecPostID::_Internal {
+ public:
+};
+
+VecPostID::VecPostID(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned),
+  post_ids_(arena) {
+  SharedCtor();
+  // @@protoc_insertion_point(arena_constructor:social_network.VecPostID)
+}
+VecPostID::VecPostID(const VecPostID& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      post_ids_(from.post_ids_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  // @@protoc_insertion_point(copy_constructor:social_network.VecPostID)
+}
+
+inline void VecPostID::SharedCtor() {
+}
+
+VecPostID::~VecPostID() {
+  // @@protoc_insertion_point(destructor:social_network.VecPostID)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<std::string>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void VecPostID::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void VecPostID::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void VecPostID::Clear() {
+// @@protoc_insertion_point(message_clear_start:social_network.VecPostID)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  post_ids_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* VecPostID::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // repeated int64 post_ids = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedInt64Parser(_internal_mutable_post_ids(), ptr, ctx);
+          CHK_(ptr);
+        } else if (static_cast<uint8_t>(tag) == 8) {
+          _internal_add_post_ids(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr));
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* VecPostID::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:social_network.VecPostID)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // repeated int64 post_ids = 1;
+  {
+    int byte_size = _post_ids_cached_byte_size_.load(std::memory_order_relaxed);
+    if (byte_size > 0) {
+      target = stream->WriteInt64Packed(
+          1, _internal_post_ids(), byte_size, target);
+    }
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:social_network.VecPostID)
+  return target;
+}
+
+size_t VecPostID::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:social_network.VecPostID)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated int64 post_ids = 1;
+  {
+    size_t data_size = ::_pbi::WireFormatLite::
+      Int64Size(this->post_ids_);
+    if (data_size > 0) {
+      total_size += 1 +
+        ::_pbi::WireFormatLite::Int32Size(static_cast<int32_t>(data_size));
+    }
+    int cached_size = ::_pbi::ToCachedSize(data_size);
+    _post_ids_cached_byte_size_.store(cached_size,
+                                    std::memory_order_relaxed);
+    total_size += data_size;
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::_pbi::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void VecPostID::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::_pbi::DownCast<const VecPostID*>(
+      &from));
+}
+
+void VecPostID::MergeFrom(const VecPostID& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:social_network.VecPostID)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  post_ids_.MergeFrom(from.post_ids_);
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void VecPostID::CopyFrom(const VecPostID& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:social_network.VecPostID)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool VecPostID::IsInitialized() const {
+  return true;
+}
+
+void VecPostID::InternalSwap(VecPostID* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  post_ids_.InternalSwap(&other->post_ids_);
+}
+
+std::string VecPostID::GetTypeName() const {
+  return "social_network.VecPostID";
+}
+
+
+// ===================================================================
+
+HomeTimelineStorage_UsersToPostsEntry_DoNotUse::HomeTimelineStorage_UsersToPostsEntry_DoNotUse() {}
+HomeTimelineStorage_UsersToPostsEntry_DoNotUse::HomeTimelineStorage_UsersToPostsEntry_DoNotUse(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+    : SuperType(arena) {}
+void HomeTimelineStorage_UsersToPostsEntry_DoNotUse::MergeFrom(const HomeTimelineStorage_UsersToPostsEntry_DoNotUse& other) {
+  MergeFromInternal(other);
+}
+
+// ===================================================================
+
+class HomeTimelineStorage::_Internal {
+ public:
+};
+
+HomeTimelineStorage::HomeTimelineStorage(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned),
+  users_to_posts_(arena) {
+  SharedCtor();
+  // @@protoc_insertion_point(arena_constructor:social_network.HomeTimelineStorage)
+}
+HomeTimelineStorage::HomeTimelineStorage(const HomeTimelineStorage& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite() {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  users_to_posts_.MergeFrom(from.users_to_posts_);
+  // @@protoc_insertion_point(copy_constructor:social_network.HomeTimelineStorage)
+}
+
+inline void HomeTimelineStorage::SharedCtor() {
+}
+
+HomeTimelineStorage::~HomeTimelineStorage() {
+  // @@protoc_insertion_point(destructor:social_network.HomeTimelineStorage)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<std::string>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void HomeTimelineStorage::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  users_to_posts_.Destruct();
+}
+
+void HomeTimelineStorage::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void HomeTimelineStorage::Clear() {
+// @@protoc_insertion_point(message_clear_start:social_network.HomeTimelineStorage)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  users_to_posts_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* HomeTimelineStorage::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // map<int64, .social_network.VecPostID> users_to_posts = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(&users_to_posts_, ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<10>(ptr));
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* HomeTimelineStorage::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:social_network.HomeTimelineStorage)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // map<int64, .social_network.VecPostID> users_to_posts = 1;
+  if (!this->_internal_users_to_posts().empty()) {
+    using MapType = ::_pb::Map<int64_t, ::social_network::VecPostID>;
+    using WireHelper = HomeTimelineStorage_UsersToPostsEntry_DoNotUse::Funcs;
+    const auto& map_field = this->_internal_users_to_posts();
+
+    if (stream->IsSerializationDeterministic() && map_field.size() > 1) {
+      for (const auto& entry : ::_pbi::MapSorterFlat<MapType>(map_field)) {
+        target = WireHelper::InternalSerialize(1, entry.first, entry.second, target, stream);
+      }
+    } else {
+      for (const auto& entry : map_field) {
+        target = WireHelper::InternalSerialize(1, entry.first, entry.second, target, stream);
+      }
+    }
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:social_network.HomeTimelineStorage)
+  return target;
+}
+
+size_t HomeTimelineStorage::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:social_network.HomeTimelineStorage)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // map<int64, .social_network.VecPostID> users_to_posts = 1;
+  total_size += 1 *
+      ::PROTOBUF_NAMESPACE_ID::internal::FromIntSize(this->_internal_users_to_posts_size());
+  for (::PROTOBUF_NAMESPACE_ID::Map< int64_t, ::social_network::VecPostID >::const_iterator
+      it = this->_internal_users_to_posts().begin();
+      it != this->_internal_users_to_posts().end(); ++it) {
+    total_size += HomeTimelineStorage_UsersToPostsEntry_DoNotUse::Funcs::ByteSizeLong(it->first, it->second);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::_pbi::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void HomeTimelineStorage::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::_pbi::DownCast<const HomeTimelineStorage*>(
+      &from));
+}
+
+void HomeTimelineStorage::MergeFrom(const HomeTimelineStorage& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:social_network.HomeTimelineStorage)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  users_to_posts_.MergeFrom(from.users_to_posts_);
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void HomeTimelineStorage::CopyFrom(const HomeTimelineStorage& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:social_network.HomeTimelineStorage)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool HomeTimelineStorage::IsInitialized() const {
+  return true;
+}
+
+void HomeTimelineStorage::InternalSwap(HomeTimelineStorage* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  users_to_posts_.InternalSwap(&other->users_to_posts_);
+}
+
+std::string HomeTimelineStorage::GetTypeName() const {
+  return "social_network.HomeTimelineStorage";
+}
+
+
+// ===================================================================
+
+class HomeTimelineWriteReq::_Internal {
+ public:
+  using HasBits = decltype(std::declval<HomeTimelineWriteReq>()._has_bits_);
+  static void set_has_post_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+  static void set_has_user_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_timestamp(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
+};
+
+HomeTimelineWriteReq::HomeTimelineWriteReq(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned),
+  user_mentions_id_(arena) {
+  SharedCtor();
+  // @@protoc_insertion_point(arena_constructor:social_network.HomeTimelineWriteReq)
+}
+HomeTimelineWriteReq::HomeTimelineWriteReq(const HomeTimelineWriteReq& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_),
+      user_mentions_id_(from.user_mentions_id_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  ::memcpy(&user_id_, &from.user_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&timestamp_) -
+    reinterpret_cast<char*>(&user_id_)) + sizeof(timestamp_));
+  // @@protoc_insertion_point(copy_constructor:social_network.HomeTimelineWriteReq)
+}
+
+inline void HomeTimelineWriteReq::SharedCtor() {
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&user_id_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&timestamp_) -
+    reinterpret_cast<char*>(&user_id_)) + sizeof(timestamp_));
+}
+
+HomeTimelineWriteReq::~HomeTimelineWriteReq() {
+  // @@protoc_insertion_point(destructor:social_network.HomeTimelineWriteReq)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<std::string>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void HomeTimelineWriteReq::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void HomeTimelineWriteReq::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void HomeTimelineWriteReq::Clear() {
+// @@protoc_insertion_point(message_clear_start:social_network.HomeTimelineWriteReq)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  user_mentions_id_.Clear();
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000007u) {
+    ::memset(&user_id_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&timestamp_) -
+        reinterpret_cast<char*>(&user_id_)) + sizeof(timestamp_));
+  }
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* HomeTimelineWriteReq::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional int64 user_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _Internal::set_has_user_id(&has_bits);
+          user_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int64 post_id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _Internal::set_has_post_id(&has_bits);
+          post_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int64 timestamp = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          _Internal::set_has_timestamp(&has_bits);
+          timestamp_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // repeated int64 user_mentions_id = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::PackedInt64Parser(_internal_mutable_user_mentions_id(), ptr, ctx);
+          CHK_(ptr);
+        } else if (static_cast<uint8_t>(tag) == 32) {
+          _internal_add_user_mentions_id(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr));
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* HomeTimelineWriteReq::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:social_network.HomeTimelineWriteReq)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // optional int64 user_id = 1;
+  if (_internal_has_user_id()) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt64ToArray(1, this->_internal_user_id(), target);
+  }
+
+  // optional int64 post_id = 2;
+  if (_internal_has_post_id()) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt64ToArray(2, this->_internal_post_id(), target);
+  }
+
+  // optional int64 timestamp = 3;
+  if (_internal_has_timestamp()) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt64ToArray(3, this->_internal_timestamp(), target);
+  }
+
+  // repeated int64 user_mentions_id = 4;
+  {
+    int byte_size = _user_mentions_id_cached_byte_size_.load(std::memory_order_relaxed);
+    if (byte_size > 0) {
+      target = stream->WriteInt64Packed(
+          4, _internal_user_mentions_id(), byte_size, target);
+    }
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:social_network.HomeTimelineWriteReq)
+  return target;
+}
+
+size_t HomeTimelineWriteReq::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:social_network.HomeTimelineWriteReq)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated int64 user_mentions_id = 4;
+  {
+    size_t data_size = ::_pbi::WireFormatLite::
+      Int64Size(this->user_mentions_id_);
+    if (data_size > 0) {
+      total_size += 1 +
+        ::_pbi::WireFormatLite::Int32Size(static_cast<int32_t>(data_size));
+    }
+    int cached_size = ::_pbi::ToCachedSize(data_size);
+    _user_mentions_id_cached_byte_size_.store(cached_size,
+                                    std::memory_order_relaxed);
+    total_size += data_size;
+  }
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000007u) {
+    // optional int64 user_id = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(this->_internal_user_id());
+    }
+
+    // optional int64 post_id = 2;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(this->_internal_post_id());
+    }
+
+    // optional int64 timestamp = 3;
+    if (cached_has_bits & 0x00000004u) {
+      total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(this->_internal_timestamp());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::_pbi::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void HomeTimelineWriteReq::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::_pbi::DownCast<const HomeTimelineWriteReq*>(
+      &from));
+}
+
+void HomeTimelineWriteReq::MergeFrom(const HomeTimelineWriteReq& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:social_network.HomeTimelineWriteReq)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  user_mentions_id_.MergeFrom(from.user_mentions_id_);
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x00000007u) {
+    if (cached_has_bits & 0x00000001u) {
+      user_id_ = from.user_id_;
+    }
+    if (cached_has_bits & 0x00000002u) {
+      post_id_ = from.post_id_;
+    }
+    if (cached_has_bits & 0x00000004u) {
+      timestamp_ = from.timestamp_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void HomeTimelineWriteReq::CopyFrom(const HomeTimelineWriteReq& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:social_network.HomeTimelineWriteReq)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool HomeTimelineWriteReq::IsInitialized() const {
+  return true;
+}
+
+void HomeTimelineWriteReq::InternalSwap(HomeTimelineWriteReq* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  user_mentions_id_.InternalSwap(&other->user_mentions_id_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(HomeTimelineWriteReq, timestamp_)
+      + sizeof(HomeTimelineWriteReq::timestamp_)
+      - PROTOBUF_FIELD_OFFSET(HomeTimelineWriteReq, user_id_)>(
+          reinterpret_cast<char*>(&user_id_),
+          reinterpret_cast<char*>(&other->user_id_));
+}
+
+std::string HomeTimelineWriteReq::GetTypeName() const {
+  return "social_network.HomeTimelineWriteReq";
+}
+
+
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace social_network
 PROTOBUF_NAMESPACE_OPEN
@@ -3539,6 +4259,22 @@ Arena::CreateMaybeMessage< ::social_network::PostStorageReadReq >(Arena* arena) 
 template<> PROTOBUF_NOINLINE ::social_network::PostStorageReadResp*
 Arena::CreateMaybeMessage< ::social_network::PostStorageReadResp >(Arena* arena) {
   return Arena::CreateMessageInternal< ::social_network::PostStorageReadResp >(arena);
+}
+template<> PROTOBUF_NOINLINE ::social_network::VecPostID*
+Arena::CreateMaybeMessage< ::social_network::VecPostID >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::social_network::VecPostID >(arena);
+}
+template<> PROTOBUF_NOINLINE ::social_network::HomeTimelineStorage_UsersToPostsEntry_DoNotUse*
+Arena::CreateMaybeMessage< ::social_network::HomeTimelineStorage_UsersToPostsEntry_DoNotUse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::social_network::HomeTimelineStorage_UsersToPostsEntry_DoNotUse >(arena);
+}
+template<> PROTOBUF_NOINLINE ::social_network::HomeTimelineStorage*
+Arena::CreateMaybeMessage< ::social_network::HomeTimelineStorage >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::social_network::HomeTimelineStorage >(arena);
+}
+template<> PROTOBUF_NOINLINE ::social_network::HomeTimelineWriteReq*
+Arena::CreateMaybeMessage< ::social_network::HomeTimelineWriteReq >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::social_network::HomeTimelineWriteReq >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 
