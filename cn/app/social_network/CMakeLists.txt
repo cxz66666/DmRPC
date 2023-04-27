@@ -1,6 +1,6 @@
 project(social_network)
 
-set(PROGRAMS load_balance unique_id url_shorten nginx user_mention user_timeline post_storage home_timeline user_service)
+set(PROGRAMS load_balance unique_id url_shorten nginx user_mention user_timeline post_storage home_timeline user_service media)
 
 set(APP_ADDITIONAL_SOURCES ${CMAKE_SOURCE_DIR}/cn/app/social_network/social_network.pb.cc)
 

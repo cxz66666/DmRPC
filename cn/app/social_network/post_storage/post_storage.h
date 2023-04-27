@@ -1,0 +1,289 @@
+#pragma once
+#include <hdr/hdr_histogram.h>
+#include <mongoc.h>
+#include "atomic_queue/atomic_queue.h"
+#include "../social_network_commons.h"
+#include "../social_network.pb.h"
+#include "phmap.h"
+#include "spinlock_mutex.h"
+#include "../utils_mongodb.h"
+
+#include "api.h"
+#include "page.h"
+
+std::string compose_post_addr;
+std::string user_timeline_addr;
+std::string home_timeline_addr;
+
+
+static mongoc_client_pool_t* mongodb_client_pool;
+int mongodb_conns_num;
+
+std::vector<rmem::Rmem *> rmems_;
+std::vector<social_network::RmemParam> rmem_params_;
+std::vector<phmap::flat_hash_map<int64_t , std::pair<size_t,size_t>>> post_id_to_addr_map_;
+
+// unit is GB
+size_t read_total_size_per_thread;
+size_t write_total_size_per_thread;
+
+class ClientContext : public BasicContext
+{
+public:
+    ClientContext(size_t cid, size_t sid, size_t rid) : client_id_(cid), server_sender_id_(sid), server_receiver_id_(rid)
+    {
+        forward_all_mpmc_queue = new MPMC_QUEUE(kAppMaxBuffer);
+        backward_mpmc_queue = new MPMC_QUEUE(kAppMaxBuffer);
+    }
+    ~ClientContext()
+    {
+        delete forward_all_mpmc_queue;
+        delete backward_mpmc_queue;
+    }
+    erpc::MsgBuffer req_backward_msgbuf[kAppMaxBuffer];
+
+    erpc::MsgBuffer resp_backward_msgbuf[kAppMaxBuffer];
+
+    size_t client_id_;
+    size_t server_sender_id_;
+    size_t server_receiver_id_;
+
+    int user_timeline_session_num_;
+    int home_timeline_session_num_;
+    int compose_post_session_num_;
+
+    MPMC_QUEUE *forward_all_mpmc_queue;
+    MPMC_QUEUE *backward_mpmc_queue;
+};
+
+class ServerContext : public BasicContext
+{
+public:
+    explicit ServerContext(size_t sid) : server_id_(sid)
+    {
+    }
+    ~ServerContext()
+    = default;
+    size_t server_id_{};
+    size_t stat_req_ping_tot{};
+    size_t stat_req_post_storage_read_tot{};
+    size_t stat_req_post_storage_write_tot{};
+    size_t stat_req_err_tot{};
+
+    spinlock_mutex init_mutex;
+    bool is_pinged{false};
+    bool mongodb_init_finished{false};
+
+    void reset_stat()
+    {
+        stat_req_ping_tot = 0;
+        stat_req_post_storage_read_tot = 0;
+        stat_req_post_storage_write_tot = 0;
+        stat_req_err_tot = 0;
+    }
+
+    MPMC_QUEUE *forward_all_mpmc_queue{};
+};
+
+std::vector<social_network::Post> mongodb_get_read_posts(){
+    mongodb_client_pool = init_mongodb_client_pool(config_json_all, "post_storage", mongodb_conns_num);
+    mongoc_client_t *mongodb_client =  mongoc_client_pool_pop(mongodb_client_pool);
+
+    auto collection = mongoc_client_get_collection(mongodb_client, "post", "post");
+
+    rmem::rt_assert(collection, "Failed to get post collection from DB Post");
+
+    bson_t* query = bson_new();
+    mongoc_cursor_t* cursor = mongoc_collection_find_with_opts(collection, query, nullptr, nullptr);
+
+    const bson_t *doc;
+    social_network::Post now_post;
+
+    std::vector<social_network::Post> posts;
+    while(mongoc_cursor_next(cursor,&doc)) {
+        auto post_json_char = bson_as_json(doc, nullptr);
+        json post_json = json::parse(post_json_char);
+
+        now_post.set_req_id(post_json["req_id"]);
+        now_post.set_timestamp(post_json["timestamp"]);
+        now_post.set_post_id(post_json["post_id"]);
+
+
+        auto creator = now_post.mutable_creator();
+        creator->set_user_id(post_json["creator"]["user_id"]);
+        creator->set_username(post_json["creator"]["username"]);
+
+        now_post.set_post_type(post_json["post_type"]);
+        now_post.set_text(post_json["text"]);
+
+        for(auto &item : post_json["media"]){
+            social_network::Media *media = now_post.add_media();
+            media->set_media_id(item["media_id"]);
+            media->set_media_type(item["media_type"]);
+        }
+
+        for(auto &item : post_json["user_mentions"]){
+            social_network::UserMention *user_mention = now_post.add_user_mentions();
+            user_mention->set_user_id(item["user_id"]);
+            user_mention->set_username(item["username"]);
+        }
+
+        for(auto &item: post_json["urls"]) {
+            social_network::Url *url = now_post.add_urls();
+            url->set_shortened_url(item["shortened_url"]);
+            url->set_expanded_url(item["expanded_url"]);
+        }
+
+        posts.push_back(now_post);
+        if(ctrl_c_pressed){
+            return {};
+        }
+    }
+
+    bson_destroy(query);
+    mongoc_cursor_destroy(cursor);
+    mongoc_collection_destroy(collection);
+    mongoc_client_pool_push(mongodb_client_pool, mongodb_client);
+
+    RMEM_INFO("mongodb init finished! Total post num: %ld", posts.size());
+    return posts;
+
+}
+
+
+
+class AppContext
+{
+public:
+    AppContext()
+    {
+        int ret = hdr_init(1, 1000 * 1000 * 10, 3,
+                           &latency_hist_);
+        rmem::rt_assert(ret == 0, "hdr_init failed");
+        for (size_t i = 0; i < FLAGS_client_num; i++)
+        {
+#if defined(ERPC_PROGRAM)
+            //TODO WARNING
+            client_contexts_.push_back(new ClientContext(i, i % FLAGS_server_num, i % FLAGS_server_num));
+#elif defined(RMEM_PROGRAM)
+            client_contexts_.push_back(new ClientContext(i, (i % FLAGS_server_num) + kAppMaxRPC, (i % FLAGS_server_num) + kAppMaxRPC));
+#endif
+        }
+        for (size_t i = 0; i < FLAGS_server_num; i++)
+        {
+            auto *ctx = new ServerContext(i);
+            ctx->forward_all_mpmc_queue = client_contexts_[i]->forward_all_mpmc_queue;
+            server_contexts_.push_back(ctx);
+        }
+
+        std::string memory_node_addr = get_memory_node_addr(1);
+        for (size_t i=0; i< FLAGS_server_num; i++)
+        {
+            auto *rmem = new rmem::Rmem(0);
+            social_network::RmemParam param;
+            param.set_addr(memory_node_addr);
+
+            int session_id = rmem->connect_session(memory_node_addr, i);
+            rmem::rt_assert(session_id >= 0, "connect_session failed");
+
+            param.set_rmem_session_id(session_id);
+            param.set_rmem_thread_id(static_cast<int>(i));
+
+            rmems_.push_back(rmem);
+            rmem_params_.push_back(param);
+            post_id_to_addr_map_.emplace_back();
+
+        }
+
+        std::vector<social_network::Post> read_posts_from_mongodb = mongodb_get_read_posts();
+
+        for(size_t i=0;i<FLAGS_server_num;i++)
+        {
+            size_t base_addr = rmems_[i]->rmem_alloc(GB(read_total_size_per_thread+ write_total_size_per_thread),
+                                                       rmem::VM_FLAG_READ | rmem::VM_FLAG_WRITE);
+            size_t begin = 0;
+            for(auto &item:read_posts_from_mongodb){
+                size_t item_size = item.ByteSizeLong();
+                rmems_[i]->rmem_write_sync(const_cast<char*>(item.SerializeAsString().c_str()), base_addr+begin, item_size);
+
+                post_id_to_addr_map_[i][item.post_id()] = {base_addr+begin,item_size};
+                begin += item_size;
+                begin = PAGE_ROUND_UP(begin);
+            }
+            rmem::rt_assert(begin<=GB(read_total_size_per_thread), "read_total_size_per_thread is too small");
+            char tmp[10]="01234";
+            for(size_t j= PAGE_ROUND_UP(begin);j<GB(read_total_size_per_thread+ write_total_size_per_thread);j+=PAGE_SIZE){
+                rmems_[i]->rmem_write_sync(tmp, j, 1);
+            }
+
+            rmem_params_[i].set_fork_rmem_addr(rmems_[i]->rmem_fork(base_addr, GB(read_total_size_per_thread+ write_total_size_per_thread)));
+            rmem_params_[i].set_fork_size(GB(read_total_size_per_thread+ write_total_size_per_thread));
+
+            RMEM_INFO("init rmem scope %ld finished! Total post num: %ld", i, post_id_to_addr_map_[i].size());
+        }
+
+
+    }
+    ~AppContext()
+    {
+        hdr_close(latency_hist_);
+
+        for (auto &ctx : client_contexts_)
+        {
+            delete ctx;
+        }
+        for (auto &ctx : server_contexts_)
+        {
+            delete ctx;
+        }
+    }
+
+    [[maybe_unused]] [[nodiscard]] bool write_latency_and_reset(const std::string &filename) const
+    {
+
+        FILE *fp = fopen(filename.c_str(), "w");
+        if (fp == nullptr)
+        {
+            return false;
+        }
+        hdr_percentiles_print(latency_hist_, fp, 5, 10, CLASSIC);
+        fclose(fp);
+        hdr_reset(latency_hist_);
+        return true;
+    }
+
+    std::vector<ClientContext *> client_contexts_;
+    std::vector<ServerContext *> server_contexts_;
+
+    hdr_histogram *latency_hist_{};
+};
+
+// must be used after init_service_config
+
+void init_specific_config(){
+    auto value = config_json_all["compose_post"]["server_addr"];
+    rmem::rt_assert(!value.is_null(),"value is null");
+    compose_post_addr = value;
+
+    value = config_json_all["user_timeline"]["server_addr"];
+    rmem::rt_assert(!value.is_null(),"value is null");
+    user_timeline_addr = value;
+
+    value = config_json_all["home_timeline"]["server_addr"];
+    rmem::rt_assert(!value.is_null(),"value is null");
+    home_timeline_addr = value;
+
+    auto conns = config_json_all["post_storage_mongodb"]["connections"];
+    rmem::rt_assert(!conns.is_null(),"value is null");
+    mongodb_conns_num = conns;
+
+    auto size = config_json_all["post_storage"]["read_total_size_per_thread"];
+    rmem::rt_assert(!size.is_null(),"value is null");
+    read_total_size_per_thread = size;
+
+    size = config_json_all["post_storage"]["write_total_size_per_thread"];
+    rmem::rt_assert(!size.is_null(),"value is null");
+    write_total_size_per_thread = size;
+
+}
+

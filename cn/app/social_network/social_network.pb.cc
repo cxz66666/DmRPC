@@ -109,9 +109,9 @@ PROTOBUF_CONSTEXPR Post::Post(
   , urls_()
   , text_(&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{})
   , creator_(nullptr)
-  , timestamp_(nullptr)
   , post_id_(int64_t{0})
   , req_id_(int64_t{0})
+  , timestamp_(int64_t{0})
   , post_type_(0)
 {}
 struct PostDefaultTypeInternal {
@@ -1993,21 +1993,20 @@ class Post::_Internal {
  public:
   using HasBits = decltype(std::declval<Post>()._has_bits_);
   static void set_has_post_id(HasBits* has_bits) {
-    (*has_bits)[0] |= 8u;
+    (*has_bits)[0] |= 4u;
   }
   static const ::social_network::Creator& creator(const Post* msg);
   static void set_has_creator(HasBits* has_bits) {
     (*has_bits)[0] |= 2u;
   }
   static void set_has_req_id(HasBits* has_bits) {
-    (*has_bits)[0] |= 16u;
+    (*has_bits)[0] |= 8u;
   }
   static void set_has_text(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
   }
-  static const ::PROTOBUF_NAMESPACE_ID::Timestamp& timestamp(const Post* msg);
   static void set_has_timestamp(HasBits* has_bits) {
-    (*has_bits)[0] |= 4u;
+    (*has_bits)[0] |= 16u;
   }
   static void set_has_post_type(HasBits* has_bits) {
     (*has_bits)[0] |= 32u;
@@ -2017,14 +2016,6 @@ class Post::_Internal {
 const ::social_network::Creator&
 Post::_Internal::creator(const Post* msg) {
   return *msg->creator_;
-}
-const ::PROTOBUF_NAMESPACE_ID::Timestamp&
-Post::_Internal::timestamp(const Post* msg) {
-  return *msg->timestamp_;
-}
-void Post::clear_timestamp() {
-  if (timestamp_ != nullptr) timestamp_->Clear();
-  _has_bits_[0] &= ~0x00000004u;
 }
 Post::Post(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -2054,11 +2045,6 @@ Post::Post(const Post& from)
     creator_ = new ::social_network::Creator(*from.creator_);
   } else {
     creator_ = nullptr;
-  }
-  if (from._internal_has_timestamp()) {
-    timestamp_ = new ::PROTOBUF_NAMESPACE_ID::Timestamp(*from.timestamp_);
-  } else {
-    timestamp_ = nullptr;
   }
   ::memcpy(&post_id_, &from.post_id_,
     static_cast<size_t>(reinterpret_cast<char*>(&post_type_) -
@@ -2090,7 +2076,6 @@ inline void Post::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   text_.Destroy();
   if (this != internal_default_instance()) delete creator_;
-  if (this != internal_default_instance()) delete timestamp_;
 }
 
 void Post::SetCachedSize(int size) const {
@@ -2107,7 +2092,7 @@ void Post::Clear() {
   media_.Clear();
   urls_.Clear();
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000007u) {
+  if (cached_has_bits & 0x00000003u) {
     if (cached_has_bits & 0x00000001u) {
       text_.ClearNonDefaultToEmpty();
     }
@@ -2115,12 +2100,8 @@ void Post::Clear() {
       GOOGLE_DCHECK(creator_ != nullptr);
       creator_->Clear();
     }
-    if (cached_has_bits & 0x00000004u) {
-      GOOGLE_DCHECK(timestamp_ != nullptr);
-      timestamp_->Clear();
-    }
   }
-  if (cached_has_bits & 0x00000038u) {
+  if (cached_has_bits & 0x0000003cu) {
     ::memset(&post_id_, 0, static_cast<size_t>(
         reinterpret_cast<char*>(&post_type_) -
         reinterpret_cast<char*>(&post_id_)) + sizeof(post_type_));
@@ -2211,10 +2192,11 @@ const char* Post::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
         } else
           goto handle_unusual;
         continue;
-      // optional .google.protobuf.Timestamp timestamp = 8;
+      // optional int64 timestamp = 8;
       case 8:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 66)) {
-          ptr = ctx->ParseMessage(_internal_mutable_timestamp(), ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 64)) {
+          _Internal::set_has_timestamp(&has_bits);
+          timestamp_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -2311,11 +2293,10 @@ uint8_t* Post::_InternalSerialize(
         InternalWriteMessage(7, repfield, repfield.GetCachedSize(), target, stream);
   }
 
-  // optional .google.protobuf.Timestamp timestamp = 8;
+  // optional int64 timestamp = 8;
   if (_internal_has_timestamp()) {
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(8, _Internal::timestamp(this),
-        _Internal::timestamp(this).GetCachedSize(), target, stream);
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt64ToArray(8, this->_internal_timestamp(), target);
   }
 
   // optional .social_network.PostType post_type = 9;
@@ -2378,21 +2359,19 @@ size_t Post::ByteSizeLong() const {
           *creator_);
     }
 
-    // optional .google.protobuf.Timestamp timestamp = 8;
-    if (cached_has_bits & 0x00000004u) {
-      total_size += 1 +
-        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-          *timestamp_);
-    }
-
     // optional int64 post_id = 1;
-    if (cached_has_bits & 0x00000008u) {
+    if (cached_has_bits & 0x00000004u) {
       total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(this->_internal_post_id());
     }
 
     // optional int64 req_id = 3;
-    if (cached_has_bits & 0x00000010u) {
+    if (cached_has_bits & 0x00000008u) {
       total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(this->_internal_req_id());
+    }
+
+    // optional int64 timestamp = 8;
+    if (cached_has_bits & 0x00000010u) {
+      total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(this->_internal_timestamp());
     }
 
     // optional .social_network.PostType post_type = 9;
@@ -2434,13 +2413,13 @@ void Post::MergeFrom(const Post& from) {
       _internal_mutable_creator()->::social_network::Creator::MergeFrom(from._internal_creator());
     }
     if (cached_has_bits & 0x00000004u) {
-      _internal_mutable_timestamp()->::PROTOBUF_NAMESPACE_ID::Timestamp::MergeFrom(from._internal_timestamp());
-    }
-    if (cached_has_bits & 0x00000008u) {
       post_id_ = from.post_id_;
     }
-    if (cached_has_bits & 0x00000010u) {
+    if (cached_has_bits & 0x00000008u) {
       req_id_ = from.req_id_;
+    }
+    if (cached_has_bits & 0x00000010u) {
+      timestamp_ = from.timestamp_;
     }
     if (cached_has_bits & 0x00000020u) {
       post_type_ = from.post_type_;

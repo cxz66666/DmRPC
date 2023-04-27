@@ -2,9 +2,6 @@ syntax = "proto3";
 
 package social_network;
 
-import "google/protobuf/timestamp.proto";
-
-
 option optimize_for = LITE_RUNTIME;
 
 enum PostType {
@@ -57,7 +54,7 @@ message Post {
     repeated UserMention user_mentions = 5;
     repeated Media media = 6;
     repeated Url urls = 7;
-    optional google.protobuf.Timestamp timestamp = 8;
+    optional int64 timestamp = 8;
     optional PostType post_type = 9;
 }
 

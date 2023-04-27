@@ -32,7 +32,6 @@
 #include <google/protobuf/map_entry_lite.h>
 #include <google/protobuf/map_field_lite.h>
 #include <google/protobuf/generated_enum_util.h>
-#include <google/protobuf/timestamp.pb.h>
 // @@protoc_insertion_point(includes)
 #include <google/protobuf/port_def.inc>
 #define PROTOBUF_INTERNAL_EXPORT_social_5fnetwork_2eproto
@@ -1265,9 +1264,9 @@ class Post final :
     kUrlsFieldNumber = 7,
     kTextFieldNumber = 4,
     kCreatorFieldNumber = 2,
-    kTimestampFieldNumber = 8,
     kPostIdFieldNumber = 1,
     kReqIdFieldNumber = 3,
+    kTimestampFieldNumber = 8,
     kPostTypeFieldNumber = 9,
   };
   // repeated .social_network.UserMention user_mentions = 5;
@@ -1360,24 +1359,6 @@ class Post final :
       ::social_network::Creator* creator);
   ::social_network::Creator* unsafe_arena_release_creator();
 
-  // optional .google.protobuf.Timestamp timestamp = 8;
-  bool has_timestamp() const;
-  private:
-  bool _internal_has_timestamp() const;
-  public:
-  void clear_timestamp();
-  const ::PROTOBUF_NAMESPACE_ID::Timestamp& timestamp() const;
-  PROTOBUF_NODISCARD ::PROTOBUF_NAMESPACE_ID::Timestamp* release_timestamp();
-  ::PROTOBUF_NAMESPACE_ID::Timestamp* mutable_timestamp();
-  void set_allocated_timestamp(::PROTOBUF_NAMESPACE_ID::Timestamp* timestamp);
-  private:
-  const ::PROTOBUF_NAMESPACE_ID::Timestamp& _internal_timestamp() const;
-  ::PROTOBUF_NAMESPACE_ID::Timestamp* _internal_mutable_timestamp();
-  public:
-  void unsafe_arena_set_allocated_timestamp(
-      ::PROTOBUF_NAMESPACE_ID::Timestamp* timestamp);
-  ::PROTOBUF_NAMESPACE_ID::Timestamp* unsafe_arena_release_timestamp();
-
   // optional int64 post_id = 1;
   bool has_post_id() const;
   private:
@@ -1402,6 +1383,19 @@ class Post final :
   private:
   int64_t _internal_req_id() const;
   void _internal_set_req_id(int64_t value);
+  public:
+
+  // optional int64 timestamp = 8;
+  bool has_timestamp() const;
+  private:
+  bool _internal_has_timestamp() const;
+  public:
+  void clear_timestamp();
+  int64_t timestamp() const;
+  void set_timestamp(int64_t value);
+  private:
+  int64_t _internal_timestamp() const;
+  void _internal_set_timestamp(int64_t value);
   public:
 
   // optional .social_network.PostType post_type = 9;
@@ -1431,9 +1425,9 @@ class Post final :
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::social_network::Url > urls_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr text_;
   ::social_network::Creator* creator_;
-  ::PROTOBUF_NAMESPACE_ID::Timestamp* timestamp_;
   int64_t post_id_;
   int64_t req_id_;
+  int64_t timestamp_;
   int post_type_;
   friend struct ::TableStruct_social_5fnetwork_2eproto;
 };
@@ -3868,7 +3862,7 @@ inline void ComposePostData::set_post_type(::social_network::PostType value) {
 
 // optional int64 post_id = 1;
 inline bool Post::_internal_has_post_id() const {
-  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
   return value;
 }
 inline bool Post::has_post_id() const {
@@ -3876,7 +3870,7 @@ inline bool Post::has_post_id() const {
 }
 inline void Post::clear_post_id() {
   post_id_ = int64_t{0};
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline int64_t Post::_internal_post_id() const {
   return post_id_;
@@ -3886,7 +3880,7 @@ inline int64_t Post::post_id() const {
   return _internal_post_id();
 }
 inline void Post::_internal_set_post_id(int64_t value) {
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000004u;
   post_id_ = value;
 }
 inline void Post::set_post_id(int64_t value) {
@@ -3986,7 +3980,7 @@ inline void Post::set_allocated_creator(::social_network::Creator* creator) {
 
 // optional int64 req_id = 3;
 inline bool Post::_internal_has_req_id() const {
-  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
   return value;
 }
 inline bool Post::has_req_id() const {
@@ -3994,7 +3988,7 @@ inline bool Post::has_req_id() const {
 }
 inline void Post::clear_req_id() {
   req_id_ = int64_t{0};
-  _has_bits_[0] &= ~0x00000010u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline int64_t Post::_internal_req_id() const {
   return req_id_;
@@ -4004,7 +3998,7 @@ inline int64_t Post::req_id() const {
   return _internal_req_id();
 }
 inline void Post::_internal_set_req_id(int64_t value) {
-  _has_bits_[0] |= 0x00000010u;
+  _has_bits_[0] |= 0x00000008u;
   req_id_ = value;
 }
 inline void Post::set_req_id(int64_t value) {
@@ -4200,91 +4194,32 @@ Post::urls() const {
   return urls_;
 }
 
-// optional .google.protobuf.Timestamp timestamp = 8;
+// optional int64 timestamp = 8;
 inline bool Post::_internal_has_timestamp() const {
-  bool value = (_has_bits_[0] & 0x00000004u) != 0;
-  PROTOBUF_ASSUME(!value || timestamp_ != nullptr);
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
   return value;
 }
 inline bool Post::has_timestamp() const {
   return _internal_has_timestamp();
 }
-inline const ::PROTOBUF_NAMESPACE_ID::Timestamp& Post::_internal_timestamp() const {
-  const ::PROTOBUF_NAMESPACE_ID::Timestamp* p = timestamp_;
-  return p != nullptr ? *p : reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Timestamp&>(
-      ::PROTOBUF_NAMESPACE_ID::_Timestamp_default_instance_);
+inline void Post::clear_timestamp() {
+  timestamp_ = int64_t{0};
+  _has_bits_[0] &= ~0x00000010u;
 }
-inline const ::PROTOBUF_NAMESPACE_ID::Timestamp& Post::timestamp() const {
+inline int64_t Post::_internal_timestamp() const {
+  return timestamp_;
+}
+inline int64_t Post::timestamp() const {
   // @@protoc_insertion_point(field_get:social_network.Post.timestamp)
   return _internal_timestamp();
 }
-inline void Post::unsafe_arena_set_allocated_timestamp(
-    ::PROTOBUF_NAMESPACE_ID::Timestamp* timestamp) {
-  if (GetArenaForAllocation() == nullptr) {
-    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(timestamp_);
-  }
-  timestamp_ = timestamp;
-  if (timestamp) {
-    _has_bits_[0] |= 0x00000004u;
-  } else {
-    _has_bits_[0] &= ~0x00000004u;
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:social_network.Post.timestamp)
+inline void Post::_internal_set_timestamp(int64_t value) {
+  _has_bits_[0] |= 0x00000010u;
+  timestamp_ = value;
 }
-inline ::PROTOBUF_NAMESPACE_ID::Timestamp* Post::release_timestamp() {
-  _has_bits_[0] &= ~0x00000004u;
-  ::PROTOBUF_NAMESPACE_ID::Timestamp* temp = timestamp_;
-  timestamp_ = nullptr;
-#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
-  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
-  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  if (GetArenaForAllocation() == nullptr) { delete old; }
-#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
-  if (GetArenaForAllocation() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
-  return temp;
-}
-inline ::PROTOBUF_NAMESPACE_ID::Timestamp* Post::unsafe_arena_release_timestamp() {
-  // @@protoc_insertion_point(field_release:social_network.Post.timestamp)
-  _has_bits_[0] &= ~0x00000004u;
-  ::PROTOBUF_NAMESPACE_ID::Timestamp* temp = timestamp_;
-  timestamp_ = nullptr;
-  return temp;
-}
-inline ::PROTOBUF_NAMESPACE_ID::Timestamp* Post::_internal_mutable_timestamp() {
-  _has_bits_[0] |= 0x00000004u;
-  if (timestamp_ == nullptr) {
-    auto* p = CreateMaybeMessage<::PROTOBUF_NAMESPACE_ID::Timestamp>(GetArenaForAllocation());
-    timestamp_ = p;
-  }
-  return timestamp_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::Timestamp* Post::mutable_timestamp() {
-  ::PROTOBUF_NAMESPACE_ID::Timestamp* _msg = _internal_mutable_timestamp();
-  // @@protoc_insertion_point(field_mutable:social_network.Post.timestamp)
-  return _msg;
-}
-inline void Post::set_allocated_timestamp(::PROTOBUF_NAMESPACE_ID::Timestamp* timestamp) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
-  if (message_arena == nullptr) {
-    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(timestamp_);
-  }
-  if (timestamp) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
-                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(timestamp));
-    if (message_arena != submessage_arena) {
-      timestamp = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, timestamp, submessage_arena);
-    }
-    _has_bits_[0] |= 0x00000004u;
-  } else {
-    _has_bits_[0] &= ~0x00000004u;
-  }
-  timestamp_ = timestamp;
-  // @@protoc_insertion_point(field_set_allocated:social_network.Post.timestamp)
+inline void Post::set_timestamp(int64_t value) {
+  _internal_set_timestamp(value);
+  // @@protoc_insertion_point(field_set:social_network.Post.timestamp)
 }
 
 // optional .social_network.PostType post_type = 9;

@@ -7,6 +7,7 @@
 #include "rpc.h"
 #include "social_network_rpc_type.h"
 #include "atomic_queue/atomic_queue.h"
+#include "spinlock_mutex.h"
 
 using json = nlohmann::json;
 
