@@ -43,6 +43,8 @@ enum class RPC_TYPE : uint8_t
     RPC_HOME_TIMELINE_READ_REQ,
     RPC_HOME_TIMELINE_READ_RESP,
 
+    // user_service
+    RPC_COMPOSE_CREATOR_WITH_USER_ID,
 };
 
 class CommonReq
