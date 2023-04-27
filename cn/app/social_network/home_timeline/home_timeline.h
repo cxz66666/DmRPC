@@ -99,7 +99,8 @@ public:
         for (size_t i = 0; i < FLAGS_client_num; i++)
         {
 #if defined(ERPC_PROGRAM)
-            client_contexts_.push_back(new ClientContext(i, i % FLAGS_server_num, i % FLAGS_server_num));
+            // notice that post_storage run rmem rpc, so rpc_id begin at kAppMaxRPC
+            client_contexts_.push_back(new ClientContext(i, (i % FLAGS_server_num) + kAppMaxRPC, i % FLAGS_server_num));
 #elif defined(RMEM_PROGRAM)
             client_contexts_.push_back(new ClientContext(i, (i % FLAGS_server_num) + kAppMaxRPC, (i % FLAGS_server_num) + kAppMaxRPC));
 #endif

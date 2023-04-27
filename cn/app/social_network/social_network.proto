@@ -99,3 +99,11 @@ message HomeTimelineWriteReq {
     optional int64 timestamp = 3;
     repeated int64 user_mentions_id = 4;
 }
+
+message RmemParam {
+    optional string addr = 1;
+    optional uint64 fork_rmem_addr = 2;
+    optional uint64 fork_size = 3;
+    optional int32 rmem_session_id = 4;
+    optional int32 rmem_thread_id = 5;
+}

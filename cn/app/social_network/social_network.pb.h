@@ -74,6 +74,9 @@ extern PostStorageReadReqDefaultTypeInternal _PostStorageReadReq_default_instanc
 class PostStorageReadResp;
 struct PostStorageReadRespDefaultTypeInternal;
 extern PostStorageReadRespDefaultTypeInternal _PostStorageReadResp_default_instance_;
+class RmemParam;
+struct RmemParamDefaultTypeInternal;
+extern RmemParamDefaultTypeInternal _RmemParam_default_instance_;
 class Text;
 struct TextDefaultTypeInternal;
 extern TextDefaultTypeInternal _Text_default_instance_;
@@ -109,6 +112,7 @@ template<> ::social_network::Media* Arena::CreateMaybeMessage<::social_network::
 template<> ::social_network::Post* Arena::CreateMaybeMessage<::social_network::Post>(Arena*);
 template<> ::social_network::PostStorageReadReq* Arena::CreateMaybeMessage<::social_network::PostStorageReadReq>(Arena*);
 template<> ::social_network::PostStorageReadResp* Arena::CreateMaybeMessage<::social_network::PostStorageReadResp>(Arena*);
+template<> ::social_network::RmemParam* Arena::CreateMaybeMessage<::social_network::RmemParam>(Arena*);
 template<> ::social_network::Text* Arena::CreateMaybeMessage<::social_network::Text>(Arena*);
 template<> ::social_network::Url* Arena::CreateMaybeMessage<::social_network::Url>(Arena*);
 template<> ::social_network::UrlShortenReq* Arena::CreateMaybeMessage<::social_network::UrlShortenReq>(Arena*);
@@ -2756,6 +2760,203 @@ class HomeTimelineWriteReq final :
   int64_t timestamp_;
   friend struct ::TableStruct_social_5fnetwork_2eproto;
 };
+// -------------------------------------------------------------------
+
+class RmemParam final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:social_network.RmemParam) */ {
+ public:
+  inline RmemParam() : RmemParam(nullptr) {}
+  ~RmemParam() override;
+  explicit PROTOBUF_CONSTEXPR RmemParam(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  RmemParam(const RmemParam& from);
+  RmemParam(RmemParam&& from) noexcept
+    : RmemParam() {
+    *this = ::std::move(from);
+  }
+
+  inline RmemParam& operator=(const RmemParam& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RmemParam& operator=(RmemParam&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const RmemParam& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const RmemParam* internal_default_instance() {
+    return reinterpret_cast<const RmemParam*>(
+               &_RmemParam_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    17;
+
+  friend void swap(RmemParam& a, RmemParam& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(RmemParam* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RmemParam* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RmemParam* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<RmemParam>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const RmemParam& from);
+  void MergeFrom(const RmemParam& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(RmemParam* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "social_network.RmemParam";
+  }
+  protected:
+  explicit RmemParam(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kAddrFieldNumber = 1,
+    kForkRmemAddrFieldNumber = 2,
+    kForkSizeFieldNumber = 3,
+    kRmemSessionIdFieldNumber = 4,
+    kRmemThreadIdFieldNumber = 5,
+  };
+  // optional string addr = 1;
+  bool has_addr() const;
+  private:
+  bool _internal_has_addr() const;
+  public:
+  void clear_addr();
+  const std::string& addr() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_addr(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_addr();
+  PROTOBUF_NODISCARD std::string* release_addr();
+  void set_allocated_addr(std::string* addr);
+  private:
+  const std::string& _internal_addr() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_addr(const std::string& value);
+  std::string* _internal_mutable_addr();
+  public:
+
+  // optional uint64 fork_rmem_addr = 2;
+  bool has_fork_rmem_addr() const;
+  private:
+  bool _internal_has_fork_rmem_addr() const;
+  public:
+  void clear_fork_rmem_addr();
+  uint64_t fork_rmem_addr() const;
+  void set_fork_rmem_addr(uint64_t value);
+  private:
+  uint64_t _internal_fork_rmem_addr() const;
+  void _internal_set_fork_rmem_addr(uint64_t value);
+  public:
+
+  // optional uint64 fork_size = 3;
+  bool has_fork_size() const;
+  private:
+  bool _internal_has_fork_size() const;
+  public:
+  void clear_fork_size();
+  uint64_t fork_size() const;
+  void set_fork_size(uint64_t value);
+  private:
+  uint64_t _internal_fork_size() const;
+  void _internal_set_fork_size(uint64_t value);
+  public:
+
+  // optional int32 rmem_session_id = 4;
+  bool has_rmem_session_id() const;
+  private:
+  bool _internal_has_rmem_session_id() const;
+  public:
+  void clear_rmem_session_id();
+  int32_t rmem_session_id() const;
+  void set_rmem_session_id(int32_t value);
+  private:
+  int32_t _internal_rmem_session_id() const;
+  void _internal_set_rmem_session_id(int32_t value);
+  public:
+
+  // optional int32 rmem_thread_id = 5;
+  bool has_rmem_thread_id() const;
+  private:
+  bool _internal_has_rmem_thread_id() const;
+  public:
+  void clear_rmem_thread_id();
+  int32_t rmem_thread_id() const;
+  void set_rmem_thread_id(int32_t value);
+  private:
+  int32_t _internal_rmem_thread_id() const;
+  void _internal_set_rmem_thread_id(int32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:social_network.RmemParam)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr addr_;
+  uint64_t fork_rmem_addr_;
+  uint64_t fork_size_;
+  int32_t rmem_session_id_;
+  int32_t rmem_thread_id_;
+  friend struct ::TableStruct_social_5fnetwork_2eproto;
+};
 // ===================================================================
 
 
@@ -4676,9 +4877,195 @@ HomeTimelineWriteReq::mutable_user_mentions_id() {
   return _internal_mutable_user_mentions_id();
 }
 
+// -------------------------------------------------------------------
+
+// RmemParam
+
+// optional string addr = 1;
+inline bool RmemParam::_internal_has_addr() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool RmemParam::has_addr() const {
+  return _internal_has_addr();
+}
+inline void RmemParam::clear_addr() {
+  addr_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const std::string& RmemParam::addr() const {
+  // @@protoc_insertion_point(field_get:social_network.RmemParam.addr)
+  return _internal_addr();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void RmemParam::set_addr(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000001u;
+ addr_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:social_network.RmemParam.addr)
+}
+inline std::string* RmemParam::mutable_addr() {
+  std::string* _s = _internal_mutable_addr();
+  // @@protoc_insertion_point(field_mutable:social_network.RmemParam.addr)
+  return _s;
+}
+inline const std::string& RmemParam::_internal_addr() const {
+  return addr_.Get();
+}
+inline void RmemParam::_internal_set_addr(const std::string& value) {
+  _has_bits_[0] |= 0x00000001u;
+  addr_.Set(value, GetArenaForAllocation());
+}
+inline std::string* RmemParam::_internal_mutable_addr() {
+  _has_bits_[0] |= 0x00000001u;
+  return addr_.Mutable(GetArenaForAllocation());
+}
+inline std::string* RmemParam::release_addr() {
+  // @@protoc_insertion_point(field_release:social_network.RmemParam.addr)
+  if (!_internal_has_addr()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000001u;
+  auto* p = addr_.Release();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (addr_.IsDefault()) {
+    addr_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void RmemParam::set_allocated_addr(std::string* addr) {
+  if (addr != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  addr_.SetAllocated(addr, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (addr_.IsDefault()) {
+    addr_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:social_network.RmemParam.addr)
+}
+
+// optional uint64 fork_rmem_addr = 2;
+inline bool RmemParam::_internal_has_fork_rmem_addr() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool RmemParam::has_fork_rmem_addr() const {
+  return _internal_has_fork_rmem_addr();
+}
+inline void RmemParam::clear_fork_rmem_addr() {
+  fork_rmem_addr_ = uint64_t{0u};
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline uint64_t RmemParam::_internal_fork_rmem_addr() const {
+  return fork_rmem_addr_;
+}
+inline uint64_t RmemParam::fork_rmem_addr() const {
+  // @@protoc_insertion_point(field_get:social_network.RmemParam.fork_rmem_addr)
+  return _internal_fork_rmem_addr();
+}
+inline void RmemParam::_internal_set_fork_rmem_addr(uint64_t value) {
+  _has_bits_[0] |= 0x00000002u;
+  fork_rmem_addr_ = value;
+}
+inline void RmemParam::set_fork_rmem_addr(uint64_t value) {
+  _internal_set_fork_rmem_addr(value);
+  // @@protoc_insertion_point(field_set:social_network.RmemParam.fork_rmem_addr)
+}
+
+// optional uint64 fork_size = 3;
+inline bool RmemParam::_internal_has_fork_size() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool RmemParam::has_fork_size() const {
+  return _internal_has_fork_size();
+}
+inline void RmemParam::clear_fork_size() {
+  fork_size_ = uint64_t{0u};
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline uint64_t RmemParam::_internal_fork_size() const {
+  return fork_size_;
+}
+inline uint64_t RmemParam::fork_size() const {
+  // @@protoc_insertion_point(field_get:social_network.RmemParam.fork_size)
+  return _internal_fork_size();
+}
+inline void RmemParam::_internal_set_fork_size(uint64_t value) {
+  _has_bits_[0] |= 0x00000004u;
+  fork_size_ = value;
+}
+inline void RmemParam::set_fork_size(uint64_t value) {
+  _internal_set_fork_size(value);
+  // @@protoc_insertion_point(field_set:social_network.RmemParam.fork_size)
+}
+
+// optional int32 rmem_session_id = 4;
+inline bool RmemParam::_internal_has_rmem_session_id() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool RmemParam::has_rmem_session_id() const {
+  return _internal_has_rmem_session_id();
+}
+inline void RmemParam::clear_rmem_session_id() {
+  rmem_session_id_ = 0;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline int32_t RmemParam::_internal_rmem_session_id() const {
+  return rmem_session_id_;
+}
+inline int32_t RmemParam::rmem_session_id() const {
+  // @@protoc_insertion_point(field_get:social_network.RmemParam.rmem_session_id)
+  return _internal_rmem_session_id();
+}
+inline void RmemParam::_internal_set_rmem_session_id(int32_t value) {
+  _has_bits_[0] |= 0x00000008u;
+  rmem_session_id_ = value;
+}
+inline void RmemParam::set_rmem_session_id(int32_t value) {
+  _internal_set_rmem_session_id(value);
+  // @@protoc_insertion_point(field_set:social_network.RmemParam.rmem_session_id)
+}
+
+// optional int32 rmem_thread_id = 5;
+inline bool RmemParam::_internal_has_rmem_thread_id() const {
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  return value;
+}
+inline bool RmemParam::has_rmem_thread_id() const {
+  return _internal_has_rmem_thread_id();
+}
+inline void RmemParam::clear_rmem_thread_id() {
+  rmem_thread_id_ = 0;
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline int32_t RmemParam::_internal_rmem_thread_id() const {
+  return rmem_thread_id_;
+}
+inline int32_t RmemParam::rmem_thread_id() const {
+  // @@protoc_insertion_point(field_get:social_network.RmemParam.rmem_thread_id)
+  return _internal_rmem_thread_id();
+}
+inline void RmemParam::_internal_set_rmem_thread_id(int32_t value) {
+  _has_bits_[0] |= 0x00000010u;
+  rmem_thread_id_ = value;
+}
+inline void RmemParam::set_rmem_thread_id(int32_t value) {
+  _internal_set_rmem_thread_id(value);
+  // @@protoc_insertion_point(field_set:social_network.RmemParam.rmem_thread_id)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

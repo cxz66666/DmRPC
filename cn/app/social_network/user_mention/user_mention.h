@@ -8,7 +8,6 @@
 #include "spinlock_mutex.h"
 #include "../utils_mongodb.h"
 
-using SPSC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>;
 
 std::string compose_post_addr;
 

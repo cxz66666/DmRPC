@@ -5,8 +5,6 @@
 
 #define HOSTNAME "http://short-url/"
 
-using SPSC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>;
-
 std::string compose_post_addr;
 
 class ClientContext : public BasicContext

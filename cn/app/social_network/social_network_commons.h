@@ -251,3 +251,14 @@ size_t get_bind_core(size_t numa)
     lock.unlock();
     return res;
 }
+
+
+std::string get_memory_node_addr(size_t node_index)
+{
+    auto value1 = config_json_all["memory_node"+std::to_string(node_index)]["addr"];
+    auto value2 = config_json_all["memory_node"+std::to_string(node_index)]["port"];
+
+    rmem::rt_assert(!value1.is_null()&&!value2.is_null(),"node addr or port is null");
+
+    return value1.get<std::string>()+":"+value2.get<std::string>();
+}

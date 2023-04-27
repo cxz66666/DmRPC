@@ -248,6 +248,22 @@ struct HomeTimelineWriteReqDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 HomeTimelineWriteReqDefaultTypeInternal _HomeTimelineWriteReq_default_instance_;
+PROTOBUF_CONSTEXPR RmemParam::RmemParam(
+    ::_pbi::ConstantInitialized)
+  : addr_(&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{})
+  , fork_rmem_addr_(uint64_t{0u})
+  , fork_size_(uint64_t{0u})
+  , rmem_session_id_(0)
+  , rmem_thread_id_(0){}
+struct RmemParamDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RmemParamDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RmemParamDefaultTypeInternal() {}
+  union {
+    RmemParam _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RmemParamDefaultTypeInternal _RmemParam_default_instance_;
 }  // namespace social_network
 namespace social_network {
 bool PostType_IsValid(int value) {
@@ -4205,6 +4221,339 @@ std::string HomeTimelineWriteReq::GetTypeName() const {
 }
 
 
+// ===================================================================
+
+class RmemParam::_Internal {
+ public:
+  using HasBits = decltype(std::declval<RmemParam>()._has_bits_);
+  static void set_has_addr(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_fork_rmem_addr(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+  static void set_has_fork_size(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
+  static void set_has_rmem_session_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
+  }
+  static void set_has_rmem_thread_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 16u;
+  }
+};
+
+RmemParam::RmemParam(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  // @@protoc_insertion_point(arena_constructor:social_network.RmemParam)
+}
+RmemParam::RmemParam(const RmemParam& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  addr_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    addr_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_addr()) {
+    addr_.Set(from._internal_addr(), 
+      GetArenaForAllocation());
+  }
+  ::memcpy(&fork_rmem_addr_, &from.fork_rmem_addr_,
+    static_cast<size_t>(reinterpret_cast<char*>(&rmem_thread_id_) -
+    reinterpret_cast<char*>(&fork_rmem_addr_)) + sizeof(rmem_thread_id_));
+  // @@protoc_insertion_point(copy_constructor:social_network.RmemParam)
+}
+
+inline void RmemParam::SharedCtor() {
+addr_.InitDefault();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  addr_.Set("", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&fork_rmem_addr_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&rmem_thread_id_) -
+    reinterpret_cast<char*>(&fork_rmem_addr_)) + sizeof(rmem_thread_id_));
+}
+
+RmemParam::~RmemParam() {
+  // @@protoc_insertion_point(destructor:social_network.RmemParam)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<std::string>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void RmemParam::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  addr_.Destroy();
+}
+
+void RmemParam::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void RmemParam::Clear() {
+// @@protoc_insertion_point(message_clear_start:social_network.RmemParam)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    addr_.ClearNonDefaultToEmpty();
+  }
+  if (cached_has_bits & 0x0000001eu) {
+    ::memset(&fork_rmem_addr_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&rmem_thread_id_) -
+        reinterpret_cast<char*>(&fork_rmem_addr_)) + sizeof(rmem_thread_id_));
+  }
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* RmemParam::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional string addr = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          auto str = _internal_mutable_addr();
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+          CHK_(::_pbi::VerifyUTF8(str, nullptr));
+        } else
+          goto handle_unusual;
+        continue;
+      // optional uint64 fork_rmem_addr = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _Internal::set_has_fork_rmem_addr(&has_bits);
+          fork_rmem_addr_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional uint64 fork_size = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          _Internal::set_has_fork_size(&has_bits);
+          fork_size_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 rmem_session_id = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
+          _Internal::set_has_rmem_session_id(&has_bits);
+          rmem_session_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 rmem_thread_id = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 40)) {
+          _Internal::set_has_rmem_thread_id(&has_bits);
+          rmem_thread_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* RmemParam::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:social_network.RmemParam)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // optional string addr = 1;
+  if (_internal_has_addr()) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_addr().data(), static_cast<int>(this->_internal_addr().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "social_network.RmemParam.addr");
+    target = stream->WriteStringMaybeAliased(
+        1, this->_internal_addr(), target);
+  }
+
+  // optional uint64 fork_rmem_addr = 2;
+  if (_internal_has_fork_rmem_addr()) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(2, this->_internal_fork_rmem_addr(), target);
+  }
+
+  // optional uint64 fork_size = 3;
+  if (_internal_has_fork_size()) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(3, this->_internal_fork_size(), target);
+  }
+
+  // optional int32 rmem_session_id = 4;
+  if (_internal_has_rmem_session_id()) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(4, this->_internal_rmem_session_id(), target);
+  }
+
+  // optional int32 rmem_thread_id = 5;
+  if (_internal_has_rmem_thread_id()) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(5, this->_internal_rmem_thread_id(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:social_network.RmemParam)
+  return target;
+}
+
+size_t RmemParam::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:social_network.RmemParam)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x0000001fu) {
+    // optional string addr = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_addr());
+    }
+
+    // optional uint64 fork_rmem_addr = 2;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_fork_rmem_addr());
+    }
+
+    // optional uint64 fork_size = 3;
+    if (cached_has_bits & 0x00000004u) {
+      total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_fork_size());
+    }
+
+    // optional int32 rmem_session_id = 4;
+    if (cached_has_bits & 0x00000008u) {
+      total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_rmem_session_id());
+    }
+
+    // optional int32 rmem_thread_id = 5;
+    if (cached_has_bits & 0x00000010u) {
+      total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_rmem_thread_id());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::_pbi::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void RmemParam::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::_pbi::DownCast<const RmemParam*>(
+      &from));
+}
+
+void RmemParam::MergeFrom(const RmemParam& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:social_network.RmemParam)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x0000001fu) {
+    if (cached_has_bits & 0x00000001u) {
+      _internal_set_addr(from._internal_addr());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      fork_rmem_addr_ = from.fork_rmem_addr_;
+    }
+    if (cached_has_bits & 0x00000004u) {
+      fork_size_ = from.fork_size_;
+    }
+    if (cached_has_bits & 0x00000008u) {
+      rmem_session_id_ = from.rmem_session_id_;
+    }
+    if (cached_has_bits & 0x00000010u) {
+      rmem_thread_id_ = from.rmem_thread_id_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void RmemParam::CopyFrom(const RmemParam& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:social_network.RmemParam)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool RmemParam::IsInitialized() const {
+  return true;
+}
+
+void RmemParam::InternalSwap(RmemParam* other) {
+  using std::swap;
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &addr_, lhs_arena,
+      &other->addr_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(RmemParam, rmem_thread_id_)
+      + sizeof(RmemParam::rmem_thread_id_)
+      - PROTOBUF_FIELD_OFFSET(RmemParam, fork_rmem_addr_)>(
+          reinterpret_cast<char*>(&fork_rmem_addr_),
+          reinterpret_cast<char*>(&other->fork_rmem_addr_));
+}
+
+std::string RmemParam::GetTypeName() const {
+  return "social_network.RmemParam";
+}
+
+
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace social_network
 PROTOBUF_NAMESPACE_OPEN
@@ -4275,6 +4624,10 @@ Arena::CreateMaybeMessage< ::social_network::HomeTimelineStorage >(Arena* arena)
 template<> PROTOBUF_NOINLINE ::social_network::HomeTimelineWriteReq*
 Arena::CreateMaybeMessage< ::social_network::HomeTimelineWriteReq >(Arena* arena) {
   return Arena::CreateMessageInternal< ::social_network::HomeTimelineWriteReq >(arena);
+}
+template<> PROTOBUF_NOINLINE ::social_network::RmemParam*
+Arena::CreateMaybeMessage< ::social_network::RmemParam >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::social_network::RmemParam >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

@@ -61,5 +61,14 @@
     "addr": "192.168.189.8",
     "port": "10003",
     "connections": 512
+  },
+  "post_storage_mongodb": {
+    "addr": "192.168.189.8",
+    "port": "10004",
+    "connections": 512
+  },
+  "memory_node1": {
+    "addr": "192.168.189.8",
+    "port": "31864"
   }
 }
