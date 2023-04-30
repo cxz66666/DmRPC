@@ -265,7 +265,7 @@ void handler_common_req(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req_number % kAppMaxBuffer];
 
-    size_t session_num = 0;
+    size_t session_num;
 #if defined(ERPC_PROGRAM)
     session_num = ctx->session_num_vec_[req->req_number % ctx->servers_num_];
 #elif defined(RMEM_PROGRAM)
@@ -320,7 +320,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
 
-    uint8_t rpc_id = 0;
+    uint8_t rpc_id;
 #if defined(ERPC_PROGRAM)
     rpc_id = thread_id + FLAGS_server_num;
 #elif defined(RMEM_PROGRAM)
@@ -341,8 +341,16 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     connect_sessions(ctx);
 
     using FUNC_HANDLER = std::function<void(ClientContext *, erpc::MsgBuffer)>;
-    FUNC_HANDLER handlers[] = {handler_ping, handler_ping_resp, handler_common_req, handler_common_resp,
-                               handler_common_req, handler_common_resp,handler_common_req, handler_common_resp};
+    std::map<RPC_TYPE ,FUNC_HANDLER > handlers{
+            {RPC_TYPE::RPC_PING, handler_ping},
+            {RPC_TYPE::RPC_PING_RESP, handler_ping_resp},
+            {RPC_TYPE::RPC_COMPOSE_POST, handler_common_req},
+            {RPC_TYPE::RPC_COMPOSE_POST_RESP, handler_common_resp},
+            {RPC_TYPE::RPC_USER_TIMELINE, handler_common_req},
+            {RPC_TYPE::RPC_USER_TIMELINE_RESP, handler_common_resp},
+            {RPC_TYPE::RPC_HOME_TIMELINE, handler_common_req},
+            {RPC_TYPE::RPC_HOME_TIMELINE_RESP, handler_common_resp},
+    };
 
     while (true)
     {
@@ -354,7 +362,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
             rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_COMPOSE_POST
                             || req->type == RPC_TYPE::RPC_USER_TIMELINE || req->type == RPC_TYPE::RPC_HOME_TIMELINE, "only ping and tc in forward queue");
-            handlers[static_cast<uint8_t>(req->type)](ctx, req_msg);
+            handlers[req->type](ctx, req_msg);
         }
 
         size = ctx->backward_spsc_queue->was_size();
@@ -367,7 +375,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
                 printf("req->type=%u\n", static_cast<uint32_t>(req->type));
             rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP || req->type == RPC_TYPE::RPC_COMPOSE_POST_RESP ||
                             req->type == RPC_TYPE::RPC_USER_TIMELINE_RESP || req->type == RPC_TYPE::RPC_HOME_TIMELINE_RESP, "only ping_resp and tc_resp in backward queue");
-            handlers[static_cast<uint8_t>(req->type)](ctx, req_msg);
+            handlers[req->type](ctx, req_msg);
         }
         ctx->rpc_->run_event_loop_once();
         if (unlikely(ctrl_c_pressed))
@@ -383,7 +391,7 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
 
-    uint8_t rpc_id = 0;
+    uint8_t rpc_id;
 #if defined(ERPC_PROGRAM)
     rpc_id = thread_id;
 #elif defined(RMEM_PROGRAM)
