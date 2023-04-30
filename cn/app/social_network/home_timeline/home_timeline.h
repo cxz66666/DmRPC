@@ -241,7 +241,7 @@ void read_home_time_line_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *r
     }
 
     social_network::PostStorageReadReq post_storage_req;
-
+    post_storage_req.set_rpc_type(static_cast<uint32_t>(RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ));
     int now_index = 0;
     for(int64_t & post_id : post_ids){
         if(req->req_control.start_idx<=now_index && now_index<req->req_control.stop_idx){

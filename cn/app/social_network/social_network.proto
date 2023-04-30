@@ -76,6 +76,7 @@ message UserMentionResp {
 
 message PostStorageReadReq {
     repeated int64 post_ids = 1;
+    optional uint32 rpc_type = 2;
 }
 
 message PostStorageReadResp {

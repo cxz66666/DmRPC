@@ -363,7 +363,6 @@ void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *cons
 {
     _unused(thread_id);
     _unused(rpc_);
-    _unused(server_rpc_);
     while (true)
     {
         unsigned size = producer->was_size();

@@ -195,6 +195,7 @@ void read_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MPMC_QUEUE
     }
 
     social_network::PostStorageReadReq post_storage_req;
+    post_storage_req.set_rpc_type(static_cast<uint32_t>(RPC_TYPE::RPC_USER_TIMELINE_READ_REQ));
 
     int now_index = 0;
     for(int64_t post_id : post_ids){
@@ -232,7 +233,7 @@ void write_post_ids_and_return(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MP
 
 
     std::future<void> mongo_update_future =
-            std::async(std::launch::async, [&](UserTimeLineWriteReq r, const erpc::MsgBuffer& resp_buffer,MPMC_QUEUE *c_back) {
+            std::async(std::launch::async, [=](UserTimeLineWriteReq r, const erpc::MsgBuffer resp_buffer,MPMC_QUEUE *c_back) {
                 mongoc_client_t *mongodb_client = mongoc_client_pool_pop(mongodb_client_pool);
                 auto collection = mongoc_client_get_collection(mongodb_client, "user_timeline", "user_timeline");
 

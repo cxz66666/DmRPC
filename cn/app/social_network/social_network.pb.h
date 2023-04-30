@@ -2093,6 +2093,7 @@ class PostStorageReadReq final :
 
   enum : int {
     kPostIdsFieldNumber = 1,
+    kRpcTypeFieldNumber = 2,
   };
   // repeated int64 post_ids = 1;
   int post_ids_size() const;
@@ -2116,6 +2117,19 @@ class PostStorageReadReq final :
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
       mutable_post_ids();
 
+  // optional uint32 rpc_type = 2;
+  bool has_rpc_type() const;
+  private:
+  bool _internal_has_rpc_type() const;
+  public:
+  void clear_rpc_type();
+  uint32_t rpc_type() const;
+  void set_rpc_type(uint32_t value);
+  private:
+  uint32_t _internal_rpc_type() const;
+  void _internal_set_rpc_type(uint32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:social_network.PostStorageReadReq)
  private:
   class _Internal;
@@ -2123,9 +2137,11 @@ class PostStorageReadReq final :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t > post_ids_;
   mutable std::atomic<int> _post_ids_cached_byte_size_;
-  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  uint32_t rpc_type_;
   friend struct ::TableStruct_social_5fnetwork_2eproto;
 };
 // -------------------------------------------------------------------
@@ -4545,6 +4561,34 @@ inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int64_t >*
 PostStorageReadReq::mutable_post_ids() {
   // @@protoc_insertion_point(field_mutable_list:social_network.PostStorageReadReq.post_ids)
   return _internal_mutable_post_ids();
+}
+
+// optional uint32 rpc_type = 2;
+inline bool PostStorageReadReq::_internal_has_rpc_type() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool PostStorageReadReq::has_rpc_type() const {
+  return _internal_has_rpc_type();
+}
+inline void PostStorageReadReq::clear_rpc_type() {
+  rpc_type_ = 0u;
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline uint32_t PostStorageReadReq::_internal_rpc_type() const {
+  return rpc_type_;
+}
+inline uint32_t PostStorageReadReq::rpc_type() const {
+  // @@protoc_insertion_point(field_get:social_network.PostStorageReadReq.rpc_type)
+  return _internal_rpc_type();
+}
+inline void PostStorageReadReq::_internal_set_rpc_type(uint32_t value) {
+  _has_bits_[0] |= 0x00000001u;
+  rpc_type_ = value;
+}
+inline void PostStorageReadReq::set_rpc_type(uint32_t value) {
+  _internal_set_rpc_type(value);
+  // @@protoc_insertion_point(field_set:social_network.PostStorageReadReq.rpc_type)
 }
 
 // -------------------------------------------------------------------

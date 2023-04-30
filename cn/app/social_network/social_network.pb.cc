@@ -174,7 +174,8 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORIT
 PROTOBUF_CONSTEXPR PostStorageReadReq::PostStorageReadReq(
     ::_pbi::ConstantInitialized)
   : post_ids_()
-  , _post_ids_cached_byte_size_(0){}
+  , _post_ids_cached_byte_size_(0)
+  , rpc_type_(0u){}
 struct PostStorageReadReqDefaultTypeInternal {
   PROTOBUF_CONSTEXPR PostStorageReadReqDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -3180,6 +3181,10 @@ std::string UserMentionResp::GetTypeName() const {
 
 class PostStorageReadReq::_Internal {
  public:
+  using HasBits = decltype(std::declval<PostStorageReadReq>()._has_bits_);
+  static void set_has_rpc_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
 };
 
 PostStorageReadReq::PostStorageReadReq(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -3191,12 +3196,15 @@ PostStorageReadReq::PostStorageReadReq(::PROTOBUF_NAMESPACE_ID::Arena* arena,
 }
 PostStorageReadReq::PostStorageReadReq(const PostStorageReadReq& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_),
       post_ids_(from.post_ids_) {
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  rpc_type_ = from.rpc_type_;
   // @@protoc_insertion_point(copy_constructor:social_network.PostStorageReadReq)
 }
 
 inline void PostStorageReadReq::SharedCtor() {
+rpc_type_ = 0u;
 }
 
 PostStorageReadReq::~PostStorageReadReq() {
@@ -3223,11 +3231,14 @@ void PostStorageReadReq::Clear() {
   (void) cached_has_bits;
 
   post_ids_.Clear();
+  rpc_type_ = 0u;
+  _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
 }
 
 const char* PostStorageReadReq::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
   while (!ctx->Done(&ptr)) {
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
@@ -3239,6 +3250,15 @@ const char* PostStorageReadReq::_InternalParse(const char* ptr, ::_pbi::ParseCon
           CHK_(ptr);
         } else if (static_cast<uint8_t>(tag) == 8) {
           _internal_add_post_ids(::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr));
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional uint32 rpc_type = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _Internal::set_has_rpc_type(&has_bits);
+          rpc_type_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -3259,6 +3279,7 @@ const char* PostStorageReadReq::_InternalParse(const char* ptr, ::_pbi::ParseCon
     CHK_(ptr != nullptr);
   }  // while
 message_done:
+  _has_bits_.Or(has_bits);
   return ptr;
 failure:
   ptr = nullptr;
@@ -3279,6 +3300,12 @@ uint8_t* PostStorageReadReq::_InternalSerialize(
       target = stream->WriteInt64Packed(
           1, _internal_post_ids(), byte_size, target);
     }
+  }
+
+  // optional uint32 rpc_type = 2;
+  if (_internal_has_rpc_type()) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_rpc_type(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -3311,6 +3338,12 @@ size_t PostStorageReadReq::ByteSizeLong() const {
     total_size += data_size;
   }
 
+  // optional uint32 rpc_type = 2;
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_rpc_type());
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
   }
@@ -3332,6 +3365,9 @@ void PostStorageReadReq::MergeFrom(const PostStorageReadReq& from) {
   (void) cached_has_bits;
 
   post_ids_.MergeFrom(from.post_ids_);
+  if (from._internal_has_rpc_type()) {
+    _internal_set_rpc_type(from._internal_rpc_type());
+  }
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
 }
 
@@ -3349,7 +3385,9 @@ bool PostStorageReadReq::IsInitialized() const {
 void PostStorageReadReq::InternalSwap(PostStorageReadReq* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
   post_ids_.InternalSwap(&other->post_ids_);
+  swap(rpc_type_, other->rpc_type_);
 }
 
 std::string PostStorageReadReq::GetTypeName() const {
