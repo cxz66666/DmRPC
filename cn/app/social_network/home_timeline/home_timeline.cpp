@@ -68,10 +68,10 @@ void home_timeline_write_req_handler(erpc::ReqHandle *req_handle, void *_context
     new (req_handle->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
 
-    if (likely(ctx->req_backward_msgbuf_ptr[req->req_common.req_number % kAppMaxBuffer].buf_ != nullptr))
-    {
-        ctx->rpc_->free_msg_buffer(ctx->req_backward_msgbuf_ptr[req->req_common.req_number % kAppMaxBuffer]);
-    }
+//    if (likely(ctx->req_backward_msgbuf_ptr[req->req_common.req_number % kAppMaxBuffer].buf_ != nullptr))
+//    {
+//        ctx->rpc_->free_msg_buffer(ctx->req_backward_msgbuf_ptr[req->req_common.req_number % kAppMaxBuffer]);
+//    }
 
     ctx->forward_all_mpmc_queue->push(*req_msgbuf);
     req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
@@ -97,10 +97,10 @@ void home_timeline_read_req_handler(erpc::ReqHandle *req_handle, void *_context)
     new (req_handle->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
     ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
 
-    if (likely(ctx->req_forward_msgbuf_ptr[req->req_common.req_number % kAppMaxBuffer].buf_ != nullptr))
-    {
-        ctx->rpc_->free_msg_buffer(ctx->req_forward_msgbuf_ptr[req->req_common.req_number % kAppMaxBuffer]);
-    }
+//    if (likely(ctx->req_forward_msgbuf_ptr[req->req_common.req_number % kAppMaxBuffer].buf_ != nullptr))
+//    {
+//        ctx->rpc_->free_msg_buffer(ctx->req_forward_msgbuf_ptr[req->req_common.req_number % kAppMaxBuffer]);
+//    }
 
     ctx->forward_all_mpmc_queue->push(*req_msgbuf);
     req_handle->get_hacked_req_msgbuf()->set_no_dynamic();
@@ -181,11 +181,12 @@ void callback_home_timeline_write_resp(void *_context, void *_tag)
     uint32_t req_id = req_id_ptr;
     auto *ctx = static_cast<ClientContext *>(_context);
 
-    // erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
+    erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req_id];
 
     rmem::rt_assert(resp_msgbuf.get_data_size() == sizeof(RPCMsgResp<CommonRPCResp>), "data size not match");
 
+    ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
 void handler_home_timeline_write_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
@@ -232,11 +233,12 @@ void callback_post_storage_read_req(void *_context, void *_tag)
     uint32_t req_id = req_id_ptr;
     auto *ctx = static_cast<ClientContext *>(_context);
 
-    // erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
+    erpc::MsgBuffer &req_msgbuf = ctx->req_backward_msgbuf[req_id];
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req_id];
 
     rmem::rt_assert(resp_msgbuf.get_data_size() == sizeof(RPCMsgResp<CommonRPCResp>), "data size not match");
 
+    ctx->rpc_->free_msg_buffer(req_msgbuf);
 }
 
 void handler_post_storage_read_req(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
@@ -359,8 +361,6 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
 void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *consumer_back, MPMC_QUEUE *consumer_fwd, erpc::Rpc<erpc::CTransport> *rpc_, erpc::Rpc<erpc::CTransport> *server_rpc_)
 {
     _unused(thread_id);
-    _unused(rpc_);
-    _unused(server_rpc_);
     while (true)
     {
         unsigned size = producer->was_size();
