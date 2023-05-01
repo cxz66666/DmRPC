@@ -221,12 +221,12 @@ void write_post_ids_and_return(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MP
 
     erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<UserTimeLineWriteReq>));
 
-    auto* resp = new (resp_buf.buf_) RPCMsgResp<UserTimeLineWriteReq>(RPC_TYPE::RPC_USER_TIMELINE_WRITE_RESP, req->req_common.req_number, 0,
+    auto* resp = new (resp_buf.buf_) RPCMsgReq<UserTimeLineWriteReq>(RPC_TYPE::RPC_USER_TIMELINE_WRITE_RESP, req->req_common.req_number,
                                                                     {req->req_control.post_id, req->req_control.user_id, req->req_control.timestamp });
 
     std::set<int64_t> &post_ids = user_timeline_map[req->req_control.user_id];
     if(post_ids.count(req->req_control.post_id)){
-        resp->resp_control.timestamp++;
+        resp->req_control.timestamp++;
         consumer_back->push(resp_buf);
         return;
     }

@@ -282,7 +282,7 @@ void write_home_timeline_and_return(void *buf_, erpc::Rpc<erpc::CTransport> *rpc
     }
 
     erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>));
-    new (resp_buf.buf_) RPCMsgResp<CommonRPCReq>(RPC_TYPE::RPC_HOME_TIMELINE_WRITE_RESP, req->req_common.req_number, 0, {0});
+    new (resp_buf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_HOME_TIMELINE_WRITE_RESP, req->req_common.req_number, {0});
 
     consumer_back->push(resp_buf);
 }
