@@ -28,7 +28,7 @@
   "url_shorten": {
     "server_addr": "192.168.189.8:31855"
   },
-  "compose_pose": {
+  "compose_post": {
     "server_addr": "192.168.189.8:31856"
   },
   "user_timeline": {

@@ -7,14 +7,6 @@ enum class RPC_TYPE : uint8_t
     RPC_PING = 0,
     RPC_PING_RESP,
 
-    RPC_COMPOSE_POST,
-    RPC_COMPOSE_POST_RESP,
-
-    RPC_USER_TIMELINE,
-    RPC_USER_TIMELINE_RESP,
-
-    RPC_HOME_TIMELINE,
-    RPC_HOME_TIMELINE_RESP,
 
     // unique_id_service
     RPC_UNIQUE_ID,
@@ -24,6 +16,11 @@ enum class RPC_TYPE : uint8_t
 
     // user_mention_service
     RPC_USER_MENTION,
+
+    // compose_post_service
+    RPC_COMPOSE_POST_WRITE_REQ,
+    RPC_COMPOSE_POST_WRITE_RESP,
+
 
     // user_timeline_service
     RPC_USER_TIMELINE_WRITE_REQ,

@@ -7,23 +7,27 @@
 
 void connect_sessions(ClientContext *c)
 {
-    // connect to image server
-    std::vector<std::string> forward_server_addr = get_forward_addrs();
+    c->servers_num_ = 3;
 
-    c->servers_num_ = static_cast<int>(forward_server_addr.size());
-    for (const auto& m : forward_server_addr)
-    {
-        int session_num_forward = c->rpc_->create_session(m, c->server_sender_id_);
-        rmem::rt_assert(session_num_forward >= 0, "Failed to create session");
-        c->session_num_vec_.push_back(session_num_forward);
-    }
+    c->compose_post_session_num_ = c->rpc_->create_session(compose_post_addr, c->server_sender_id_);
+    rmem::rt_assert(c->compose_post_session_num_ >=0, "Failed to create session");
+    c->session_num_vec_.push_back(c->compose_post_session_num_);
+
+    c->user_timeline_session_num_ = c->rpc_->create_session(user_timeline_addr, c->server_sender_id_);
+    rmem::rt_assert(c->user_timeline_session_num_ >=0, "Failed to create session");
+    c->session_num_vec_.push_back(c->user_timeline_session_num_);
+
+    c->home_timeline_session_num_ = c->rpc_->create_session(home_timeline_addr, c->server_sender_id_);
+    rmem::rt_assert(c->home_timeline_session_num_ >=0, "Failed to create session");
+    c->session_num_vec_.push_back(c->home_timeline_session_num_);
+
 
     // connect to backward server
     c->backward_session_num_ = c->rpc_->create_session(load_balance_addr, c->server_receiver_id_);
     rmem::rt_assert(c->backward_session_num_ >= 0, "Failed to create session");
     c->session_num_vec_.push_back(c->backward_session_num_);
 
-    while (c->num_sm_resps_ != forward_server_addr.size() + 1)
+    while (c->num_sm_resps_ != 4)
     {
         c->rpc_->run_event_loop(kAppEvLoopMs);
         if (unlikely(ctrl_c_pressed == 1))
@@ -83,13 +87,13 @@ void common_req_handler(erpc::ReqHandle *req_handle, void *_context)
     auto *req = reinterpret_cast<CommonReq *>(req_msgbuf->buf_);
 
     switch (req->type) {
-        case RPC_TYPE::RPC_COMPOSE_POST:
+        case RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ:
             ctx->stat_req_compose_post_tot++;
             break;
-        case RPC_TYPE::RPC_USER_TIMELINE:
+        case RPC_TYPE::RPC_USER_TIMELINE_READ_REQ:
             ctx->stat_req_user_timeline_tot++;
             break;
-        case RPC_TYPE::RPC_HOME_TIMELINE:
+        case RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ:
             ctx->stat_req_home_timeline_tot++;
             break;
         default:
@@ -124,13 +128,13 @@ void common_resp_handler(erpc::ReqHandle *req_handle, void *_context)
     auto *req = reinterpret_cast<CommonReq *>(req_msgbuf->buf_);
 
     switch (req->type) {
-        case RPC_TYPE::RPC_COMPOSE_POST_RESP:
+        case RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP:
             ctx->stat_req_compose_post_resp_tot++;
             break;
-        case RPC_TYPE::RPC_USER_TIMELINE_RESP:
+        case RPC_TYPE::RPC_USER_TIMELINE_READ_RESP:
             ctx->stat_req_user_timeline_resp_tot++;
             break;
-        case RPC_TYPE::RPC_HOME_TIMELINE_RESP:
+        case RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP:
             ctx->stat_req_home_timeline_resp_tot++;
             break;
         default:
@@ -189,7 +193,7 @@ void handler_ping(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 
         erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[(req->req_common.req_number+i) % kAppMaxBuffer];
 
-        ctx->rpc_->enqueue_request(i, static_cast<uint8_t>(RPC_TYPE::RPC_PING),
+        ctx->rpc_->enqueue_request(ctx->session_num_vec_[i], static_cast<uint8_t>(RPC_TYPE::RPC_PING),
                                    &ctx->req_forward_msgbuf[(req->req_common.req_number+i) % kAppMaxBuffer], &resp_msgbuf,
                                    callback_ping, reinterpret_cast<void *>((req->req_common.req_number+i) % kAppMaxBuffer));
         send_ping_req_num++;
@@ -265,12 +269,22 @@ void handler_common_req(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_forward_msgbuf[req->req_number % kAppMaxBuffer];
 
-    size_t session_num = 0;
-#if defined(ERPC_PROGRAM)
-    session_num = ctx->session_num_vec_[req->req_number % ctx->servers_num_];
-#elif defined(RMEM_PROGRAM)
-    session_num = ctx->session_num_vec_[req->req_number % ctx->servers_num_];
-#endif
+    int session_num;
+
+    switch(req->type) {
+        case RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ:
+            session_num = ctx->compose_post_session_num_;
+            break;
+        case RPC_TYPE::RPC_USER_TIMELINE_READ_REQ:
+            session_num = ctx->user_timeline_session_num_;
+            break;
+        case RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ:
+            session_num = ctx->home_timeline_session_num_;
+            break;
+        default:
+            RMEM_WARN("inlegal req type %ud\n", static_cast<unsigned >(req->type));
+            exit(1);
+    }
 
     ctx->rpc_->enqueue_request(session_num, static_cast<uint8_t>(req->type),
                                &ctx->req_forward_msgbuf[req->req_number % kAppMaxBuffer], &resp_msgbuf,
@@ -341,8 +355,16 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     connect_sessions(ctx);
 
     using FUNC_HANDLER = std::function<void(ClientContext *, erpc::MsgBuffer)>;
-    FUNC_HANDLER handlers[] = {handler_ping, handler_ping_resp, handler_common_req, handler_common_resp,
-                               handler_common_req, handler_common_resp,handler_common_req, handler_common_resp};
+    std::map<RPC_TYPE ,FUNC_HANDLER > handlers{
+            {RPC_TYPE::RPC_PING, handler_ping},
+            {RPC_TYPE::RPC_PING_RESP, handler_ping_resp},
+            {RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ, handler_common_req},
+            {RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP, handler_common_resp},
+            {RPC_TYPE::RPC_USER_TIMELINE_READ_REQ, handler_common_req},
+            {RPC_TYPE::RPC_USER_TIMELINE_READ_RESP, handler_common_resp},
+            {RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ, handler_common_req},
+            {RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP, handler_common_resp},
+    };
 
     while (true)
     {
@@ -352,9 +374,9 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
         {
             erpc::MsgBuffer req_msg = ctx->forward_spsc_queue->pop();
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
-            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_COMPOSE_POST
-                            || req->type == RPC_TYPE::RPC_USER_TIMELINE || req->type == RPC_TYPE::RPC_HOME_TIMELINE, "only ping and tc in forward queue");
-            handlers[static_cast<uint8_t>(req->type)](ctx, req_msg);
+            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ
+                            || req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_REQ || req->type == RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ, "only ping and tc in forward queue");
+            handlers[req->type](ctx, req_msg);
         }
 
         size = ctx->backward_spsc_queue->was_size();
@@ -362,12 +384,12 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
         {
             erpc::MsgBuffer req_msg = ctx->backward_spsc_queue->pop();
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
-            if (req->type != RPC_TYPE::RPC_PING_RESP && req->type != RPC_TYPE::RPC_COMPOSE_POST_RESP &&
-                req->type != RPC_TYPE::RPC_USER_TIMELINE_RESP && req->type != RPC_TYPE::RPC_HOME_TIMELINE_RESP)
+            if (req->type != RPC_TYPE::RPC_PING_RESP && req->type != RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP &&
+                req->type != RPC_TYPE::RPC_USER_TIMELINE_READ_RESP && req->type != RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP)
                 printf("req->type=%u\n", static_cast<uint32_t>(req->type));
-            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP || req->type == RPC_TYPE::RPC_COMPOSE_POST_RESP ||
-                            req->type == RPC_TYPE::RPC_USER_TIMELINE_RESP || req->type == RPC_TYPE::RPC_HOME_TIMELINE_RESP, "only ping_resp and tc_resp in backward queue");
-            handlers[static_cast<uint8_t>(req->type)](ctx, req_msg);
+            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP || req->type == RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP ||
+                            req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_RESP || req->type == RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP, "only ping_resp and tc_resp in backward queue");
+            handlers[req->type](ctx, req_msg);
         }
         ctx->rpc_->run_event_loop_once();
         if (unlikely(ctrl_c_pressed))
@@ -423,14 +445,14 @@ void leader_thread_func()
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING), ping_handler);
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP), ping_resp_handler);
 
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST), common_req_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST_RESP), common_resp_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ), common_req_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP), common_resp_handler);
 
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE), common_req_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_RESP), common_resp_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ), common_req_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP), common_resp_handler);
 
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE), common_req_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_RESP), common_resp_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_READ_REQ), common_req_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_READ_RESP), common_resp_handler);
 
 
     std::vector<std::thread> clients(FLAGS_client_num);

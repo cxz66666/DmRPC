@@ -83,13 +83,13 @@ void common_req_handler(erpc::ReqHandle *req_handle, void *_context)
     auto *req = reinterpret_cast<CommonReq *>(req_msgbuf->buf_);
 
     switch (req->type) {
-        case RPC_TYPE::RPC_COMPOSE_POST:
+        case RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ:
             ctx->stat_req_compose_post_tot++;
             break;
-        case RPC_TYPE::RPC_USER_TIMELINE:
+        case RPC_TYPE::RPC_USER_TIMELINE_READ_REQ:
             ctx->stat_req_user_timeline_tot++;
             break;
-        case RPC_TYPE::RPC_HOME_TIMELINE:
+        case RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ:
             ctx->stat_req_home_timeline_tot++;
             break;
         default:
@@ -124,13 +124,13 @@ void common_resp_handler(erpc::ReqHandle *req_handle, void *_context)
     auto *req = reinterpret_cast<CommonReq *>(req_msgbuf->buf_);
 
     switch (req->type) {
-        case RPC_TYPE::RPC_COMPOSE_POST_RESP:
+        case RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP:
             ctx->stat_req_compose_post_resp_tot++;
             break;
-        case RPC_TYPE::RPC_USER_TIMELINE_RESP:
+        case RPC_TYPE::RPC_USER_TIMELINE_READ_RESP:
             ctx->stat_req_user_timeline_resp_tot++;
             break;
-        case RPC_TYPE::RPC_HOME_TIMELINE_RESP:
+        case RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP:
             ctx->stat_req_home_timeline_resp_tot++;
             break;
         default:
@@ -344,12 +344,12 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     std::map<RPC_TYPE ,FUNC_HANDLER > handlers{
             {RPC_TYPE::RPC_PING, handler_ping},
             {RPC_TYPE::RPC_PING_RESP, handler_ping_resp},
-            {RPC_TYPE::RPC_COMPOSE_POST, handler_common_req},
-            {RPC_TYPE::RPC_COMPOSE_POST_RESP, handler_common_resp},
-            {RPC_TYPE::RPC_USER_TIMELINE, handler_common_req},
-            {RPC_TYPE::RPC_USER_TIMELINE_RESP, handler_common_resp},
-            {RPC_TYPE::RPC_HOME_TIMELINE, handler_common_req},
-            {RPC_TYPE::RPC_HOME_TIMELINE_RESP, handler_common_resp},
+            {RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ, handler_common_req},
+            {RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP, handler_common_resp},
+            {RPC_TYPE::RPC_USER_TIMELINE_READ_REQ, handler_common_req},
+            {RPC_TYPE::RPC_USER_TIMELINE_READ_RESP, handler_common_resp},
+            {RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ, handler_common_req},
+            {RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP, handler_common_resp},
     };
 
     while (true)
@@ -360,8 +360,8 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
         {
             erpc::MsgBuffer req_msg = ctx->forward_spsc_queue->pop();
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
-            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_COMPOSE_POST
-                            || req->type == RPC_TYPE::RPC_USER_TIMELINE || req->type == RPC_TYPE::RPC_HOME_TIMELINE, "only ping and tc in forward queue");
+            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ
+                            || req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_REQ || req->type == RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ, "only ping and tc in forward queue");
             handlers[req->type](ctx, req_msg);
         }
 
@@ -370,11 +370,11 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
         {
             erpc::MsgBuffer req_msg = ctx->backward_spsc_queue->pop();
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
-            if (req->type != RPC_TYPE::RPC_PING_RESP && req->type != RPC_TYPE::RPC_COMPOSE_POST_RESP &&
-            req->type != RPC_TYPE::RPC_USER_TIMELINE_RESP && req->type != RPC_TYPE::RPC_HOME_TIMELINE_RESP)
+            if (req->type != RPC_TYPE::RPC_PING_RESP && req->type != RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP &&
+            req->type != RPC_TYPE::RPC_USER_TIMELINE_READ_RESP && req->type != RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP)
                 printf("req->type=%u\n", static_cast<uint32_t>(req->type));
-            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP || req->type == RPC_TYPE::RPC_COMPOSE_POST_RESP ||
-                            req->type == RPC_TYPE::RPC_USER_TIMELINE_RESP || req->type == RPC_TYPE::RPC_HOME_TIMELINE_RESP, "only ping_resp and tc_resp in backward queue");
+            rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP || req->type == RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP ||
+                            req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_RESP || req->type == RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP, "only ping_resp and tc_resp in backward queue");
             handlers[req->type](ctx, req_msg);
         }
         ctx->rpc_->run_event_loop_once();
@@ -431,14 +431,14 @@ void leader_thread_func()
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING), ping_handler);
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING_RESP), ping_resp_handler);
 
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST), common_req_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST_RESP), common_resp_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ), common_req_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP), common_resp_handler);
 
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE), common_req_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_RESP), common_resp_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_READ_REQ), common_req_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_READ_RESP), common_resp_handler);
 
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE), common_req_handler);
-    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_RESP), common_resp_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ), common_req_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP), common_resp_handler);
 
 
     std::vector<std::thread> clients(FLAGS_client_num);

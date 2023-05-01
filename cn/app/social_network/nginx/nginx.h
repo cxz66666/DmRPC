@@ -34,6 +34,9 @@ public:
     size_t server_receiver_id_;
 
     int backward_session_num_;
+    int compose_post_session_num_;
+    int user_timeline_session_num_;
+    int home_timeline_session_num_;
 
     int servers_num_{};
 
@@ -149,7 +152,7 @@ void init_specific_config(){
     rmem::rt_assert(!value.is_null(),"value is null");
     load_balance_addr = value;
 
-    value = config_json_all["compose_pose"]["server_addr"];
+    value = config_json_all["compose_post"]["server_addr"];
     rmem::rt_assert(!value.is_null(),"value is null");
     compose_post_addr = value;
 
@@ -160,9 +163,4 @@ void init_specific_config(){
     value = config_json_all["home_timeline"]["server_addr"];
     rmem::rt_assert(!value.is_null(),"value is null");
     home_timeline_addr = value;
-}
-
-std::vector<std::string> get_forward_addrs()
-{
-    return {compose_post_addr, user_timeline_addr, home_timeline_addr};
 }

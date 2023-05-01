@@ -122,7 +122,10 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     connect_sessions(ctx);
 
     using FUNC_HANDLER = std::function<void(ClientContext *, erpc::MsgBuffer)>;
-    FUNC_HANDLER handlers[] = {nullptr, handler_ping_resp};
+
+    std::map<RPC_TYPE ,FUNC_HANDLER > handlers{
+            {RPC_TYPE::RPC_PING_RESP, handler_ping_resp},
+    };
 
     while (true)
     {
@@ -134,7 +137,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
             if (req->type != RPC_TYPE::RPC_PING_RESP)
                 printf("req->type=%u\n", static_cast<uint32_t>(req->type));
             rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP, "only ping_resp and tc_resp in backward queue");
-            handlers[static_cast<uint8_t>(req->type)](ctx, req_msg);
+            handlers[req->type](ctx, req_msg);
         }
         ctx->rpc_->run_event_loop_once();
         if (unlikely(ctrl_c_pressed))
