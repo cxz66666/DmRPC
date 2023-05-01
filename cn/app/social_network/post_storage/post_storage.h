@@ -386,7 +386,7 @@ void write_post_storage(size_t thread_id, void *buf_, ClientContext* ctx, MPMC_Q
     storage_queues[thread_id]->push(storage_handler);
 
     erpc::MsgBuffer resp_buf = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>));
-    new (resp_buf.buf_) RPCMsgResp<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_WRITE_RESP, req->req_common.req_number, 0, {0});
+    new (resp_buf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_WRITE_RESP, req->req_common.req_number, {0});
 
     std::future<void> write_post_storage_future =
             std::async(std::launch::async, [=](social_network::Post *post_ptr, const erpc::MsgBuffer resp_buffer,MPMC_QUEUE *c_back) {
