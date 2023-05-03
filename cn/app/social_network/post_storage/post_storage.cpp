@@ -435,13 +435,13 @@ void leader_thread_func()
         rmem::rt_assert(context->server_contexts_[i]->rpc_ != nullptr && context->server_contexts_[i]->rpc_ != nullptr, "server rpc is null");
         workers[i] = std::thread(worker_thread_func, i, context->client_contexts_[i]->forward_all_mpmc_queue, context->client_contexts_[i]->backward_mpmc_queue,
                                  context->client_contexts_[i], context->server_contexts_[i]->rpc_);
-        rmem::bind_to_core(clients[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
+        rmem::bind_to_core(workers[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
 
     }
     for(size_t i=0; i< FLAGS_client_num; i++)
     {
         readers[i] = std::thread(reader_thread_func, i, context->client_contexts_[i]->backward_mpmc_queue, context->client_contexts_[i]);
-        rmem::bind_to_core(clients[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
+        rmem::bind_to_core(readers[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
     }
 
     sleep(2);

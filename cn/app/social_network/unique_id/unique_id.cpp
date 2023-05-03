@@ -123,6 +123,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
 
     using FUNC_HANDLER = std::function<void(ClientContext *, erpc::MsgBuffer)>;
 
+
     std::map<RPC_TYPE ,FUNC_HANDLER > handlers{
             {RPC_TYPE::RPC_PING_RESP, handler_ping_resp},
     };
@@ -244,7 +245,7 @@ void leader_thread_func()
         workers[i] = std::thread(worker_thread_func, i, context->client_contexts_[i]->forward_spsc_queue, context->client_contexts_[i]->backward_spsc_queue, context->client_contexts_[i]->rpc_, context->server_contexts_[i]->rpc_);
 //        uint64_t worker_offset = FLAGS_worker_bind_core_offset == UINT64_MAX ? FLAGS_bind_core_offset : FLAGS_worker_bind_core_offset;
 //        rmem::bind_to_core(workers[i], FLAGS_numa_worker_node, get_bind_core(FLAGS_numa_worker_node) + worker_offset);
-        rmem::bind_to_core(clients[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
+        rmem::bind_to_core(workers[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
 
     }
 
@@ -267,16 +268,20 @@ void leader_thread_func()
 
 int main(int argc, char **argv)
 {
+    try{
+        signal(SIGINT, ctrl_c_handler);
+        signal(SIGTERM, ctrl_c_handler);
+        // only config_file is required!!!
+        gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    signal(SIGINT, ctrl_c_handler);
-    signal(SIGTERM, ctrl_c_handler);
-    // only config_file is required!!!
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
+        init_service_config(FLAGS_config_file,"unique_id");
+        init_specific_config();
 
-    init_service_config(FLAGS_config_file,"unique_id");
-    init_specific_config();
+        std::thread leader_thread(leader_thread_func);
+        rmem::bind_to_core(leader_thread, 1, get_bind_core(1));
+        leader_thread.join();
+    } catch (std::exception &e){
+        printf("%s", e.what());
+    }
 
-    std::thread leader_thread(leader_thread_func);
-    rmem::bind_to_core(leader_thread, 1, get_bind_core(1));
-    leader_thread.join();
 }

@@ -9,7 +9,7 @@
     "numa_client_node": 0,
     "numa_server_node": 0,
     "bind_core_offset": 0,
-    "timeout_second": 60,
+    "timeout_second": 18446744073709551615,
     "latency_file": "latency.txt",
     "bandwidth_file": "bandwidth.txt"
   },
