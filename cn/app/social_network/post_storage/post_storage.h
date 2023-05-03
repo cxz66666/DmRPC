@@ -98,6 +98,7 @@ public:
     = default;
     size_t server_id_{};
     size_t stat_req_ping_tot{};
+    size_t stat_req_rmem_param{};
     size_t stat_req_post_storage_read_tot{};
     size_t stat_req_post_storage_write_tot{};
     size_t stat_req_err_tot{};

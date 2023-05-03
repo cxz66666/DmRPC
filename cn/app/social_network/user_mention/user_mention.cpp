@@ -260,7 +260,6 @@ void mongodb_init(AppContext *ctx){
             exit(1);
         }
         user_mention_map[new_user_mention->username()] = new_user_mention;
-
         if(ctrl_c_pressed){
             return;
         }

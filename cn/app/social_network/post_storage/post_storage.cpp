@@ -52,6 +52,33 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 }
 
+void rmem_param_handler(erpc::ReqHandle *req_handler, void *_context)
+{
+    auto *ctx = static_cast<ServerContext *>(_context);
+    ctx->stat_req_rmem_param++;
+
+    auto *req_msgbuf = req_handler->get_req_msgbuf();
+    rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<RmemParamReq>), "data size not match");
+
+    auto *req = reinterpret_cast<RPCMsgReq<RmemParamReq> *>(req_msgbuf->buf_);
+
+    ctx->init_mutex.lock();
+    if(ctx->mongodb_init_finished){
+        size_t size = rmem_params_[ctx->server_id_].ByteSizeLong();
+        auto resp =  new (req_handler->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {size});
+        ctx->rpc_->resize_msg_buffer(&req_handler->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>) + size);
+
+        rmem_params_[ctx->server_id_].SerializeToArray(resp+1, size);
+    } else {
+        new (req_handler->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
+        ctx->rpc_->resize_msg_buffer(&req_handler->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
+    }
+    ctx->init_mutex.unlock();
+
+    ctx->rpc_->enqueue_response(req_handler, &req_handler->pre_resp_msgbuf_);
+
+}
+
 void post_storage_read_req_handler(erpc::ReqHandle *req_handler, void *_context)
 {
     auto *ctx = static_cast<ServerContext *>(_context);
@@ -403,6 +430,7 @@ void leader_thread_func()
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING), ping_handler);
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_POST_STORAGE_READ_REQ), post_storage_read_req_handler);
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_POST_STORAGE_WRITE_REQ), post_storage_write_req_handler);
+    nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_RMEM_PARAM), rmem_param_handler);
 
     std::vector<std::thread> clients(FLAGS_client_num);
     std::vector<std::thread> servers(FLAGS_server_num);

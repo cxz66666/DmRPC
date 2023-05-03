@@ -398,7 +398,7 @@ void mongodb_init(AppContext *ctx){
     mongodb_client_pool = init_mongodb_client_pool(config_json_all, "social_graph", mongodb_conns_num);
     mongoc_client_t *mongodb_client =  mongoc_client_pool_pop(mongodb_client_pool);
 
-    auto collection = mongoc_client_get_collection(mongodb_client, "social_graph", "social_graph");
+    auto collection = mongoc_client_get_collection(mongodb_client, "social-graph", "social-graph");
 
     rmem::rt_assert(collection, "Failed to get social_graph collection from DB social_graph");
 

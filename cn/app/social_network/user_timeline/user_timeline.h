@@ -231,11 +231,12 @@ void write_post_ids_and_return(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MP
         return;
     }
 
+    UserTimeLineWriteReq user_timeline_write_req = req->req_control;
 
     std::future<void> mongo_update_future =
             std::async(std::launch::async, [=](UserTimeLineWriteReq r, const erpc::MsgBuffer resp_buffer,MPMC_QUEUE *c_back) {
                 mongoc_client_t *mongodb_client = mongoc_client_pool_pop(mongodb_client_pool);
-                auto collection = mongoc_client_get_collection(mongodb_client, "user_timeline", "user_timeline");
+                auto collection = mongoc_client_get_collection(mongodb_client, "user-timeline", "user-timeline");
 
                 bson_t *query = bson_new();
 
@@ -270,5 +271,5 @@ void write_post_ids_and_return(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MP
 
                 //闭包，烦死了
                 c_back->push(resp_buffer);
-            },req->req_control,resp_buf,consumer_back);
+            },user_timeline_write_req,resp_buf,consumer_back);
 }

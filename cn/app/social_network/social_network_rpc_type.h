@@ -42,6 +42,9 @@ enum class RPC_TYPE : uint8_t
 
     // user_service
     RPC_COMPOSE_CREATOR_WITH_USER_ID,
+
+    // rmem_param_service
+    RPC_RMEM_PARAM,
 };
 
 class CommonReq
@@ -144,6 +147,10 @@ public:
     int64_t post_id;
     int64_t user_id;
     int64_t timestamp;
+};
+
+class RmemParamReq {
+    size_t dummy;
 };
 
 
