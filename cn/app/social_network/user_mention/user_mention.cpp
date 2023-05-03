@@ -305,7 +305,7 @@ void leader_thread_func()
     auto *context = new AppContext();
 
     std::thread mongodb_init_thread(mongodb_init, context);
-    rmem::bind_to_core(mongodb_init_thread, 1, get_bind_core(2));
+    rmem::bind_to_core(mongodb_init_thread, 1, get_bind_core(1));
 
 
     clients[0] = std::thread(client_thread_func, 0, context->client_contexts_[0], &nexus);
