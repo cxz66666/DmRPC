@@ -51,22 +51,22 @@
   },
   "user_mongodb": {
     "addr": "192.168.189.8",
-    "port": "10001",
+    "port": "20011",
     "connections": 512
   },
   "user_timeline_mongodb": {
     "addr": "192.168.189.8",
-    "port": "10002",
+    "port": "20012",
     "connections": 512
   },
   "social_network_mongodb": {
     "addr": "192.168.189.8",
-    "port": "10003",
+    "port": "20013",
     "connections": 512
   },
   "post_storage_mongodb": {
     "addr": "192.168.189.8",
-    "port": "10004",
+    "port": "20014",
     "connections": 512
   },
   "memory_node1": {

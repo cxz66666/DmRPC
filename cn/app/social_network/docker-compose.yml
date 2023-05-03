@@ -1,0 +1,33 @@
+version: "3"
+services:
+  user-mongodb:
+    image: mongo:4.4.6
+    hostname: user-mongodb
+    command: "mongod --port 20011"
+    network_mode: "host"
+    volumes:
+      - /mnt/nvme/mongodb_data/user:/data/db
+
+  user_timeline-mongodb:
+    image: mongo:4.4.6
+    hostname: user_timeline-mongodb
+    command: "mongod --port 20012"
+    network_mode: "host"
+    volumes:
+      - /mnt/nvme/mongodb_data/user_timeline:/data/db
+
+  social_network-mongodb:
+    image: mongo:4.4.6
+    hostname: social_network-mongodb
+    command: "mongod --port 20013"
+    network_mode: "host"
+    volumes:
+      - /mnt/nvme/mongodb_data/social_network:/data/db
+
+  post_storage-mongodb:
+    image: mongo:4.4.6
+    hostname: post_storage-mongodb
+    command: "mongod --port 20014"
+    network_mode: "host"
+    volumes:
+      - /mnt/nvme/mongodb_data/post_storage:/data/db
