@@ -13,7 +13,7 @@ void connect_sessions(ClientContext *c)
     c->nginx_session_number = c->rpc_->create_session(nginx_addr, c->server_receiver_id_);
     rmem::rt_assert(c->nginx_session_number >= 0, "Failed to create session");
 
-    c->post_storage_session_number = c->rpc_->create_session(post_storage_addr, c->server_receiver_id_);
+    c->post_storage_session_number = c->rpc_->create_session(post_storage_addr, c->server_sender_id_);
     rmem::rt_assert(c->post_storage_session_number >= 0, "Failed to create session");
 
     while (c->num_sm_resps_ != 3)

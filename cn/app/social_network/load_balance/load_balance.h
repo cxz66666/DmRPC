@@ -90,7 +90,7 @@ public:
         for (size_t i = 0; i < FLAGS_client_num; i++)
         {
 #if defined(ERPC_PROGRAM)
-            client_contexts_.push_back(new ClientContext(i, i % FLAGS_server_num, i % FLAGS_server_num));
+            client_contexts_.push_back(new ClientContext(i, i % FLAGS_server_num, (i % FLAGS_server_num) + kAppMaxRPC));
 #elif defined(RMEM_PROGRAM)
             client_contexts_.push_back(new ClientContext(i, (i % FLAGS_server_num) + kAppMaxRPC, (i % FLAGS_server_num) + kAppMaxRPC));
 #endif
