@@ -38,7 +38,7 @@ message Url {
 message ComposePostData {
     optional int64 req_id = 1;
     optional string username = 2;
-    optional string user_id = 3;
+    optional int64 user_id = 3;
     optional string text = 4;
     repeated int64 media_ids = 5;
     repeated string media_types = 6;
