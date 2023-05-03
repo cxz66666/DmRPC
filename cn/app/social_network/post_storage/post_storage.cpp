@@ -398,8 +398,7 @@ void reader_thread_func(size_t thread_id, MPMC_QUEUE *consumer, ClientContext* c
 }
 void leader_thread_func()
 {
-    erpc::Nexus nexus(rmem::extract_hostname_from_uri(FLAGS_server_addr),
-                      rmem::extract_udp_port_from_uri(FLAGS_server_addr), 0);
+    erpc::Nexus nexus(FLAGS_server_addr, FLAGS_numa_server_node, 0);
 
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING), ping_handler);
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_POST_STORAGE_READ_REQ), post_storage_read_req_handler);

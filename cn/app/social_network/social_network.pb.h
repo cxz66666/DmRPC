@@ -1004,9 +1004,9 @@ class ComposePostData final :
     kMediaIdsFieldNumber = 5,
     kMediaTypesFieldNumber = 6,
     kUsernameFieldNumber = 2,
-    kUserIdFieldNumber = 3,
     kTextFieldNumber = 4,
     kReqIdFieldNumber = 1,
+    kUserIdFieldNumber = 3,
     kPostTypeFieldNumber = 7,
   };
   // repeated int64 media_ids = 5;
@@ -1073,24 +1073,6 @@ class ComposePostData final :
   std::string* _internal_mutable_username();
   public:
 
-  // optional string user_id = 3;
-  bool has_user_id() const;
-  private:
-  bool _internal_has_user_id() const;
-  public:
-  void clear_user_id();
-  const std::string& user_id() const;
-  template <typename ArgT0 = const std::string&, typename... ArgT>
-  void set_user_id(ArgT0&& arg0, ArgT... args);
-  std::string* mutable_user_id();
-  PROTOBUF_NODISCARD std::string* release_user_id();
-  void set_allocated_user_id(std::string* user_id);
-  private:
-  const std::string& _internal_user_id() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_user_id(const std::string& value);
-  std::string* _internal_mutable_user_id();
-  public:
-
   // optional string text = 4;
   bool has_text() const;
   private:
@@ -1122,6 +1104,19 @@ class ComposePostData final :
   void _internal_set_req_id(int64_t value);
   public:
 
+  // optional int64 user_id = 3;
+  bool has_user_id() const;
+  private:
+  bool _internal_has_user_id() const;
+  public:
+  void clear_user_id();
+  int64_t user_id() const;
+  void set_user_id(int64_t value);
+  private:
+  int64_t _internal_user_id() const;
+  void _internal_set_user_id(int64_t value);
+  public:
+
   // optional .social_network.PostType post_type = 7;
   bool has_post_type() const;
   private:
@@ -1148,9 +1143,9 @@ class ComposePostData final :
   mutable std::atomic<int> _media_ids_cached_byte_size_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> media_types_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr username_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr user_id_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr text_;
   int64_t req_id_;
+  int64_t user_id_;
   int post_type_;
   friend struct ::TableStruct_social_5fnetwork_2eproto;
 };
@@ -3492,7 +3487,7 @@ inline void Url::set_allocated_expanded_url(std::string* expanded_url) {
 
 // optional int64 req_id = 1;
 inline bool ComposePostData::_internal_has_req_id() const {
-  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
   return value;
 }
 inline bool ComposePostData::has_req_id() const {
@@ -3500,7 +3495,7 @@ inline bool ComposePostData::has_req_id() const {
 }
 inline void ComposePostData::clear_req_id() {
   req_id_ = int64_t{0};
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline int64_t ComposePostData::_internal_req_id() const {
   return req_id_;
@@ -3510,7 +3505,7 @@ inline int64_t ComposePostData::req_id() const {
   return _internal_req_id();
 }
 inline void ComposePostData::_internal_set_req_id(int64_t value) {
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000004u;
   req_id_ = value;
 }
 inline void ComposePostData::set_req_id(int64_t value) {
@@ -3586,77 +3581,37 @@ inline void ComposePostData::set_allocated_username(std::string* username) {
   // @@protoc_insertion_point(field_set_allocated:social_network.ComposePostData.username)
 }
 
-// optional string user_id = 3;
+// optional int64 user_id = 3;
 inline bool ComposePostData::_internal_has_user_id() const {
-  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
   return value;
 }
 inline bool ComposePostData::has_user_id() const {
   return _internal_has_user_id();
 }
 inline void ComposePostData::clear_user_id() {
-  user_id_.ClearToEmpty();
-  _has_bits_[0] &= ~0x00000002u;
+  user_id_ = int64_t{0};
+  _has_bits_[0] &= ~0x00000008u;
 }
-inline const std::string& ComposePostData::user_id() const {
+inline int64_t ComposePostData::_internal_user_id() const {
+  return user_id_;
+}
+inline int64_t ComposePostData::user_id() const {
   // @@protoc_insertion_point(field_get:social_network.ComposePostData.user_id)
   return _internal_user_id();
 }
-template <typename ArgT0, typename... ArgT>
-inline PROTOBUF_ALWAYS_INLINE
-void ComposePostData::set_user_id(ArgT0&& arg0, ArgT... args) {
- _has_bits_[0] |= 0x00000002u;
- user_id_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+inline void ComposePostData::_internal_set_user_id(int64_t value) {
+  _has_bits_[0] |= 0x00000008u;
+  user_id_ = value;
+}
+inline void ComposePostData::set_user_id(int64_t value) {
+  _internal_set_user_id(value);
   // @@protoc_insertion_point(field_set:social_network.ComposePostData.user_id)
-}
-inline std::string* ComposePostData::mutable_user_id() {
-  std::string* _s = _internal_mutable_user_id();
-  // @@protoc_insertion_point(field_mutable:social_network.ComposePostData.user_id)
-  return _s;
-}
-inline const std::string& ComposePostData::_internal_user_id() const {
-  return user_id_.Get();
-}
-inline void ComposePostData::_internal_set_user_id(const std::string& value) {
-  _has_bits_[0] |= 0x00000002u;
-  user_id_.Set(value, GetArenaForAllocation());
-}
-inline std::string* ComposePostData::_internal_mutable_user_id() {
-  _has_bits_[0] |= 0x00000002u;
-  return user_id_.Mutable(GetArenaForAllocation());
-}
-inline std::string* ComposePostData::release_user_id() {
-  // @@protoc_insertion_point(field_release:social_network.ComposePostData.user_id)
-  if (!_internal_has_user_id()) {
-    return nullptr;
-  }
-  _has_bits_[0] &= ~0x00000002u;
-  auto* p = user_id_.Release();
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (user_id_.IsDefault()) {
-    user_id_.Set("", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  return p;
-}
-inline void ComposePostData::set_allocated_user_id(std::string* user_id) {
-  if (user_id != nullptr) {
-    _has_bits_[0] |= 0x00000002u;
-  } else {
-    _has_bits_[0] &= ~0x00000002u;
-  }
-  user_id_.SetAllocated(user_id, GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (user_id_.IsDefault()) {
-    user_id_.Set("", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:social_network.ComposePostData.user_id)
 }
 
 // optional string text = 4;
 inline bool ComposePostData::_internal_has_text() const {
-  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
   return value;
 }
 inline bool ComposePostData::has_text() const {
@@ -3664,7 +3619,7 @@ inline bool ComposePostData::has_text() const {
 }
 inline void ComposePostData::clear_text() {
   text_.ClearToEmpty();
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline const std::string& ComposePostData::text() const {
   // @@protoc_insertion_point(field_get:social_network.ComposePostData.text)
@@ -3673,7 +3628,7 @@ inline const std::string& ComposePostData::text() const {
 template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void ComposePostData::set_text(ArgT0&& arg0, ArgT... args) {
- _has_bits_[0] |= 0x00000004u;
+ _has_bits_[0] |= 0x00000002u;
  text_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:social_network.ComposePostData.text)
 }
@@ -3686,11 +3641,11 @@ inline const std::string& ComposePostData::_internal_text() const {
   return text_.Get();
 }
 inline void ComposePostData::_internal_set_text(const std::string& value) {
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000002u;
   text_.Set(value, GetArenaForAllocation());
 }
 inline std::string* ComposePostData::_internal_mutable_text() {
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000002u;
   return text_.Mutable(GetArenaForAllocation());
 }
 inline std::string* ComposePostData::release_text() {
@@ -3698,7 +3653,7 @@ inline std::string* ComposePostData::release_text() {
   if (!_internal_has_text()) {
     return nullptr;
   }
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000002u;
   auto* p = text_.Release();
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (text_.IsDefault()) {
@@ -3709,9 +3664,9 @@ inline std::string* ComposePostData::release_text() {
 }
 inline void ComposePostData::set_allocated_text(std::string* text) {
   if (text != nullptr) {
-    _has_bits_[0] |= 0x00000004u;
+    _has_bits_[0] |= 0x00000002u;
   } else {
-    _has_bits_[0] &= ~0x00000004u;
+    _has_bits_[0] &= ~0x00000002u;
   }
   text_.SetAllocated(text, GetArenaForAllocation());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING

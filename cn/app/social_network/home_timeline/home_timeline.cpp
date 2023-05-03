@@ -478,8 +478,7 @@ void mongodb_init(AppContext *ctx){
 
 void leader_thread_func()
 {
-    erpc::Nexus nexus(rmem::extract_hostname_from_uri(FLAGS_server_addr),
-                      rmem::extract_udp_port_from_uri(FLAGS_server_addr), 0);
+    erpc::Nexus nexus(FLAGS_server_addr, FLAGS_numa_server_node, 0);
 
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING), ping_handler);
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_WRITE_REQ), home_timeline_write_req_handler);

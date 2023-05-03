@@ -85,7 +85,6 @@ void init_service_config(const std::string& file_path, const std::string& servic
     FLAGS_concurrency = config["concurrency"];
     FLAGS_numa_0_ports = config["numa_0_ports"];
     FLAGS_numa_1_ports = config["numa_1_ports"];
-    FLAGS_server_addr = config["server_addr"];
     FLAGS_client_num = config["client_num"];
     FLAGS_server_num = config["server_num"];
     FLAGS_numa_client_node = config["numa_client_node"];

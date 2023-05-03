@@ -88,9 +88,9 @@ PROTOBUF_CONSTEXPR ComposePostData::ComposePostData(
   , _media_ids_cached_byte_size_(0)
   , media_types_()
   , username_(&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{})
-  , user_id_(&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{})
   , text_(&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{})
   , req_id_(int64_t{0})
+  , user_id_(int64_t{0})
   , post_type_(0)
 {}
 struct ComposePostDataDefaultTypeInternal {
@@ -1526,16 +1526,16 @@ class ComposePostData::_Internal {
  public:
   using HasBits = decltype(std::declval<ComposePostData>()._has_bits_);
   static void set_has_req_id(HasBits* has_bits) {
-    (*has_bits)[0] |= 8u;
+    (*has_bits)[0] |= 4u;
   }
   static void set_has_username(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
   }
   static void set_has_user_id(HasBits* has_bits) {
-    (*has_bits)[0] |= 2u;
+    (*has_bits)[0] |= 8u;
   }
   static void set_has_text(HasBits* has_bits) {
-    (*has_bits)[0] |= 4u;
+    (*has_bits)[0] |= 2u;
   }
   static void set_has_post_type(HasBits* has_bits) {
     (*has_bits)[0] |= 16u;
@@ -1564,14 +1564,6 @@ ComposePostData::ComposePostData(const ComposePostData& from)
     username_.Set(from._internal_username(), 
       GetArenaForAllocation());
   }
-  user_id_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    user_id_.Set("", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (from._internal_has_user_id()) {
-    user_id_.Set(from._internal_user_id(), 
-      GetArenaForAllocation());
-  }
   text_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
     text_.Set("", GetArenaForAllocation());
@@ -1590,10 +1582,6 @@ inline void ComposePostData::SharedCtor() {
 username_.InitDefault();
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
   username_.Set("", GetArenaForAllocation());
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-user_id_.InitDefault();
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  user_id_.Set("", GetArenaForAllocation());
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 text_.InitDefault();
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -1617,7 +1605,6 @@ ComposePostData::~ComposePostData() {
 inline void ComposePostData::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   username_.Destroy();
-  user_id_.Destroy();
   text_.Destroy();
 }
 
@@ -1634,18 +1621,15 @@ void ComposePostData::Clear() {
   media_ids_.Clear();
   media_types_.Clear();
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000007u) {
+  if (cached_has_bits & 0x00000003u) {
     if (cached_has_bits & 0x00000001u) {
       username_.ClearNonDefaultToEmpty();
     }
     if (cached_has_bits & 0x00000002u) {
-      user_id_.ClearNonDefaultToEmpty();
-    }
-    if (cached_has_bits & 0x00000004u) {
       text_.ClearNonDefaultToEmpty();
     }
   }
-  if (cached_has_bits & 0x00000018u) {
+  if (cached_has_bits & 0x0000001cu) {
     ::memset(&req_id_, 0, static_cast<size_t>(
         reinterpret_cast<char*>(&post_type_) -
         reinterpret_cast<char*>(&req_id_)) + sizeof(post_type_));
@@ -1680,13 +1664,12 @@ const char* ComposePostData::_InternalParse(const char* ptr, ::_pbi::ParseContex
         } else
           goto handle_unusual;
         continue;
-      // optional string user_id = 3;
+      // optional int64 user_id = 3;
       case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
-          auto str = _internal_mutable_user_id();
-          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          _Internal::set_has_user_id(&has_bits);
+          user_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, nullptr));
         } else
           goto handle_unusual;
         continue;
@@ -1781,14 +1764,10 @@ uint8_t* ComposePostData::_InternalSerialize(
         2, this->_internal_username(), target);
   }
 
-  // optional string user_id = 3;
+  // optional int64 user_id = 3;
   if (_internal_has_user_id()) {
-    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
-      this->_internal_user_id().data(), static_cast<int>(this->_internal_user_id().length()),
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "social_network.ComposePostData.user_id");
-    target = stream->WriteStringMaybeAliased(
-        3, this->_internal_user_id(), target);
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt64ToArray(3, this->_internal_user_id(), target);
   }
 
   // optional string text = 4;
@@ -1874,23 +1853,21 @@ size_t ComposePostData::ByteSizeLong() const {
           this->_internal_username());
     }
 
-    // optional string user_id = 3;
-    if (cached_has_bits & 0x00000002u) {
-      total_size += 1 +
-        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
-          this->_internal_user_id());
-    }
-
     // optional string text = 4;
-    if (cached_has_bits & 0x00000004u) {
+    if (cached_has_bits & 0x00000002u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
           this->_internal_text());
     }
 
     // optional int64 req_id = 1;
-    if (cached_has_bits & 0x00000008u) {
+    if (cached_has_bits & 0x00000004u) {
       total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(this->_internal_req_id());
+    }
+
+    // optional int64 user_id = 3;
+    if (cached_has_bits & 0x00000008u) {
+      total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(this->_internal_user_id());
     }
 
     // optional .social_network.PostType post_type = 7;
@@ -1928,13 +1905,13 @@ void ComposePostData::MergeFrom(const ComposePostData& from) {
       _internal_set_username(from._internal_username());
     }
     if (cached_has_bits & 0x00000002u) {
-      _internal_set_user_id(from._internal_user_id());
-    }
-    if (cached_has_bits & 0x00000004u) {
       _internal_set_text(from._internal_text());
     }
-    if (cached_has_bits & 0x00000008u) {
+    if (cached_has_bits & 0x00000004u) {
       req_id_ = from.req_id_;
+    }
+    if (cached_has_bits & 0x00000008u) {
+      user_id_ = from.user_id_;
     }
     if (cached_has_bits & 0x00000010u) {
       post_type_ = from.post_type_;
@@ -1966,10 +1943,6 @@ void ComposePostData::InternalSwap(ComposePostData* other) {
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &username_, lhs_arena,
       &other->username_, rhs_arena
-  );
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
-      &user_id_, lhs_arena,
-      &other->user_id_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &text_, lhs_arena,
