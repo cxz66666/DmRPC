@@ -277,6 +277,10 @@ void leader_thread_func()
     {
         servers[i].join();
     }
+    for (size_t i = 0; i < FLAGS_client_num; i++)
+    {
+        workers[i].join();
+    }
 }
 
 int main(int argc, char **argv)

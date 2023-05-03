@@ -214,26 +214,26 @@ void leader_thread_func()
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING), ping_handler);
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_UNIQUE_ID), unique_id_handler);
 
-    std::vector<std::thread> clients(FLAGS_client_num);
-    std::vector<std::thread> servers(FLAGS_server_num);
-    std::vector<std::thread> workers(FLAGS_client_num);
+    std::vector<std::thread> clients;
+    std::vector<std::thread> servers;
+    std::vector<std::thread> workers;
 
     auto *context = new AppContext();
 
-    clients[0] = std::thread(client_thread_func, 0, context->client_contexts_[0], &nexus);
+    clients.emplace_back(client_thread_func, 0, context->client_contexts_[0], &nexus);
     sleep(2);
     rmem::bind_to_core(clients[0], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
 
     for (size_t i = 1; i < FLAGS_client_num; i++)
     {
-        clients[i] = std::thread(client_thread_func, i, context->client_contexts_[i], &nexus);
+        clients.emplace_back(client_thread_func, i, context->client_contexts_[i], &nexus);
 
         rmem::bind_to_core(clients[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
     }
 
     for (size_t i = 0; i < FLAGS_server_num; i++)
     {
-        servers[i] = std::thread(server_thread_func, i, context->server_contexts_[i], &nexus);
+        servers.emplace_back(server_thread_func, i, context->server_contexts_[i], &nexus);
 
         rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node) + FLAGS_bind_core_offset);
     }
@@ -242,7 +242,7 @@ void leader_thread_func()
     for (size_t i = 0; i < FLAGS_client_num; i++)
     {
         rmem::rt_assert(context->server_contexts_[i]->rpc_ != nullptr, "server rpc is null");
-        workers[i] = std::thread(worker_thread_func, i, context->client_contexts_[i]->forward_spsc_queue, context->client_contexts_[i]->backward_spsc_queue, context->client_contexts_[i]->rpc_, context->server_contexts_[i]->rpc_);
+        workers.emplace_back(worker_thread_func, i, context->client_contexts_[i]->forward_spsc_queue, context->client_contexts_[i]->backward_spsc_queue, context->client_contexts_[i]->rpc_, context->server_contexts_[i]->rpc_);
 //        uint64_t worker_offset = FLAGS_worker_bind_core_offset == UINT64_MAX ? FLAGS_bind_core_offset : FLAGS_worker_bind_core_offset;
 //        rmem::bind_to_core(workers[i], FLAGS_numa_worker_node, get_bind_core(FLAGS_numa_worker_node) + worker_offset);
         rmem::bind_to_core(workers[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
@@ -263,6 +263,10 @@ void leader_thread_func()
     for (size_t i = 0; i < FLAGS_server_num; i++)
     {
         servers[i].join();
+    }
+    for(size_t i=0; i < FLAGS_client_num; i++)
+    {
+        workers[i].join();
     }
 }
 
