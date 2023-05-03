@@ -150,6 +150,7 @@ public:
 };
 
 class RmemParamReq {
+public:
     size_t dummy;
 };
 

@@ -17,7 +17,8 @@
     "server_addr": "192.168.189.8:31851"
   },
   "client": {
-    "server_addr": "192.168.189.8:31852"
+    "server_addr": "192.168.189.8:31852",
+    "generate_num": 500
   },
   "nginx": {
     "server_addr": "192.168.189.8:31853"
