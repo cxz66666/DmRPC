@@ -272,20 +272,15 @@ void leader_thread_func()
 
 int main(int argc, char **argv)
 {
-    try{
-        signal(SIGINT, ctrl_c_handler);
-        signal(SIGTERM, ctrl_c_handler);
-        // only config_file is required!!!
-        gflags::ParseCommandLineFlags(&argc, &argv, true);
+    signal(SIGINT, ctrl_c_handler);
+    signal(SIGTERM, ctrl_c_handler);
+    // only config_file is required!!!
+    gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-        init_service_config(FLAGS_config_file,"unique_id");
-        init_specific_config();
+    init_service_config(FLAGS_config_file,"unique_id");
+    init_specific_config();
 
-        std::thread leader_thread(leader_thread_func);
-        rmem::bind_to_core(leader_thread, 1, get_bind_core(1));
-        leader_thread.join();
-    } catch (std::exception &e){
-        printf("%s", e.what());
-    }
-
+    std::thread leader_thread(leader_thread_func);
+    rmem::bind_to_core(leader_thread, 1, get_bind_core(1));
+    leader_thread.join();
 }
