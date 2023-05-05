@@ -424,7 +424,7 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
         start.reset();
         rpc.run_event_loop(kAppEvLoopMs);
         const double seconds = start.get_sec();
-        printf("thread %zu: ping_req : %.2f, ping_resp : %.2f, cq_ut_ht_req : %.2f %.2f %.2f, cq_ut_ht_req : %.2f %.2f %.2f \n", thread_id,
+        printf("thread %zu: ping_req : %.2f, ping_resp : %.2f, cq_ut_ht_req : %.2f %.2f %.2f, cq_ut_ht_resp : %.2f %.2f %.2f \n", thread_id,
                ctx->stat_req_ping_tot / seconds, ctx->stat_req_ping_resp_tot / seconds, ctx->stat_req_compose_post_tot / seconds,
                ctx->stat_req_user_timeline_tot / seconds, ctx->stat_req_home_timeline_tot /seconds, ctx->stat_req_compose_post_resp_tot/seconds,
                ctx->stat_req_user_timeline_resp_tot/seconds, ctx->stat_req_home_timeline_resp_tot/seconds);

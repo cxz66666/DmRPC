@@ -70,6 +70,7 @@ void user_timeline_read_resp_handler(erpc::ReqHandle *req_handler, void *_contex
     auto *req_msgbuf = req_handler->get_req_msgbuf();
 
     auto *req = reinterpret_cast<RPCMsgReq<CommonRPCReq> *>(req_msgbuf->buf_);
+//    printf("user timeline read resp, type %u, number %u, data_length %ld\n", static_cast<uint32_t>(req->req_common.type), req->req_common.req_number, req->req_control.data_length);
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<CommonRPCReq>) + req->req_control.data_length, "data size not match");
 
     new (req_handler->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
@@ -142,7 +143,7 @@ void callback_rmem_param(void *_context, void *_tag)
 
         int session_id = rmem->connect_session(rmem_param.addr(), rmem_param.rmem_thread_id());
         rmem::rt_assert(session_id >= 0, "connect_session failed");
-
+        printf("rmem param %ld %d %d\n", rmem_param.fork_rmem_addr(), rmem_param.rmem_thread_id(), rmem_param.rmem_session_id());
         rmem_base_addr[ctx->client_id_] = rmem->rmem_join(rmem_param.fork_rmem_addr(), rmem_param.rmem_thread_id(), rmem_param.rmem_session_id());
         RMEM_INFO("client thread %ld join success, based addr %ld\n", ctx->client_id_, rmem_base_addr[ctx->client_id_]);
 
@@ -374,6 +375,7 @@ void leader_thread_func()
         rmem::rt_assert(msg.status == 0 && msg.req_id == 0, "server connect failed");
     }
 
+    RMEM_INFO("ping ready, begin to generate param");
 
 
     while(rmems_init_number != FLAGS_client_num) {
@@ -384,7 +386,8 @@ void leader_thread_func()
         sleep(3);
     }
 
-
+    RMEM_INFO("param ready, sleep 10 and begin to generate workload");
+    sleep(10);
     for (size_t i = 0; i < FLAGS_client_num; i++)
     {
         size_t tmp = FLAGS_concurrency;
@@ -420,6 +423,7 @@ int main(int argc, char **argv)
 
     init_service_config(FLAGS_config_file,"client");
     init_specific_config();
+    rmem::rmem_init(rmem_self_addr, FLAGS_numa_client_node);
 
     std::thread leader_thread(leader_thread_func);
     rmem::bind_to_core(leader_thread, 1, get_bind_core(1));

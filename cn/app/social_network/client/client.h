@@ -9,6 +9,8 @@
 std::string post_storage_addr;
 std::string load_balance_addr;
 
+std::string rmem_self_addr;
+
 std::vector<rmem::Rmem *> rmems_;
 std::vector<unsigned long> rmem_base_addr;
 std::atomic<uint64_t> rmems_init_number;
@@ -50,7 +52,7 @@ public:
     void PushNextReq(){
         uint32_t now_req_id = req_id_++;
         //TODO
-        spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP});
+        spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_USER_TIMELINE_READ_REQ});
     }
 
     void PushReq(REQ_MSG msg){
@@ -214,6 +216,10 @@ void init_specific_config(){
     value = config_json_all["load_balance"]["server_addr"];
     rmem::rt_assert(!value.is_null(),"value is null");
     load_balance_addr = value;
+
+    value = config_json_all["client"]["rmem_self_addr"];
+    rmem::rt_assert(!value.is_null(),"value is null");
+    rmem_self_addr = value;
 
     auto generate_num = config_json_all["client"]["generate_num"];
     rmem::rt_assert(!generate_num.is_null(),"generate_num is null");

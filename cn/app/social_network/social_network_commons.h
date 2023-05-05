@@ -60,12 +60,18 @@ json config_json_all;
 int load_config_file(const std::string& file_name, json* config_json){
     std::ifstream json_file;
     json_file.open(file_name);
+
+    if(!json_file.is_open()){
+        std::string default_file_name = "./config.json";
+        json_file.open(default_file_name);
+    }
     if (json_file.is_open()) {
         json_file >> *config_json;
         json_file.close();
         return 0;
     }
     else {
+
         RMEM_ERROR("Failed to open config file: %s", file_name.c_str());
         return -1;
     }
@@ -181,10 +187,6 @@ void basic_sm_handler_client(int session_num, int remote_session_num, erpc::SmEv
     printf("client sm_handler receive: session_num:%d\n", session_num);
     auto *c = static_cast<BasicContext *>(_context);
     c->num_sm_resps_++;
-    for (auto m : c->session_num_vec_)
-    {
-        printf("session_num_vec_:%d\n", m);
-    }
     rmem::rt_assert(
             sm_err_type == erpc::SmErrType::kNoError,
             "SM response with error " + erpc::sm_err_type_str(sm_err_type));
@@ -196,14 +198,14 @@ void basic_sm_handler_client(int session_num, int remote_session_num, erpc::SmEv
     }
 
     // The callback gives us the eRPC session number - get the index in vector
-    size_t session_idx = c->session_num_vec_.size();
-    for (size_t i = 0; i < c->session_num_vec_.size(); i++)
-    {
-        if (c->session_num_vec_[i] == session_num)
-            session_idx = i;
-    }
-    rmem::rt_assert(session_idx < c->session_num_vec_.size(),
-                    "SM callback for invalid session number.");
+//    size_t session_idx = c->session_num_vec_.size();
+//    for (size_t i = 0; i < c->session_num_vec_.size(); i++)
+//    {
+//        if (c->session_num_vec_[i] == session_num)
+//            session_idx = i;
+//    }
+//    rmem::rt_assert(session_idx < c->session_num_vec_.size(),
+//                    "SM callback for invalid session number.");
 }
 
 /// A basic session management handler that expects successful responses

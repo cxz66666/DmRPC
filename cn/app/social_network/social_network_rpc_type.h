@@ -70,8 +70,7 @@ class RPCMsgReq
 public:
     CommonReq req_common;
     T req_control;
-    RPCMsgReq(RPC_TYPE t, uint32_t num) : req_common{t, num} {}
-    RPCMsgReq(RPC_TYPE t, uint32_t num, T req) : req_common{t, num}, req_control(req) {}
+    explicit RPCMsgReq(RPC_TYPE t, uint32_t num, T req) : req_common{t, num}, req_control(req) {}
 }__attribute__((packed));
 
 template<class T>
@@ -80,8 +79,7 @@ class RPCMsgResp
 public:
     CommonResp resp_common;
     T resp_control;
-    RPCMsgResp(RPC_TYPE t, uint32_t num, int status) : resp_common{t, num, status} {}
-    RPCMsgResp(RPC_TYPE t, uint32_t num, int status, T resp) : resp_common{t, num, status}, resp_control(resp) {}
+    explicit RPCMsgResp(RPC_TYPE t, uint32_t num, int status, T resp) : resp_common{t, num, status}, resp_control(resp) {}
 }__attribute__((packed));
 
 

@@ -27,6 +27,8 @@ else(PERF)
 endif(PERF)
 
 find_package (mongoc-1.0 1.7 REQUIRED)
+
+set(Protobuf_USE_STATIC_LIBS ON)
 find_package(Protobuf REQUIRED)
 if(Protobuf_FOUND)
   message(STATUS "Using Protocol Buffers ${Protobuf_VERSION}")
@@ -70,6 +72,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-nested-anon-types -Wno-keyword-macr
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
+
 
 # DPDK may be needed for different reasons (e.g., the transport is DPDK, or
 # if the transport is not DPDK but the application needs DPDK libraries)
@@ -185,7 +188,7 @@ set(
 # --export-dynamic used for backtrace_symbols()
 
 set(LIBRARIES ${LIBRARIES} -Wl,--export-dynamic -Wl,--whole-archive -Wl,--as-needed rte_node rte_graph rte_bpf rte_flow_classify rte_pipeline rte_table rte_port rte_fib rte_ipsec rte_vhost rte_stack rte_security rte_sched rte_reorder rte_rib rte_regexdev rte_rawdev rte_pdump rte_power rte_member rte_lpm rte_latencystats rte_kni rte_jobstats rte_ip_frag rte_gso rte_gro rte_eventdev rte_efd rte_distributor rte_cryptodev rte_compressdev rte_cfgfile rte_bitratestats rte_bbdev rte_acl rte_timer rte_hash rte_metrics rte_cmdline rte_pci rte_ethdev rte_meter rte_net rte_mbuf rte_mempool rte_rcu rte_ring rte_eal rte_telemetry rte_kvargs -Wl,--no-whole-archive numa dl ibverbs mlx5)
-set(LIBRARIES ${LIBRARIES} gflags pthread hdr_histogram_static nlohmann_json::nlohmann_json mongo::mongoc_static ${Protobuf_LIBRARIES})
+set(LIBRARIES ${LIBRARIES} gflags pthread hdr_histogram_static nlohmann_json::nlohmann_json mongo::mongoc_static ${Protobuf_LITE_LIBRARIES})
 
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/eRPC)

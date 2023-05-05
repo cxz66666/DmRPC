@@ -210,7 +210,7 @@ void init_specific_config(){
     rmem::rt_assert(!value.is_null(),"value is null");
     data_file_path = value;
 
-    auto conns = config_json_all["social_network_mongodb"]["connections"];
+    auto conns = config_json_all["social_graph_mongodb"]["connections"];
     rmem::rt_assert(!conns.is_null(),"value is null");
     mongodb_conns_num = conns;
 }
@@ -233,9 +233,8 @@ void read_home_time_line_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *r
     }
 
     if(!is_fwd){
-        erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<HomeTimeLineReq>));
-        new (resp_buf.buf_) RPCMsgReq<HomeTimeLineReq>(RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP, req->req_common.req_number,
-                                                                    {0, req->req_control.user_id, req->req_control.start_idx, req->req_control.stop_idx });
+        erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>));
+        new (resp_buf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP, req->req_common.req_number, {0});
         consumer_back->push(resp_buf);
         return;
     }
@@ -254,7 +253,7 @@ void read_home_time_line_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *r
     }
 
     erpc::MsgBuffer fwd_req = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>) + post_storage_req.ByteSizeLong());
-    auto* fwd_req_msg = new (fwd_req.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_READ_REQ, req->req_common.req_number);
+    auto* fwd_req_msg = new (fwd_req.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_READ_REQ, req->req_common.req_number, {post_storage_req.ByteSizeLong()});
 
     post_storage_req.SerializeToArray(fwd_req_msg+1, static_cast<int>(post_storage_req.ByteSizeLong()));
 

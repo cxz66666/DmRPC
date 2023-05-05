@@ -288,7 +288,7 @@ int main(int argc, char **argv)
     // only config_file is required!!!
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    init_service_config(FLAGS_config_file,"user");
+    init_service_config(FLAGS_config_file,"user_service");
     init_specific_config();
 
     std::thread leader_thread(leader_thread_func);

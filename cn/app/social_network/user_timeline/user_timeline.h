@@ -175,21 +175,27 @@ void read_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MPMC_QUEUE
     bool is_fwd = true;
 
     if(req->req_control.stop <= req->req_control.start || req->req_control.start < 0){
+//        printf("start stop %d %d\n", req->req_control.start, req->req_control.stop);
         is_fwd = false;
     }
 
     if(!user_timeline_map.contains(req->req_control.user_id)){
+//        printf("user id %ld not exist\n", req->req_control.user_id);
         is_fwd = false;
     }
     std::set<int64_t> &post_ids = user_timeline_map[req->req_control.user_id];
     if(req->req_control.start > static_cast<int>(post_ids.size())){
+//        for(size_t tmp: post_ids){
+//            printf("%ld ", tmp);
+//        }
+//        printf(" start %d \n", req->req_control.start);
         is_fwd = false;
     }
 
     if(!is_fwd){
-        erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<UserTimeLineReq>));
-        new (resp_buf.buf_) RPCMsgReq<UserTimeLineReq>(RPC_TYPE::RPC_USER_TIMELINE_READ_RESP, req->req_common.req_number,
-                                                                    {0, req->req_control.user_id, req->req_control.start, req->req_control.stop });
+//        printf("don't fwd, req number is %u\n", req->req_common.req_number);
+        erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>));
+        new (resp_buf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_USER_TIMELINE_READ_RESP, req->req_common.req_number, {0});
         consumer_back->push(resp_buf);
         return;
     }
@@ -207,9 +213,9 @@ void read_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MPMC_QUEUE
             break;
         }
     }
-
+//    printf("ready to read %d post\n", post_storage_req.post_ids_size());
     erpc::MsgBuffer fwd_req = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>) + post_storage_req.ByteSizeLong());
-    auto* fwd_req_msg = new (fwd_req.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_READ_REQ, req->req_common.req_number);
+    auto* fwd_req_msg = new (fwd_req.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_READ_REQ, req->req_common.req_number, {post_storage_req.ByteSizeLong()});
 
     post_storage_req.SerializeToArray(fwd_req_msg+1, static_cast<int>(post_storage_req.ByteSizeLong()));
 
@@ -233,43 +239,43 @@ void write_post_ids_and_return(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MP
 
     UserTimeLineWriteReq user_timeline_write_req = req->req_control;
 
-    std::future<void> mongo_update_future =
-            std::async(std::launch::async, [=](UserTimeLineWriteReq r, const erpc::MsgBuffer resp_buffer,MPMC_QUEUE *c_back) {
-                mongoc_client_t *mongodb_client = mongoc_client_pool_pop(mongodb_client_pool);
-                auto collection = mongoc_client_get_collection(mongodb_client, "user-timeline", "user-timeline");
 
-                bson_t *query = bson_new();
+    std::async(std::launch::async, [=](UserTimeLineWriteReq r, const erpc::MsgBuffer resp_buffer,MPMC_QUEUE *c_back) {
+        mongoc_client_t *mongodb_client = mongoc_client_pool_pop(mongodb_client_pool);
+        auto collection = mongoc_client_get_collection(mongodb_client, "user-timeline", "user-timeline");
 
-                BSON_APPEND_INT64(query, "user_id", r.user_id);
-                bson_t *update =
-                        BCON_NEW("$push", "{", "posts", "{", "$each", "[", "{", "post_id",
-                                 BCON_INT64(r.post_id), "timestamp", BCON_INT64(r.timestamp), "}",
-                                 "]", "$position", BCON_INT32(0), "}", "}");
+        bson_t *query = bson_new();
 
-                bson_error_t error;
-                bson_t reply;
+        BSON_APPEND_INT64(query, "user_id", r.user_id);
+        bson_t *update =
+                BCON_NEW("$push", "{", "posts", "{", "$each", "[", "{", "post_id",
+                         BCON_INT64(r.post_id), "timestamp", BCON_INT64(r.timestamp), "}",
+                         "]", "$position", BCON_INT32(0), "}", "}");
 
-                bool updated = mongoc_collection_find_and_modify(collection, query, nullptr,
-                                                                 update, nullptr, false, true,
-                                                                 true, &reply, &error);
+        bson_error_t error;
+        bson_t reply;
 
-                if (!updated) {
-                    // update the newly inserted document (upsert: false)
-                    updated = mongoc_collection_find_and_modify(collection, query, nullptr,
-                                                                update, nullptr, false, false,
-                                                                true, &reply, &error);
-                    if (!updated) {
-                        RMEM_ERROR("mongodb update error! %ld %ld %ld ", r.user_id, r.post_id, r.timestamp);
-                        exit(1);
-                    }
-                }
-                bson_destroy(update);
-                bson_destroy(&reply);
-                bson_destroy(query);
-                mongoc_collection_destroy(collection);
-                mongoc_client_pool_push(mongodb_client_pool, mongodb_client);
+        bool updated = mongoc_collection_find_and_modify(collection, query, nullptr,
+                                                         update, nullptr, false, true,
+                                                         true, &reply, &error);
 
-                //闭包，烦死了
-                c_back->push(resp_buffer);
-            },user_timeline_write_req,resp_buf,consumer_back);
+        if (!updated) {
+            // update the newly inserted document (upsert: false)
+            updated = mongoc_collection_find_and_modify(collection, query, nullptr,
+                                                        update, nullptr, false, false,
+                                                        true, &reply, &error);
+            if (!updated) {
+                RMEM_ERROR("mongodb update error! %ld %ld %ld ", r.user_id, r.post_id, r.timestamp);
+                exit(1);
+            }
+        }
+        bson_destroy(update);
+        bson_destroy(&reply);
+        bson_destroy(query);
+        mongoc_collection_destroy(collection);
+        mongoc_client_pool_push(mongodb_client_pool, mongodb_client);
+
+        //闭包，烦死了
+        c_back->push(resp_buffer);
+    },user_timeline_write_req,resp_buf,consumer_back);
 }

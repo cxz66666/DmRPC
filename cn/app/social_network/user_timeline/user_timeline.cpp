@@ -217,7 +217,7 @@ void callback_user_timeline_read_resp(void *_context, void *_tag)
 
 void handler_user_timeline_read_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 {
-    auto *req = reinterpret_cast<RPCMsgReq<UserTimeLineReq> *>(req_msgbuf.buf_);
+    auto *req = reinterpret_cast<RPCMsgReq<CommonRPCReq> *>(req_msgbuf.buf_);
     ctx->req_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer] = req_msgbuf;
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer];
@@ -371,6 +371,7 @@ void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *cons
             erpc::MsgBuffer req_msg = producer->pop();
 
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
+            printf("read req %u, type %u\n", req->req_number, static_cast<uint32_t>(req->type));
             rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_USER_TIMELINE_WRITE_REQ ||
                             req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_REQ || req->type == RPC_TYPE::RPC_POST_STORAGE_READ_RESP,
                              "req type error");
@@ -421,19 +422,21 @@ void mongodb_init(AppContext *ctx){
             exit(1);
         }
 
-        if (bson_iter_init_find(&iter, doc, "posts") && BSON_ITER_HOLDS_ARRAY(&iter)) {
+        if (bson_iter_init_find(&iter, doc, "posts")) {
             // get the values from array posts, and push them into post_ids
             bson_iter_t array_iter;
             bson_iter_recurse(&iter, &array_iter);
             while (bson_iter_next(&array_iter)) {
-                if (BSON_ITER_HOLDS_INT64(&array_iter)) {
-                    post_ids.insert(bson_iter_value(&array_iter)->value.v_int64);
+                bson_iter_t  post_iter;
+                bson_iter_recurse(&array_iter, &post_iter);
+                while(bson_iter_next(&post_iter)) {
+                    if(BSON_ITER_IS_KEY(&post_iter, "post_id") && BSON_ITER_HOLDS_INT64(&post_iter)){
+                        post_ids.insert(bson_iter_value(&post_iter)->value.v_int64);
+                    }
                 }
             }
         }
-
         user_timeline_map[user_id] = std::move(post_ids);
-
         if(ctrl_c_pressed){
             return;
         }

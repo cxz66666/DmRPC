@@ -5,7 +5,7 @@ import string
 import random
 import argparse
 
-PERSON_COMPOSE_NUMBER = 10
+PERSON_COMPOSE_NUMBER = 3
 PERSON_COMPOSE_SIZE = 2000
 PERSON_USER_MENTIONS = 5
 PERSON_URLS = 5
@@ -125,7 +125,7 @@ async def compose(addr, nodes, limit=200):
         print('Composing posts...')
         for i in range(nodes):
             for _ in range(PERSON_COMPOSE_NUMBER):  # every one is 10
-                task = asyncio.ensure_future(upload_compose(session, addr, i+1, nodes))
+                task = asyncio.ensure_future(upload_compose(session, addr, i, nodes))
                 tasks.append(task)
                 idx += 1
                 if idx % limit == 0:

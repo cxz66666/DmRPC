@@ -352,17 +352,17 @@ void reader_thread_func(size_t thread_id, MPMC_QUEUE *consumer, ClientContext* c
     size_t reading_posts = 0;
 
     StorageHandler *tmp = nullptr;
-    const int max_batch = 16;
+    const int max_batch = 8;
     int* batch_buffer = new int[max_batch];
     while(true) {
 
         //简单的流控
         if(reading_posts<kAppMaxBuffer){
-            storage_queues[thread_id]->try_pop(tmp);
-            if(tmp != nullptr) {
+            if(storage_queues[thread_id]->try_pop(tmp)) {
                 queues.push(tmp);
                 if(tmp->is_read){
                     for(size_t i=0;i<tmp->post_ids.size();i++){
+                        // printf("begin to read %p, addr %ld, size %ld\n", tmp->rmem_bufs[i], tmp->addrs_size[i].first, tmp->addrs_size[i].second);
                         rmems_[thread_id]->rmem_read_async(tmp->rmem_bufs[i], tmp->addrs_size[i].first, tmp->addrs_size[i].second);
                     }
                     reading_posts += tmp->post_ids.size();
@@ -374,10 +374,13 @@ void reader_thread_func(size_t thread_id, MPMC_QUEUE *consumer, ClientContext* c
         }
 
         int fetch_num = rmems_[thread_id]->rmem_poll(batch_buffer, max_batch);
+//        if(fetch_num!=0){
+//            printf("get %d fetch number\n", fetch_num);
+//        }
         reading_posts -= fetch_num;
 
         for(int i=0;i<fetch_num;i++){
-            rmem::rt_assert(batch_buffer[i]==0, "read post error!");
+            rmem::rt_assert(batch_buffer[i]==0, "poll post error!");
         }
 
         while(fetch_num) {
@@ -387,14 +390,17 @@ void reader_thread_func(size_t thread_id, MPMC_QUEUE *consumer, ClientContext* c
                 int parse_num = 0;
                 for(int i=0;i<fetch_num && now_post_num+i< tmp->post_ids.size();i++){
                     tmp->resp.add_posts()->ParseFromArray(tmp->rmem_bufs[i + now_post_num], tmp->addrs_size[i + now_post_num].second);
+//                    printf("add post finish, now post number %d\n", tmp->resp.posts_size());
                     parse_num++;
                 }
 
                 if(tmp->resp.posts_size() == static_cast<int>(tmp->post_ids.size())){
                     size_t post_serialize_size = tmp->resp.ByteSizeLong();
                     erpc::MsgBuffer resp_buf = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>) + post_serialize_size);
-                    auto* resp_buf_msg = new (resp_buf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_READ_RESP, tmp->req_number);
+                    auto* resp_buf_msg = new (resp_buf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_READ_RESP, tmp->req_number, {post_serialize_size});
                     tmp->resp.SerializeToArray(resp_buf_msg+1, post_serialize_size);
+
+//                    printf("ready to response, req number is %u, data_length %ld\n", tmp->req_number, post_serialize_size);
 
                     if(tmp->rpc_type == static_cast<uint32_t>(RPC_TYPE::RPC_USER_TIMELINE_READ_REQ)){
                         req_num_to_session_num[thread_id][tmp->req_number] = ctx->user_timeline_session_num_;
@@ -487,14 +493,14 @@ void leader_thread_func()
     {
         servers[i].join();
     }
-    for (size_t i = 0; i < FLAGS_client_num; i++)
-    {
-        workers[i].join();
-    }
-    for (size_t i = 0; i < FLAGS_client_num; i++)
-    {
-        readers[i].join();
-    }
+//    for (size_t i = 0; i < FLAGS_client_num; i++)
+//    {
+//        workers[i].join();
+//    }
+//    for (size_t i = 0; i < FLAGS_client_num; i++)
+//    {
+//        readers[i].join();
+//    }
 }
 
 int main(int argc, char **argv)
@@ -502,11 +508,13 @@ int main(int argc, char **argv)
 
     signal(SIGINT, ctrl_c_handler);
     signal(SIGTERM, ctrl_c_handler);
+
     // only config_file is required!!!
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     init_service_config(FLAGS_config_file,"post_storage");
     init_specific_config();
+    rmem::rmem_init(rmem_self_addr, FLAGS_numa_client_node);
 
     std::thread leader_thread(leader_thread_func);
     rmem::bind_to_core(leader_thread, 1, get_bind_core(1));

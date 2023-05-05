@@ -216,7 +216,7 @@ void callback_home_timeline_read_resp(void *_context, void *_tag)
 
 void handler_home_timeline_read_resp(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 {
-    auto *req = reinterpret_cast<RPCMsgReq<HomeTimeLineReq> *>(req_msgbuf.buf_);
+    auto *req = reinterpret_cast<RPCMsgReq<CommonRPCReq> *>(req_msgbuf.buf_);
     ctx->req_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer] = req_msgbuf;
 
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer];

@@ -1,5 +1,8 @@
 project(social_network)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+
+
 set(PROGRAMS load_balance unique_id url_shorten nginx user_mention user_timeline post_storage home_timeline user_service compose_post client)
 
 set(APP_ADDITIONAL_SOURCES ${CMAKE_SOURCE_DIR}/cn/app/social_network/social_network.pb.cc)
