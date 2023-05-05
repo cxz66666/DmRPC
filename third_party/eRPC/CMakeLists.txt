@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(PERF ON CACHE BOOL "Datapath transport (infiniband/raw/dpdk/fake)")
+set(PERF ON)
 
 # Parse the build type
 if(PERF)
@@ -14,7 +14,7 @@ if(PERF)
   message(STATUS "Debugging is disabled.")
   set(CMAKE_BUILD_TYPE RelWithDebInfo)
   set(TESTING OFF)
-else(PERF)
+else()
   message(STATUS "Compilation not optimized for performance.")
   message(STATUS "Debugging is enabled. Perf will be low.")
   set(CMAKE_BUILD_TYPE Debug)
@@ -60,7 +60,7 @@ option(ROCE "Use RoCE if TRANSPORT is infiniband" OFF)
 option(AZURE "Configure DPDK for Azure if TRANSPORT is dpdk" OFF)
 option(PERF "Compile for performance" ON)
 set(PGO "none" CACHE STRING "Profile-guided optimization (generate/use/none)")
-set(LOG_LEVEL "warn" CACHE STRING "Logging level (none/error/warn/info/reorder/trace/cc)")
+set(LOG_LEVEL "trace" CACHE STRING "Logging level (none/error/warn/info/reorder/trace/cc)")
 
 # Profile-guided optimization
 if(PGO STREQUAL "generate")

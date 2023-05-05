@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(PERF ON CACHE BOOL "Datapath transport (infiniband/raw/dpdk/fake)")
+set(PERF ON)
 
 # Parse the build type
 if(PERF)
@@ -14,7 +14,7 @@ if(PERF)
   message(STATUS "Debugging is disabled.")
   set(CMAKE_BUILD_TYPE RelWithDebInfo)
   set(TESTING OFF)
-else(PERF)
+else()
   message(STATUS "Compilation not optimized for performance.")
   message(STATUS "Debugging is enabled. Perf will be low.")
   set(CMAKE_BUILD_TYPE Debug)

@@ -242,7 +242,7 @@ void write_post_ids_and_return(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MP
 
     std::async(std::launch::async, [=](UserTimeLineWriteReq r, const erpc::MsgBuffer resp_buffer,MPMC_QUEUE *c_back) {
         mongoc_client_t *mongodb_client = mongoc_client_pool_pop(mongodb_client_pool);
-        auto collection = mongoc_client_get_collection(mongodb_client, "user-timeline", "user-timeline");
+        auto collection = mongoc_client_get_collection(mongodb_client, "user-timeline-write", "user-timeline-write");
 
         bson_t *query = bson_new();
 
