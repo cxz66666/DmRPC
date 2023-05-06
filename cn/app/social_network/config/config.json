@@ -1,7 +1,7 @@
 {
   "common": {
     "test_loop": 10,
-    "concurrency": 0,
+    "concurrency": 32,
     "numa_0_ports": "0",
     "numa_1_ports": "1",
     "client_num": 1,
@@ -14,14 +14,18 @@
     "bandwidth_file": "bandwidth.txt"
   },
   "load_balance": {
-    "server_addr": "192.168.189.8:31851"
+    "server_addr": "192.168.189.8:31851",
+    "bind_core_offset": 2
   },
   "client": {
     "server_addr": "192.168.189.8:31852",
-    "generate_num": 500
+    "rmem_self_addr": "192.168.189.8:31863",
+    "generate_num": 500,
+    "bind_core_offset": 0
   },
   "nginx": {
-    "server_addr": "192.168.189.8:31853"
+    "server_addr": "192.168.189.8:31853",
+    "bind_core_offset": 4
   },
   "unique_id": {
     "server_addr": "192.168.189.8:31854"
@@ -30,24 +34,28 @@
     "server_addr": "192.168.189.8:31855"
   },
   "compose_post": {
-    "server_addr": "192.168.189.8:31856"
+    "server_addr": "192.168.189.9:31856"
   },
   "user_timeline": {
-    "server_addr": "192.168.189.8:31857"
+    "server_addr": "192.168.189.8:31857",
+    "bind_core_offset": 6
   },
   "home_timeline": {
     "server_addr": "192.168.189.8:31858",
-    "data_file_path": "../home_timeline.data"
+    "data_file_path": "./home_timeline.data",
+    "per_read_posts": 3,
+    "bind_core_offset": 9
   },
   "user_mention": {
     "server_addr": "192.168.189.8:31859"
   },
   "post_storage": {
-    "server_addr": "192.168.189.8:31860",
-    "read_total_size": 1,
-    "write_total_size": 1
+    "server_addr": "192.168.189.9:31860",
+    "rmem_self_addr": "192.168.189.9:31864",
+    "read_total_size": 10,
+    "write_total_size": 4
   },
-  "user": {
+  "user_service": {
     "server_addr": "192.168.189.8:31861"
   },
   "user_mongodb": {
@@ -60,7 +68,7 @@
     "port": "20012",
     "connections": 512
   },
-  "social_network_mongodb": {
+  "social_graph_mongodb": {
     "addr": "192.168.189.8",
     "port": "20013",
     "connections": 512
@@ -71,7 +79,7 @@
     "connections": 512
   },
   "memory_node1": {
-    "addr": "192.168.189.8",
-    "port": "31864"
+    "addr": "192.168.189.14",
+    "port": "31851"
   }
 }

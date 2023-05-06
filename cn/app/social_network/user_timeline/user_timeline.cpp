@@ -8,8 +8,8 @@ void connect_sessions(ClientContext *c)
 {
 
     // connect to backward server
-    c->compose_post_session_number = c->rpc_->create_session(compose_post_addr, c->server_receiver_id_);
-    rmem::rt_assert(c->compose_post_session_number >= 0, "Failed to create session");
+//    c->compose_post_session_number = c->rpc_->create_session(compose_post_addr, c->server_receiver_id_);
+//    rmem::rt_assert(c->compose_post_session_number >= 0, "Failed to create session");
 
     c->nginx_session_number = c->rpc_->create_session(nginx_addr, c->server_receiver_id_);
     rmem::rt_assert(c->nginx_session_number >= 0, "Failed to create session");
@@ -17,7 +17,7 @@ void connect_sessions(ClientContext *c)
     c->post_storage_session_number = c->rpc_->create_session(post_storage_addr, c->server_sender_id_);
     rmem::rt_assert(c->post_storage_session_number >= 0, "Failed to create session");
 
-    while (c->num_sm_resps_ != 3)
+    while (c->num_sm_resps_ != 2)
     {
         c->rpc_->run_event_loop(kAppEvLoopMs);
         if (unlikely(ctrl_c_pressed == 1))
@@ -371,7 +371,7 @@ void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *cons
             erpc::MsgBuffer req_msg = producer->pop();
 
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
-            printf("read req %u, type %u\n", req->req_number, static_cast<uint32_t>(req->type));
+//            printf("read req %u, type %u\n", req->req_number, static_cast<uint32_t>(req->type));
             rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_USER_TIMELINE_WRITE_REQ ||
                             req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_REQ || req->type == RPC_TYPE::RPC_POST_STORAGE_READ_RESP,
                              "req type error");

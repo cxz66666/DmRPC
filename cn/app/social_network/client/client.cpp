@@ -180,6 +180,10 @@ void callback_common(void *_context, void *_tag)
         case RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ:
             ctx->home_timeline_req_queue->push(ctx->req_msgbuf[req_id % kAppMaxConcurrency]);
             break;
+        case RPC_TYPE::RPC_POST_STORAGE_WRITE_REQ:
+            ctx->compose_post_req_queue->push(ctx->req_msgbuf[req_id % kAppMaxConcurrency]);
+            break;
+
         default:
             RMEM_ERROR("inlegal resp type");
             exit(1);
@@ -193,9 +197,10 @@ void handler_compose_post_write_req(ClientContext *ctx, REQ_MSG req_msg)
     erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[req_msg.req_id % kAppMaxConcurrency];
 
     req_msgbuf = ctx->compose_post_req_queue->pop();
-    new (req_msgbuf.buf_) CommonReq{RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ, req_msg.req_id};
+//    new (req_msgbuf.buf_) CommonReq{RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ, req_msg.req_id};
 
-    ctx->rpc_->enqueue_request(ctx->load_balance_session_num_, static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ),
+    new (req_msgbuf.buf_) CommonReq{RPC_TYPE::RPC_POST_STORAGE_WRITE_REQ, req_msg.req_id};
+    ctx->rpc_->enqueue_request(ctx->post_storage_session_num_, static_cast<uint8_t>(RPC_TYPE::RPC_POST_STORAGE_WRITE_REQ),
                                &req_msgbuf, &resp_msgbuf,
                                callback_common, reinterpret_cast<void *>(req_msg.req_id));
 }
@@ -386,8 +391,8 @@ void leader_thread_func()
         sleep(3);
     }
 
-    RMEM_INFO("param ready, sleep 10 and begin to generate workload");
-    sleep(10);
+    RMEM_INFO("param ready, sleep 2 and begin to generate workload");
+    sleep(2);
     for (size_t i = 0; i < FLAGS_client_num; i++)
     {
         size_t tmp = FLAGS_concurrency;

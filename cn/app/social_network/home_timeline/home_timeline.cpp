@@ -7,8 +7,8 @@ void connect_sessions(ClientContext *c)
 {
 
     // connect to backward server
-    c->compose_post_session_number = c->rpc_->create_session(compose_post_addr, c->server_receiver_id_);
-    rmem::rt_assert(c->compose_post_session_number >= 0, "Failed to create session");
+//    c->compose_post_session_number = c->rpc_->create_session(compose_post_addr, c->server_receiver_id_);
+//    rmem::rt_assert(c->compose_post_session_number >= 0, "Failed to create session");
 
     c->nginx_session_number = c->rpc_->create_session(nginx_addr, c->server_receiver_id_);
     rmem::rt_assert(c->nginx_session_number >= 0, "Failed to create session");
@@ -16,7 +16,7 @@ void connect_sessions(ClientContext *c)
     c->post_storage_session_number = c->rpc_->create_session(post_storage_addr, c->server_sender_id_);
     rmem::rt_assert(c->post_storage_session_number >= 0, "Failed to create session");
 
-    while (c->num_sm_resps_ != 3)
+    while (c->num_sm_resps_ != 2)
     {
         c->rpc_->run_event_loop(kAppEvLoopMs);
         if (unlikely(ctrl_c_pressed == 1))
@@ -394,13 +394,95 @@ void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *cons
     }
 }
 
+//void mongodb_init(AppContext *ctx){
+//    mongodb_client_pool = init_mongodb_client_pool(config_json_all, "social_graph", mongodb_conns_num);
+//    mongoc_client_t *mongodb_client =  mongoc_client_pool_pop(mongodb_client_pool);
+//
+//    auto collection = mongoc_client_get_collection(mongodb_client, "social-graph", "social-graph");
+//
+//    rmem::rt_assert(collection, "Failed to get social_graph collection from DB social_graph");
+//
+//    bson_t* query = bson_new();
+//    mongoc_cursor_t* cursor = mongoc_collection_find_with_opts(collection, query, nullptr, nullptr);
+//
+//    const bson_t *doc;
+//
+//    while(mongoc_cursor_next(cursor,&doc)) {
+//        bson_iter_t iter;
+//        bson_iter_t iter_0;
+//        bson_iter_t iter_1;
+//        bson_iter_t user_id_child;
+//        bson_iter_t timestamp_child;
+//        int index = 0;
+//        bson_iter_init(&iter_0, doc);
+//        bson_iter_init(&iter_1, doc);
+//        std::set<int64_t> user_ids;
+//        int64_t user_id;
+//        if (bson_iter_init_find(&iter, doc, "user_id")) {
+//            user_id = bson_iter_value(&iter)->value.v_int64;
+//        } else {
+//            RMEM_ERROR("cant't find user_id in mongodb");
+//            exit(1);
+//        }
+//
+//        while (bson_iter_find_descendant(
+//                &iter_0,
+//                ("followers." + std::to_string(index) + ".user_id").c_str(),
+//                &user_id_child) &&
+//               BSON_ITER_HOLDS_INT64(&user_id_child) &&
+//               bson_iter_find_descendant(
+//                       &iter_1,
+//                       ("followers." + std::to_string(index) + ".timestamp").c_str(),
+//                       &timestamp_child) &&
+//               BSON_ITER_HOLDS_INT64(&timestamp_child)) {
+//            auto iter_user_id = bson_iter_int64(&user_id_child);
+//            //maybe unused
+//            [[maybe_unused]] auto iter_timestamp = bson_iter_int64(&timestamp_child);
+//
+//            user_ids.insert(iter_user_id);
+//            bson_iter_init(&iter_0, doc);
+//            bson_iter_init(&iter_1, doc);
+//            index++;
+//        }
+//
+//        user_followers_map[user_id] = std::move(user_ids);
+//        if(ctrl_c_pressed){
+//            return;
+//        }
+//    }
+//
+//    bson_destroy(query);
+//    mongoc_cursor_destroy(cursor);
+//    mongoc_collection_destroy(collection);
+//    mongoc_client_pool_push(mongodb_client_pool, mongodb_client);
+//
+//    for(auto item : ctx->server_contexts_){
+//        item->init_mutex.lock();
+//        if(item->is_pinged){
+//            auto _buf = item->rpc_->alloc_msg_buffer(sizeof(RPCMsgReq<PingRPCReq>));
+//            auto *req = reinterpret_cast<RPCMsgReq<PingRPCReq> *>(_buf.buf_);
+//            req->req_common.type = RPC_TYPE::RPC_PING;
+//            req->req_common.req_number = 0;
+//            req->req_control.timestamp = 0;
+//
+//            item->forward_all_mpmc_queue->push(_buf);
+//        }
+//
+//
+//        item->mongodb_init_finished = true;
+//        item->init_mutex.unlock();
+//    }
+//
+//    RMEM_INFO("mongodb init finished! Total init %ld users", user_followers_map.size());
+//}
+
 void mongodb_init(AppContext *ctx){
-    mongodb_client_pool = init_mongodb_client_pool(config_json_all, "social_graph", mongodb_conns_num);
+    mongodb_client_pool = init_mongodb_client_pool(config_json_all, "user_timeline", mongodb_conns_num);
     mongoc_client_t *mongodb_client =  mongoc_client_pool_pop(mongodb_client_pool);
 
-    auto collection = mongoc_client_get_collection(mongodb_client, "social-graph", "social-graph");
+    auto collection = mongoc_client_get_collection(mongodb_client, "user-timeline", "user-timeline");
 
-    rmem::rt_assert(collection, "Failed to get social_graph collection from DB social_graph");
+    rmem::rt_assert(collection, "Failed to get user collection from DB User");
 
     bson_t* query = bson_new();
     mongoc_cursor_t* cursor = mongoc_collection_find_with_opts(collection, query, nullptr, nullptr);
@@ -409,43 +491,22 @@ void mongodb_init(AppContext *ctx){
 
     while(mongoc_cursor_next(cursor,&doc)) {
         bson_iter_t iter;
-        bson_iter_t iter_0;
-        bson_iter_t iter_1;
-        bson_iter_t user_id_child;
-        bson_iter_t timestamp_child;
-        int index = 0;
-        bson_iter_init(&iter_0, doc);
-        bson_iter_init(&iter_1, doc);
-        std::set<int64_t> user_ids;
-        int64_t user_id;
-        if (bson_iter_init_find(&iter, doc, "user_id")) {
-            user_id = bson_iter_value(&iter)->value.v_int64;
-        } else {
-            RMEM_ERROR("cant't find user_id in mongodb");
-            exit(1);
+
+        if (bson_iter_init_find(&iter, doc, "posts")) {
+            // get the values from array posts, and push them into post_ids
+            bson_iter_t array_iter;
+            bson_iter_recurse(&iter, &array_iter);
+            while (bson_iter_next(&array_iter)) {
+                bson_iter_t  post_iter;
+                bson_iter_recurse(&array_iter, &post_iter);
+                while(bson_iter_next(&post_iter)) {
+                    if(BSON_ITER_IS_KEY(&post_iter, "post_id") && BSON_ITER_HOLDS_INT64(&post_iter)){
+                        post_ids_queue.push(bson_iter_value(&post_iter)->value.v_int64);
+                    }
+                }
+            }
         }
 
-        while (bson_iter_find_descendant(
-                &iter_0,
-                ("followers." + std::to_string(index) + ".user_id").c_str(),
-                &user_id_child) &&
-               BSON_ITER_HOLDS_INT64(&user_id_child) &&
-               bson_iter_find_descendant(
-                       &iter_1,
-                       ("followers." + std::to_string(index) + ".timestamp").c_str(),
-                       &timestamp_child) &&
-               BSON_ITER_HOLDS_INT64(&timestamp_child)) {
-            auto iter_user_id = bson_iter_int64(&user_id_child);
-            //maybe unused
-            [[maybe_unused]] auto iter_timestamp = bson_iter_int64(&timestamp_child);
-
-            user_ids.insert(iter_user_id);
-            bson_iter_init(&iter_0, doc);
-            bson_iter_init(&iter_1, doc);
-            index++;
-        }
-
-        user_followers_map[user_id] = std::move(user_ids);
         if(ctrl_c_pressed){
             return;
         }
@@ -473,8 +534,9 @@ void mongodb_init(AppContext *ctx){
         item->init_mutex.unlock();
     }
 
-    RMEM_INFO("mongodb init finished! Total init %ld users", user_followers_map.size());
+    RMEM_INFO("mongodb init finished! Total init %ld posts", post_ids_queue.size());
 }
+
 
 void leader_thread_func()
 {
@@ -559,11 +621,9 @@ int main(int argc, char **argv)
 
     init_service_config(FLAGS_config_file,"home_timeline");
     init_specific_config();
-    load_timeline_storage(data_file_path);
 
     std::thread leader_thread(leader_thread_func);
     rmem::bind_to_core(leader_thread, 1, get_bind_core(1));
     leader_thread.join();
 
-    store_timeline_storage(data_file_path);
 }

@@ -41,7 +41,7 @@ DEFINE_string(latency_file, "latency.txt", "Latency file name");
 DEFINE_string(bandwidth_file, "bandwidth.txt", "Bandwidth file name");
 
 using SPSC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>;
-using MPMC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, true, false>;
+using MPMC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, false, false, false>;
 
 
 

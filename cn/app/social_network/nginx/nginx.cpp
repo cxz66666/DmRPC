@@ -7,11 +7,11 @@
 
 void connect_sessions(ClientContext *c)
 {
-    c->servers_num_ = 3;
+    c->servers_num_ = 2;
 
-    c->compose_post_session_num_ = c->rpc_->create_session(compose_post_addr, c->server_sender_id_);
-    rmem::rt_assert(c->compose_post_session_num_ >=0, "Failed to create session");
-    c->session_num_vec_.push_back(c->compose_post_session_num_);
+//    c->compose_post_session_num_ = c->rpc_->create_session(compose_post_addr, c->server_sender_id_);
+//    rmem::rt_assert(c->compose_post_session_num_ >=0, "Failed to create session");
+//    c->session_num_vec_.push_back(c->compose_post_session_num_);
 
     c->user_timeline_session_num_ = c->rpc_->create_session(user_timeline_addr, c->server_sender_id_);
     rmem::rt_assert(c->user_timeline_session_num_ >=0, "Failed to create session");
@@ -27,7 +27,7 @@ void connect_sessions(ClientContext *c)
     rmem::rt_assert(c->backward_session_num_ >= 0, "Failed to create session");
     c->session_num_vec_.push_back(c->backward_session_num_);
 
-    while (c->num_sm_resps_ != 4)
+    while (c->num_sm_resps_ != 3)
     {
         c->rpc_->run_event_loop(kAppEvLoopMs);
         if (unlikely(ctrl_c_pressed == 1))

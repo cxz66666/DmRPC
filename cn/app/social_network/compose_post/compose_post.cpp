@@ -21,19 +21,21 @@ void connect_sessions(ClientContext *c)
     c->user_mention_session_number = c->rpc_->create_session(user_mention_addr, c->server_receiver_id_);
     rmem::rt_assert(c->user_mention_session_number >= 0, "Failed to create session");
 
-    c->user_timeline_session_number = c->rpc_->create_session(user_timeline_addr, c->server_receiver_id_);
-    rmem::rt_assert(c->user_timeline_session_number >= 0, "Failed to create session");
-
     c->user_service_session_number = c->rpc_->create_session(user_service_addr, c->server_receiver_id_);
     rmem::rt_assert(c->user_service_session_number >= 0, "Failed to create session");
 
-    c->home_timeline_session_number = c->rpc_->create_session(home_timeline_addr, c->server_receiver_id_);
-    rmem::rt_assert(c->home_timeline_session_number>=0, "Failed to create session");
+//    c->user_timeline_session_number = c->rpc_->create_session(user_timeline_addr, c->server_receiver_id_);
+//    rmem::rt_assert(c->user_timeline_session_number >= 0, "Failed to create session");
+
+
+//    c->home_timeline_session_number = c->rpc_->create_session(home_timeline_addr, c->server_receiver_id_);
+//    rmem::rt_assert(c->home_timeline_session_number>=0, "Failed to create session");
 
     c->post_storage_session_number = c->rpc_->create_session(post_storage_addr, c->server_sender_id_);
     rmem::rt_assert(c->post_storage_session_number >= 0, "Failed to create session");
 
-    while (c->num_sm_resps_ != 8)
+    // important!
+    while (c->num_sm_resps_ != 6)
     {
         c->rpc_->run_event_loop(kAppEvLoopMs);
         if (unlikely(ctrl_c_pressed == 1))
@@ -214,11 +216,10 @@ void callback_unique_id(void *_context, void *_tag)
     ctx->rpc_->free_msg_buffer(req_msgbuf);
 
     ReqState* req_state = ctx->state_store->req_state_map[req_id];
-    req_state->finished_unique_id = true;
     req_state->post.set_post_id(resp->resp_control.post_id);
-    if(req_state->is_next_step()){
-        req_state->send_second_step();
-    }
+    printf("finish unique_id %u\n", req_id);
+
+    req_state->generate_next_step();
 
 }
 
@@ -250,11 +251,10 @@ void callback_compose_creator_with_user_id(void *_context, void *_tag)
     ctx->rpc_->free_msg_buffer(req_msgbuf);
 
     ReqState* req_state = ctx->state_store->req_state_map[req_id];
-    req_state->finished_user = true;
     req_state->post.mutable_creator()->ParseFromArray(resp+1, resp->resp_control.data_length);
-    if(req_state->is_next_step()){
-        req_state->send_second_step();
-    }
+    printf("finish user %u\n", req_id);
+
+    req_state->generate_next_step();
 
 }
 void handler_compose_creator_with_user_id(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
@@ -288,7 +288,6 @@ void callback_user_mention(void *_context, void *_tag)
     ctx->rpc_->free_msg_buffer(req_msgbuf);
 
     ReqState* req_state = ctx->state_store->req_state_map[req_id];
-    req_state->finished_user_mention = true;
 
     social_network::UserMentionResp user_mention_resp;
     user_mention_resp.ParseFromArray(resp+1, resp->resp_control.data_length);
@@ -297,9 +296,9 @@ void callback_user_mention(void *_context, void *_tag)
         *req_state->post.mutable_user_mentions()->Add() = user_mention;
     }
 
-    if(req_state->is_next_step()){
-        req_state->send_second_step();
-    }
+    printf("finish user_mention %u\n", req_id);
+
+    req_state->generate_next_step();
 
 }
 void handler_user_mention(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
@@ -332,7 +331,6 @@ void callback_url_shorten(void *_context, void *_tag)
     ctx->rpc_->free_msg_buffer(req_msgbuf);
 
     ReqState* req_state = ctx->state_store->req_state_map[req_id];
-    req_state->finished_url_shorten = true;
 
     social_network::UrlShortenResp url_shorten_resp;
     url_shorten_resp.ParseFromArray(resp+1, resp->resp_control.data_length);
@@ -341,9 +339,9 @@ void callback_url_shorten(void *_context, void *_tag)
         *req_state->post.mutable_urls()->Add() = url;
     }
 
-    if(req_state->is_next_step()){
-        req_state->send_second_step();
-    }
+    printf("finish url_shorten %u\n", req_id);
+
+    req_state->generate_next_step();
 }
 void handler_url_shorten(ClientContext *ctx, const erpc::MsgBuffer &req_msgbuf)
 {
@@ -364,8 +362,8 @@ void callback_post_storage_write_req(void *_context, void *_tag)
     uint32_t req_id = req_id_ptr;
     auto *ctx = static_cast<ClientContext *>(_context);
 
-    erpc::MsgBuffer &req_msgbuf = ctx->req_url_shorten_msgbuf[req_id];
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_url_shorten_msgbuf[req_id];
+    erpc::MsgBuffer &req_msgbuf = ctx->req_post_storage_msgbuf[req_id];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_post_storage_msgbuf[req_id];
 
     rmem::rt_assert(resp_msgbuf.get_data_size() == sizeof(RPCMsgResp<CommonRPCResp>), "data size not match");
 
@@ -571,8 +569,8 @@ void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *cons
             } else if(req->type == RPC_TYPE::RPC_USER_TIMELINE_WRITE_RESP){
                 rmem::rt_assert(store->req_state_map.count(req->req_number), "req_state_map.count(req->req_number) == 0");
                 ReqState *now_state = store->req_state_map[req->req_number];
-                now_state->finished_user_timeline = true;
-                if(now_state->is_finished_all()){
+                now_state->finished_number++;
+                if(now_state->finished_number == 5){
                     consumer_back->push(now_state->generate_resp_msg());
                     delete now_state;
                     store->req_state_map.erase(req->req_number);
@@ -581,18 +579,16 @@ void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *cons
             } else if(req->type == RPC_TYPE::RPC_POST_STORAGE_WRITE_RESP){
                 rmem::rt_assert(store->req_state_map.count(req->req_number), "req_state_map.count(req->req_number) == 0");
                 ReqState *now_state = store->req_state_map[req->req_number];
-                now_state->finished_post_storage = true;
-                if(now_state->is_finished_all()){
-                    consumer_back->push(now_state->generate_resp_msg());
-                    delete now_state;
-                    store->req_state_map.erase(req->req_number);
-                }
+                consumer_back->push(now_state->generate_resp_msg());
+                delete now_state;
+                store->req_state_map.erase(req->req_number);
+
                 server_rpc_->free_msg_buffer(req_msg);
             }  else if(req->type == RPC_TYPE::RPC_HOME_TIMELINE_WRITE_RESP) {
                 rmem::rt_assert(store->req_state_map.count(req->req_number), "req_state_map.count(req->req_number) == 0");
                 ReqState *now_state = store->req_state_map[req->req_number];
-                now_state->finished_home_timeline = true;
-                if(now_state->is_finished_all()){
+                now_state->finished_number++;
+                if(now_state->finished_number == 5){
                     consumer_back->push(now_state->generate_resp_msg());
                     delete now_state;
                     store->req_state_map.erase(req->req_number);

@@ -37,7 +37,7 @@ public:
     QueueStore(){
         spsc_queue = new atomic_queue::AtomicQueueB2<REQ_MSG, std::allocator<REQ_MSG>, true, false, true>(kAppMaxConcurrency);
         resp_spsc_queue = new atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, true>(kAppMaxConcurrency);
-        req_id_ = 0;
+        req_id_ = 1;
     }
     ~QueueStore(){
         delete spsc_queue;
@@ -52,7 +52,14 @@ public:
     void PushNextReq(){
         uint32_t now_req_id = req_id_++;
         //TODO
-        spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_USER_TIMELINE_READ_REQ});
+        if(now_req_id % 3 == 0){
+            spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_USER_TIMELINE_READ_REQ});
+        } else if(now_req_id % 3 == 1) {
+            spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ});
+        } else {
+            spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ});
+        }
+
     }
 
     void PushReq(REQ_MSG msg){
@@ -244,36 +251,77 @@ std::string generate_random_string(int length) {
     return result;
 }
 
+//void generate_compose_post_req_msgbuf(erpc::Rpc<erpc::CTransport> *rpc_, SPSC_QUEUE* consumer_queue)
+//{
+//    for(int64_t i=0; i<generate_data_num ;i++){
+//        social_network::ComposePostData compose_post_data;
+//        compose_post_data.set_user_id(i);
+//        compose_post_data.set_username("username_"+std::to_string(i));
+//
+//        std::string text = generate_random_string(2000);
+//        for(size_t tmp = 0;tmp<5; tmp++){
+//            text+="@username_" + std::to_string(rand()%generate_data_num);
+//        }
+//        text+=" ";
+//
+//        for(size_t tmp=0; tmp<5; tmp++){
+//            text+="http://"+generate_random_string(64);
+//        }
+//        compose_post_data.set_text(text);
+//
+//        for(size_t tmp=0; tmp<20; tmp++){
+//            compose_post_data.add_media_ids(rand());
+//            compose_post_data.add_media_types("png");
+//        }
+//
+//        compose_post_data.set_post_type(social_network::PostType::POST_TYPE_POST);
+//
+//        size_t size = compose_post_data.ByteSizeLong();
+//        auto req_msgbuf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>) + size);
+//        auto req = new (req_msgbuf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ, 0, {size});
+//        compose_post_data.SerializeToArray(req+1, size);
+//        consumer_queue->push(req_msgbuf);
+//    }
+//}
+
 void generate_compose_post_req_msgbuf(erpc::Rpc<erpc::CTransport> *rpc_, SPSC_QUEUE* consumer_queue)
 {
     for(int64_t i=0; i<generate_data_num ;i++){
-        social_network::ComposePostData compose_post_data;
-        compose_post_data.set_user_id(i);
-        compose_post_data.set_username("username_"+std::to_string(i));
+        social_network::Post post;
 
+        post.set_post_id(rand());
+
+        post.mutable_creator()->set_user_id(i);
+        post.mutable_creator()->set_username("username_"+std::to_string(i));
+
+        post.set_req_id(i);
         std::string text = generate_random_string(2000);
         for(size_t tmp = 0;tmp<5; tmp++){
             text+="@username_" + std::to_string(rand()%generate_data_num);
         }
+        text+=" ";
+
         for(size_t tmp=0; tmp<5; tmp++){
             text+="http://"+generate_random_string(64);
         }
-        compose_post_data.set_text(text);
+        post.set_text(text);
 
-        for(size_t tmp=0; tmp<20; tmp++){
-            compose_post_data.add_media_ids(rand());
-            compose_post_data.add_media_types("png");
+        for(size_t tmp=0; tmp<10; tmp++){
+            auto media = post.add_media();
+            media->set_media_id(rand());
+            media->set_media_type("png");
         }
 
-        compose_post_data.set_post_type(social_network::PostType::POST_TYPE_POST);
+        post.set_post_type(social_network::PostType::POST_TYPE_POST);
 
-        size_t size = compose_post_data.ByteSizeLong();
+        size_t size = post.ByteSizeLong();
         auto req_msgbuf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>) + size);
         auto req = new (req_msgbuf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ, 0, {size});
-        compose_post_data.SerializeToArray(req+1, size);
+        post.SerializeToArray(req+1, size);
         consumer_queue->push(req_msgbuf);
     }
 }
+
 
 void generate_user_timeline_req_msgbuf(erpc::Rpc<erpc::CTransport> *rpc_, SPSC_QUEUE* consumer_queue)
 {

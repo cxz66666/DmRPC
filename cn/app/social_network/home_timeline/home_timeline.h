@@ -16,9 +16,12 @@ std::string data_file_path;
 static mongoc_client_pool_t* mongodb_client_pool;
 int mongodb_conns_num;
 phmap::flat_hash_map<int64_t , std::set<int64_t>> user_followers_map;
-
+//
 phmap::flat_hash_map<int64_t , std::vector<int64_t>> user_home_timeline_map;
 
+std::queue<int64_t> post_ids_queue;
+
+static int64_t per_read_posts = 3;
 
 class ClientContext : public BasicContext
 {
@@ -148,48 +151,48 @@ public:
     hdr_histogram *latency_hist_{};
 };
 
-void load_timeline_storage(const std::string& file_path)
-{
-    social_network::HomeTimelineStorage home_timeline_storage;
-    std::ifstream input(file_path, std::ios::binary);
-    rmem::rt_assert(input.is_open(),"file open failed");
-
-    if (!home_timeline_storage.ParseFromIstream(&input)) {
-        RMEM_ERROR("Failed to parse home_timeline_storage.");
-        exit(-1);
-    }
-
-    for(const auto& pair : home_timeline_storage.users_to_posts()) {
-        std::vector<int64_t >vec;
-        for(const auto& value : pair.second.post_ids()) {
-            vec.push_back(value);
-        }
-        user_home_timeline_map[pair.first] = std::move(vec);
-    }
-    RMEM_INFO("Timeline storage load finished! Total init %ld users", user_home_timeline_map.size());
-
-}
-
-void store_timeline_storage(const std::string& file_path)
-{
-    social_network::HomeTimelineStorage home_timeline_storage;
-    for (const auto& pair : user_home_timeline_map) {
-        social_network::VecPostID &vec =  home_timeline_storage.mutable_users_to_posts()->at(pair.first) ;
-        for (const auto& value : pair.second) {
-            vec.add_post_ids(value);
-        }
-    }
-
-    std::ofstream output(file_path, std::ios::binary);
-    rmem::rt_assert(output.is_open(),"file open failed");
-
-    if (!home_timeline_storage.SerializeToOstream(&output)) {
-        RMEM_ERROR("Failed to serial home_timeline_storage.");
-        exit(-1);
-    }
-
-    RMEM_INFO("Timeline storage store finished! Total init %ld users", user_home_timeline_map.size());
-}
+//void load_timeline_storage(const std::string& file_path)
+//{
+//    social_network::HomeTimelineStorage home_timeline_storage;
+//    std::ifstream input(file_path, std::ios::binary);
+//    rmem::rt_assert(input.is_open(),"file open failed");
+//
+//    if (!home_timeline_storage.ParseFromIstream(&input)) {
+//        RMEM_ERROR("Failed to parse home_timeline_storage.");
+//        exit(-1);
+//    }
+//
+//    for(const auto& pair : home_timeline_storage.users_to_posts()) {
+//        std::vector<int64_t >vec;
+//        for(const auto& value : pair.second.post_ids()) {
+//            vec.push_back(value);
+//        }
+//        user_home_timeline_map[pair.first] = std::move(vec);
+//    }
+//    RMEM_INFO("Timeline storage load finished! Total init %ld users", user_home_timeline_map.size());
+//
+//}
+//
+//void store_timeline_storage(const std::string& file_path)
+//{
+//    social_network::HomeTimelineStorage home_timeline_storage;
+//    for (const auto& pair : user_home_timeline_map) {
+//        social_network::VecPostID &vec =  home_timeline_storage.mutable_users_to_posts()->at(pair.first) ;
+//        for (const auto& value : pair.second) {
+//            vec.add_post_ids(value);
+//        }
+//    }
+//
+//    std::ofstream output(file_path, std::ios::binary);
+//    rmem::rt_assert(output.is_open(),"file open failed");
+//
+//    if (!home_timeline_storage.SerializeToOstream(&output)) {
+//        RMEM_ERROR("Failed to serial home_timeline_storage.");
+//        exit(-1);
+//    }
+//
+//    RMEM_INFO("Timeline storage store finished! Total init %ld users", user_home_timeline_map.size());
+//}
 
 // must be used after init_service_config
 
@@ -210,6 +213,12 @@ void init_specific_config(){
     rmem::rt_assert(!value.is_null(),"value is null");
     data_file_path = value;
 
+    value = config_json_all["home_timeline"];
+    if(value.contains("per_read_posts")){
+        per_read_posts = value["per_read_posts"];
+        RMEM_INFO("per_read_posts is %ld", per_read_posts);
+    }
+
     auto conns = config_json_all["social_graph_mongodb"]["connections"];
     rmem::rt_assert(!conns.is_null(),"value is null");
     mongodb_conns_num = conns;
@@ -224,10 +233,18 @@ void read_home_time_line_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *r
         is_fwd = false;
     }
 
-    if(!user_home_timeline_map.contains(req->req_control.user_id)){
-        is_fwd = false;
+//    if(!user_home_timeline_map.contains(req->req_control.user_id)){
+//        is_fwd = false;
+//    }
+    std::vector<int64_t> post_ids;
+    int64_t num = per_read_posts;
+    while(num--){
+        int64_t tmp = post_ids_queue.front();
+        post_ids.push_back(tmp);
+        post_ids_queue.pop();
+        post_ids_queue.push(tmp);
     }
-    std::vector<int64_t> &post_ids = user_home_timeline_map[req->req_control.user_id];
+
     if(req->req_control.start_idx > static_cast<int>(post_ids.size())){
         is_fwd = false;
     }

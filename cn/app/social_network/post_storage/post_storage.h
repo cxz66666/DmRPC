@@ -12,7 +12,7 @@
 #include "api.h"
 #include "page.h"
 
-std::string compose_post_addr;
+std::string client_addr;
 std::string user_timeline_addr;
 std::string home_timeline_addr;
 
@@ -44,7 +44,6 @@ public:
 using STORAGE_QUEUE = atomic_queue::AtomicQueueB2<StorageHandler*, std::allocator<StorageHandler*>, true, true, false>;
 
 std::vector<STORAGE_QUEUE *> storage_queues;
-std::vector<std::map<uint32_t, size_t>> req_num_to_session_num;
 
 class ClientContext : public BasicContext
 {
@@ -53,11 +52,13 @@ public:
     {
         forward_all_mpmc_queue = new MPMC_QUEUE(kAppMaxBuffer);
         backward_mpmc_queue = new MPMC_QUEUE(kAppMaxBuffer);
+        backward_mpmc_home_timeline_queue = new MPMC_QUEUE(kAppMaxBuffer);
     }
     ~ClientContext()
     {
         delete forward_all_mpmc_queue;
         delete backward_mpmc_queue;
+        delete backward_mpmc_home_timeline_queue;
     }
 
     size_t get_write_addr(size_t size) {
@@ -84,10 +85,12 @@ public:
     spinlock_mutex now_write_addr_mutex;
     int user_timeline_session_num_;
     int home_timeline_session_num_;
-    int compose_post_session_num_;
+    int now_session_;
+    int client_session_num_;
 
     MPMC_QUEUE *forward_all_mpmc_queue;
     MPMC_QUEUE *backward_mpmc_queue;
+    MPMC_QUEUE *backward_mpmc_home_timeline_queue;
 };
 
 class ServerContext : public BasicContext
@@ -292,7 +295,6 @@ public:
 
         for(size_t i=0;i<FLAGS_server_num;i++){
             storage_queues.push_back(new STORAGE_QUEUE(kAppMaxBuffer));
-            req_num_to_session_num.emplace_back();
         }
         for(auto item : this->server_contexts_){
             item->init_mutex.lock();
@@ -347,9 +349,9 @@ public:
 // must be used after init_service_config
 
 void init_specific_config(){
-    auto value = config_json_all["compose_post"]["server_addr"];
+    auto value = config_json_all["client"]["server_addr"];
     rmem::rt_assert(!value.is_null(),"value is null");
-    compose_post_addr = value;
+    client_addr = value;
 
     value = config_json_all["user_timeline"]["server_addr"];
     rmem::rt_assert(!value.is_null(),"value is null");
@@ -397,7 +399,8 @@ void read_post_storage(size_t thread_id, void *buf_) {
         if(post_id_to_addr_map_[thread_id].count(item)){
             std::pair<size_t, size_t> addr_size = post_id_to_addr_map_[thread_id][item];
 //            printf("addr %ld, size %ld, item %ld\n", addr_size.first, addr_size.second, item);
-            storage_handler->rmem_bufs.push_back(rmems_[thread_id]->rmem_get_msg_buffer(addr_size.second));
+// TODO 这里有一个bug，其实是可以用rmem->get_msg_buffer进行优化减少一次内存拷贝，但是eRPC的实现导致并发高的时候有bug
+            storage_handler->rmem_bufs.push_back(malloc(addr_size.second));
             storage_handler->addrs_size.push_back(addr_size);
         } else {
             RMEM_WARN("thread %ld post_id %ld not found", thread_id, item);
@@ -508,6 +511,7 @@ void write_post_storage(size_t thread_id, void *buf_, ClientContext* ctx, MPMC_Q
         mongoc_client_pool_push(mongodb_client_pool, mongodb_client);
 
         delete post_ptr;
+//        printf("push resp_buffer\n");
         c_back->push(resp_buffer);
     }, post, resp_buf, consumer_back);
 

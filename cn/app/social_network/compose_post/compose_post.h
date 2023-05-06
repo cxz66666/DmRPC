@@ -37,10 +37,10 @@ public:
             media.set_media_type(data.media_types(i));
             post.add_media()->CopyFrom(media);
         }
-        finished_media = true;
 
         consumer_mpmc_queue = queue;
         rpc_ = rpc;
+        finished_number = 0;
     }
 
     void send_first_step() {
@@ -57,17 +57,17 @@ public:
         consumer_mpmc_queue->push(req_msgbuf);
 
         std::regex e("@[a-zA-Z0-9-_]+");
-        std::regex_token_iterator<std::string::iterator> it1(original_text.begin(), original_text.end(), e, -1);
-
-        while (it1 != std::regex_token_iterator<std::string::iterator>{}) {
+        std::sregex_iterator it1(original_text.begin(), original_text.end(), e);
+        std::sregex_iterator end;
+        while (it1 != end) {
             user_mention_req.add_names((*it1).str().substr(1));
             it1++;
         }
 
         e = "(http://|https://)([a-zA-Z0-9_!~*'().&=+$%-]+)";
-        std::regex_token_iterator<std::string::iterator> it2(original_text.begin(), original_text.end(), e, -1);
+        std::sregex_iterator it2(original_text.begin(), original_text.end(), e);
 
-        while (it2 != std::regex_token_iterator<std::string::iterator>{}) {
+        while (it2 != end) {
             url_shorten_req.add_urls((*it2).str());
             it2++;
         }
@@ -87,6 +87,7 @@ public:
     }
 
     void send_second_step() {
+//        printf("ready to second step %u\n", req_id);
         size_t extra_length = post.ByteSizeLong();
         auto req_msgbuf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>)+ extra_length);
         auto req1 = new(req_msgbuf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_WRITE_REQ, req_id, {extra_length});
@@ -94,33 +95,36 @@ public:
         consumer_mpmc_queue->push(req_msgbuf);
 
 
-        social_network::HomeTimelineWriteReq home_timeline_write_req;
-        home_timeline_write_req.set_user_id(creator.user_id());
-        home_timeline_write_req.set_post_id(post.post_id());
-        home_timeline_write_req.set_timestamp(post.timestamp());
-        for(auto &item: post.user_mentions()){
-            home_timeline_write_req.add_user_mentions_id(item.user_id());
-        }
-        extra_length = home_timeline_write_req.ByteSizeLong();
-        req_msgbuf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>)+ extra_length);
-        auto req2 = new(req_msgbuf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_HOME_TIMELINE_WRITE_REQ, req_id, {extra_length});
-        home_timeline_write_req.SerializeToArray(req2+1, extra_length);
-        consumer_mpmc_queue->push(req_msgbuf);
-
-        req_msgbuf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<UserTimeLineWriteReq>));
-        new(req_msgbuf.buf_) RPCMsgReq<UserTimeLineWriteReq>(RPC_TYPE::RPC_USER_TIMELINE_WRITE_REQ, req_id, {post.post_id(),creator.user_id(), post.timestamp()});
-        consumer_mpmc_queue->push(req_msgbuf);
+//        social_network::HomeTimelineWriteReq home_timeline_write_req;
+//        home_timeline_write_req.set_user_id(creator.user_id());
+//        home_timeline_write_req.set_post_id(post.post_id());
+//        home_timeline_write_req.set_timestamp(post.timestamp());
+//        for(auto &item: post.user_mentions()){
+//            home_timeline_write_req.add_user_mentions_id(item.user_id());
+//        }
+//        extra_length = home_timeline_write_req.ByteSizeLong();
+//        req_msgbuf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>)+ extra_length);
+//        auto req2 = new(req_msgbuf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_HOME_TIMELINE_WRITE_REQ, req_id, {extra_length});
+//        home_timeline_write_req.SerializeToArray(req2+1, extra_length);
+//        consumer_mpmc_queue->push(req_msgbuf);
+//
+//        req_msgbuf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<UserTimeLineWriteReq>));
+//        new(req_msgbuf.buf_) RPCMsgReq<UserTimeLineWriteReq>(RPC_TYPE::RPC_USER_TIMELINE_WRITE_REQ, req_id, {post.post_id(),creator.user_id(), post.timestamp()});
+//        consumer_mpmc_queue->push(req_msgbuf);
     }
     erpc::MsgBuffer generate_resp_msg(){
         erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>));
         new (resp_buf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP, req_id, {0});
         return resp_buf;
     }
-    bool is_next_step(){
-        return finished_unique_id && finished_url_shorten && finished_user_mention && finished_user && finished_media;
-    }
-    bool is_finished_all(){
-        return finished_post_storage && finished_user_timeline && finished_home_timeline;
+    void  generate_next_step(){
+        mutex.lock();
+        int now_number = finished_number.fetch_add(1);
+        printf("%d\n",now_number);
+        if(now_number == 4) {
+            send_second_step();
+        }
+        mutex.unlock();
     }
 
     uint32_t req_id;
@@ -136,16 +140,9 @@ public:
     social_network::Post post;
 
     // is always true after construct
-    bool finished_media;
-    bool finished_unique_id;
-    bool finished_url_shorten;
-    bool finished_user_mention;
-    bool finished_user_timeline;
-    bool finished_user;
-    bool finished_home_timeline;
-    bool finished_post_storage;
 
-
+    std::atomic<int> finished_number;
+    spinlock_mutex mutex;
 };
 
 class ReqStateStore
