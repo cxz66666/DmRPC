@@ -102,12 +102,8 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
 
-    uint8_t rpc_id = 0;
-#if defined(ERPC_PROGRAM)
-    rpc_id = thread_id + FLAGS_server_num;
-#elif defined(RMEM_PROGRAM)
-    rpc_id = thread_id + FLAGS_server_num + kAppMaxRPC;
-#endif
+    uint8_t rpc_id = thread_id + FLAGS_server_num;
+
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
                                     rpc_id,
                                     basic_sm_handler_client, phy_port);
@@ -154,12 +150,8 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
 
-    uint8_t rpc_id = 0;
-#if defined(ERPC_PROGRAM)
-    rpc_id = thread_id;
-#elif defined(RMEM_PROGRAM)
-    rpc_id = thread_id + kAppMaxRPC;
-#endif
+    uint8_t rpc_id = thread_id;
+
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
                                     rpc_id,
                                     basic_sm_handler_server, phy_port);

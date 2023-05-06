@@ -151,12 +151,3 @@ class RmemParamReq {
 public:
     size_t dummy;
 };
-
-
-#if defined(ERPC_PROGRAM)
-
-
-#elif defined(RMEM_PROGRAM)
-
-
-#endif
