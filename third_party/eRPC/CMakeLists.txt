@@ -60,7 +60,7 @@ option(ROCE "Use RoCE if TRANSPORT is infiniband" OFF)
 option(AZURE "Configure DPDK for Azure if TRANSPORT is dpdk" OFF)
 option(PERF "Compile for performance" ON)
 set(PGO "none" CACHE STRING "Profile-guided optimization (generate/use/none)")
-set(LOG_LEVEL "trace" CACHE STRING "Logging level (none/error/warn/info/reorder/trace/cc)")
+set(LOG_LEVEL "warn" CACHE STRING "Logging level (none/error/warn/info/reorder/trace/cc)")
 
 # Profile-guided optimization
 if(PGO STREQUAL "generate")

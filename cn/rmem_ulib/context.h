@@ -146,7 +146,8 @@ namespace rmem
         erpc::Rpc<erpc::CTransport> *rpc_;
 
         // used for record alloc buffer
-        phmap::flat_hash_map<void *, erpc::MsgBuffer> alloc_buffer;
+        phmap::parallel_node_hash_map<void *, erpc::MsgBuffer> alloc_buffer;
+//        std::unordered_map<void *, erpc::MsgBuffer> alloc_buffer;
 
     private:
         // need have g_lock before call this function

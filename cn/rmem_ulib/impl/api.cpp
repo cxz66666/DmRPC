@@ -302,6 +302,7 @@ namespace rmem
         erpc::MsgBuffer msg_buf = rpc_->alloc_msg_buffer_or_die(size + sizeof(WriteReq));
 
         void *data_buf = reinterpret_cast<char *>(msg_buf.buf_) + sizeof(WriteReq);
+//        printf("alloc buffer %p\n", data_buf);
         rt_assert(alloc_buffer.count(data_buf) == 0, "buffer is already allocated");
 
         alloc_buffer[data_buf] = msg_buf;
@@ -318,11 +319,12 @@ namespace rmem
             RMEM_ERROR("buffer is not allocated or already be free");
             return ENXIO;
         }
+//        printf("free buffer %p\n", buf);
 
         erpc::MsgBuffer msg_buf = alloc_buffer[buf];
+        alloc_buffer.erase(buf);
 
         rpc_->free_msg_buffer(msg_buf);
-        alloc_buffer.erase(buf);
 
         return 0;
     }

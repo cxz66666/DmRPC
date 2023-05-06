@@ -140,7 +140,18 @@ namespace erpc
     sslot->server_info_.num_rx_ = 1;
 
     const ReqFunc &req_func = req_func_arr_[pkthdr->req_type_];
-
+    if(req_func.req_func_ == nullptr) {
+        printf("req_type %u, req_num %lu\n", pkthdr->req_type_, pkthdr->req_num_);
+        req_msgbuf = MsgBuffer(pkthdr, pkthdr->msg_size_);
+        uint8_t *tmp = req_msgbuf.buf_;
+        for(size_t i=0;i< req_msgbuf.data_size_; i++){
+            printf("%d ", static_cast<int>(*tmp));
+            tmp++;
+        }
+        printf("\n");
+        printf("%s\n",sslot->session_->client_.name().c_str());
+        printf("%s\n",sslot->session_->server_.name().c_str());
+    }
     // Remember request metadata for enqueue_response(). req_type was invalidated
     // on previous enqueue_response(). Setting it implies that an enqueue_resp()
     // is now pending; this invariant is used to safely reset sessions.
