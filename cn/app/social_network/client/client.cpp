@@ -55,12 +55,17 @@ void compose_post_write_resp_handler(erpc::ReqHandle *req_handler, void *_contex
     auto *req = reinterpret_cast<RPCMsgReq<CommonRPCReq> *>(req_msgbuf->buf_);
 
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<CommonRPCReq>) + req->req_control.data_length, "data size not match");
+    hdr_record_value_atomic(latency_write_hist_,
+                            static_cast<int64_t>(timers[ctx->server_id_][req->req_common.req_number % kAppMaxBuffer].toc() * 10));
 
     new (req_handler->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
     ctx->rpc_->resize_msg_buffer(&req_handler->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
-    ctx->rpc_->enqueue_response(req_handler, &req_handler->pre_resp_msgbuf_);
 
     ctx->queue_store->PushNextReq();
+    __sync_synchronize();
+
+    ctx->rpc_->enqueue_response(req_handler, &req_handler->pre_resp_msgbuf_);
+
 }
 
 void user_timeline_read_resp_handler(erpc::ReqHandle *req_handler, void *_context)
@@ -72,12 +77,30 @@ void user_timeline_read_resp_handler(erpc::ReqHandle *req_handler, void *_contex
     auto *req = reinterpret_cast<RPCMsgReq<CommonRPCReq> *>(req_msgbuf->buf_);
 //    printf("user timeline read resp, type %u, number %u, data_length %ld\n", static_cast<uint32_t>(req->req_common.type), req->req_common.req_number, req->req_control.data_length);
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<CommonRPCReq>) + req->req_control.data_length, "data size not match");
+    hdr_record_value_atomic(latency_user_timeline_hist_,
+                            static_cast<int64_t>(timers[ctx->server_id_][req->req_common.req_number % kAppMaxBuffer].toc() * 10));
 
     new (req_handler->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
     ctx->rpc_->resize_msg_buffer(&req_handler->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
+
+
+#if defined(ERPC_PROGRAM)
+    ctx->queue_store->PushNextReq();
+    __sync_synchronize();
+#elif defined(RMEM_PROGRAM)
+    social_network::PostStorageReadRefResp post_storage_read_ref_resp;
+    post_storage_read_ref_resp.ParseFromArray(req+1, req->req_control.data_length);
+    ReaderHandler *reader_handler = new ReaderHandler();
+    for(int i=0;i< post_storage_read_ref_resp.posts_ref_addr_size();i++)
+    {
+        reader_handler->addrs_size.push_back({post_storage_read_ref_resp.posts_ref_addr(i), post_storage_read_ref_resp.posts_ref_size(i)});
+        reader_handler->rmem_bufs.push_back(malloc(post_storage_read_ref_resp.posts_ref_size(i)));
+    }
+    reader_queues[ctx->server_id_]->push(reader_handler);
+
+#endif
     ctx->rpc_->enqueue_response(req_handler, &req_handler->pre_resp_msgbuf_);
 
-    ctx->queue_store->PushNextReq();
 }
 
 void home_timeline_read_resp_handler(erpc::ReqHandle *req_handler, void *_context)
@@ -88,12 +111,30 @@ void home_timeline_read_resp_handler(erpc::ReqHandle *req_handler, void *_contex
 
     auto *req = reinterpret_cast<RPCMsgReq<CommonRPCReq> *>(req_msgbuf->buf_);
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<CommonRPCReq>) + req->req_control.data_length, "data size not match");
+    hdr_record_value_atomic(latency_home_timeline_hist_,
+                            static_cast<int64_t>(timers[ctx->server_id_][req->req_common.req_number % kAppMaxBuffer].toc() * 10));
 
     new (req_handler->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
     ctx->rpc_->resize_msg_buffer(&req_handler->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
+
+#if defined(ERPC_PROGRAM)
+    ctx->queue_store->PushNextReq();
+    __sync_synchronize();
+#elif defined(RMEM_PROGRAM)
+    social_network::PostStorageReadRefResp post_storage_read_ref_resp;
+    post_storage_read_ref_resp.ParseFromArray(req+1, req->req_control.data_length);
+    ReaderHandler *reader_handler = new ReaderHandler();
+    for(int i=0;i< post_storage_read_ref_resp.posts_ref_addr_size();i++)
+    {
+        reader_handler->addrs_size.push_back({post_storage_read_ref_resp.posts_ref_addr(i), post_storage_read_ref_resp.posts_ref_size(i)});
+        reader_handler->rmem_bufs.push_back(malloc(post_storage_read_ref_resp.posts_ref_size(i)));
+    }
+    reader_queues[ctx->server_id_]->push(reader_handler);
+
+#endif
+
     ctx->rpc_->enqueue_response(req_handler, &req_handler->pre_resp_msgbuf_);
 
-    ctx->queue_store->PushNextReq();
 }
 
 void callback_ping(void *_context, void *_tag)
@@ -148,6 +189,7 @@ void callback_rmem_param(void *_context, void *_tag)
         RMEM_INFO("client thread %ld join success, based addr %ld\n", ctx->client_id_, rmem_base_addr[ctx->client_id_]);
 
         rmems_[ctx->client_id_] = rmem;
+        __sync_synchronize();
         rmems_init_number++;
     }
 }
@@ -166,22 +208,22 @@ void callback_common(void *_context, void *_tag)
     uint32_t req_id = req_id_ptr;
     auto *ctx = static_cast<ClientContext *>(_context);
 
-    auto *resp = reinterpret_cast<CommonResp *>(ctx->resp_msgbuf[req_id % kAppMaxConcurrency].buf_);
+    auto *resp = reinterpret_cast<CommonResp *>(ctx->resp_msgbuf[req_id % kAppMaxBuffer].buf_);
 
     rmem::rt_assert(resp->status == 0, "resp status error");
 
     switch(resp->type){
         case RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ:
-            ctx->compose_post_req_queue->push(ctx->req_msgbuf[req_id % kAppMaxConcurrency]);
+            ctx->compose_post_req_queue->push(ctx->req_msgbuf[req_id % kAppMaxBuffer]);
             break;
         case RPC_TYPE::RPC_USER_TIMELINE_READ_REQ:
-            ctx->user_timeline_req_queue->push(ctx->req_msgbuf[req_id % kAppMaxConcurrency]);
+            ctx->user_timeline_req_queue->push(ctx->req_msgbuf[req_id % kAppMaxBuffer]);
             break;
         case RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ:
-            ctx->home_timeline_req_queue->push(ctx->req_msgbuf[req_id % kAppMaxConcurrency]);
+            ctx->home_timeline_req_queue->push(ctx->req_msgbuf[req_id % kAppMaxBuffer]);
             break;
         case RPC_TYPE::RPC_POST_STORAGE_WRITE_REQ:
-            ctx->compose_post_req_queue->push(ctx->req_msgbuf[req_id % kAppMaxConcurrency]);
+            ctx->compose_post_req_queue->push(ctx->req_msgbuf[req_id % kAppMaxBuffer]);
             break;
 
         default:
@@ -193,13 +235,15 @@ void callback_common(void *_context, void *_tag)
 
 void handler_compose_post_write_req(ClientContext *ctx, REQ_MSG req_msg)
 {
-    erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[req_msg.req_id % kAppMaxConcurrency];
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[req_msg.req_id % kAppMaxConcurrency];
+    erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[req_msg.req_id % kAppMaxBuffer];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[req_msg.req_id % kAppMaxBuffer];
 
     req_msgbuf = ctx->compose_post_req_queue->pop();
 //    new (req_msgbuf.buf_) CommonReq{RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ, req_msg.req_id};
 
     new (req_msgbuf.buf_) CommonReq{RPC_TYPE::RPC_POST_STORAGE_WRITE_REQ, req_msg.req_id};
+
+    timers[ctx->client_id_][req_msg.req_id % kAppMaxBuffer].tic();
     ctx->rpc_->enqueue_request(ctx->post_storage_session_num_, static_cast<uint8_t>(RPC_TYPE::RPC_POST_STORAGE_WRITE_REQ),
                                &req_msgbuf, &resp_msgbuf,
                                callback_common, reinterpret_cast<void *>(req_msg.req_id));
@@ -207,12 +251,13 @@ void handler_compose_post_write_req(ClientContext *ctx, REQ_MSG req_msg)
 
 void handler_user_timeline_read_req(ClientContext *ctx, REQ_MSG req_msg)
 {
-    erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[req_msg.req_id % kAppMaxConcurrency];
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[req_msg.req_id % kAppMaxConcurrency];
+    erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[req_msg.req_id % kAppMaxBuffer];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[req_msg.req_id % kAppMaxBuffer];
 
     req_msgbuf = ctx->user_timeline_req_queue->pop();
     new (req_msgbuf.buf_) CommonReq{RPC_TYPE::RPC_USER_TIMELINE_READ_REQ, req_msg.req_id};
 
+    timers[ctx->client_id_][req_msg.req_id % kAppMaxBuffer].tic();
     ctx->rpc_->enqueue_request(ctx->load_balance_session_num_, static_cast<uint8_t>(RPC_TYPE::RPC_USER_TIMELINE_READ_REQ),
                                &req_msgbuf, &resp_msgbuf,
                                callback_common, reinterpret_cast<void *>(req_msg.req_id));
@@ -220,12 +265,13 @@ void handler_user_timeline_read_req(ClientContext *ctx, REQ_MSG req_msg)
 
 void handler_home_timeline_read_req(ClientContext *ctx, REQ_MSG req_msg)
 {
-    erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[req_msg.req_id % kAppMaxConcurrency];
-    erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[req_msg.req_id % kAppMaxConcurrency];
+    erpc::MsgBuffer &req_msgbuf = ctx->req_msgbuf[req_msg.req_id % kAppMaxBuffer];
+    erpc::MsgBuffer &resp_msgbuf = ctx->resp_msgbuf[req_msg.req_id % kAppMaxBuffer];
 
     req_msgbuf = ctx->home_timeline_req_queue->pop();
     new (req_msgbuf.buf_) CommonReq{RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ, req_msg.req_id};
 
+    timers[ctx->client_id_][req_msg.req_id % kAppMaxBuffer].tic();
     ctx->rpc_->enqueue_request(ctx->load_balance_session_num_, static_cast<uint8_t>(RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ),
                                &req_msgbuf, &resp_msgbuf,
                                callback_common, reinterpret_cast<void *>(req_msg.req_id));
@@ -247,7 +293,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
 
-    for (size_t i=0; i< kAppMaxConcurrency; i++)
+    for (size_t i=0; i< kAppMaxBuffer; i++)
     {
         ctx->resp_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(RPCMsgResp<CommonRPCResp>));
     }
@@ -276,6 +322,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     while (true)
     {
         unsigned size = ctx->queue_store->GetReqSize();
+        __sync_synchronize();
         for (unsigned i = 0; i < size; i++)
         {
             REQ_MSG req_msg = ctx->queue_store->PopReq();
@@ -323,6 +370,76 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
         }
     }
 }
+#if defined(RMEM_PROGRAM)
+void reader_thread_func(size_t thread_id, QueueStore* store) {
+    std::queue<ReaderHandler*> queues;
+
+    size_t reading_posts = 0;
+    ReaderHandler *tmp = nullptr;
+    const int max_batch = 9;
+    int* batch_buffer = new int[max_batch];
+
+    while(rmems_init_number != FLAGS_client_num) {
+        usleep(1000);
+    }
+    while(true) {
+
+        if(reading_posts<kAppMaxBuffer) {
+            if(reader_queues[thread_id]->try_pop(tmp)){
+                queues.push(tmp);
+                for(size_t i=0;i<tmp->rmem_bufs.size();i++){
+                    rmems_[thread_id]->rmem_read_async(tmp->rmem_bufs[i], tmp->addrs_size[i].first + rmem_base_addr[thread_id], tmp->addrs_size[i].second);
+                }
+                reading_posts += tmp->rmem_bufs.size();
+            }
+        }
+
+        int fetch_num = rmems_[thread_id]->rmem_poll(batch_buffer, max_batch);
+
+        reading_posts -= fetch_num;
+        for(int i=0;i<fetch_num;i++){
+        rmem::rt_assert(batch_buffer[i]==0, "poll post error!");
+        }
+
+        while(fetch_num){
+            tmp = queues.front();
+            size_t now_finish_num = tmp->finished_num;
+            int parse_num = 0;
+            for(int i=0;i<fetch_num && now_finish_num+i< tmp->rmem_bufs.size();i++){
+                parse_num ++;
+                tmp->finished_num++;
+            }
+
+            if(tmp->finished_num == tmp->rmem_bufs.size()) {
+                store->PushNextReq();
+                for(auto read_buf : tmp->rmem_bufs){
+                    free(read_buf);
+                }
+                delete tmp;
+                queues.pop();
+            }
+            fetch_num -= parse_num;
+        }
+        if(unlikely(ctrl_c_pressed == 1)) {
+            break;
+        }
+    }
+}
+#endif
+
+bool write_latency_and_reset(const std::string &filename, hdr_histogram *hdr)
+{
+
+    FILE *fp = fopen(filename.c_str(), "w");
+    if (fp == nullptr)
+    {
+        return false;
+    }
+    hdr_percentiles_print(hdr, fp, 5, 10, CLASSIC);
+    fclose(fp);
+    hdr_reset(hdr);
+    return true;
+}
 
 void leader_thread_func()
 {
@@ -356,6 +473,15 @@ void leader_thread_func()
 
         rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node) + FLAGS_bind_core_offset);
     }
+#if defined(RMEM_PROGRAM)
+    std::vector<std::thread> readers;
+    for (size_t i = 0; i < FLAGS_server_num; i++)
+    {
+        readers.emplace_back(reader_thread_func, i, context->client_contexts_[i]->queue_store);
+
+        rmem::bind_to_core(readers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node) + FLAGS_bind_core_offset);
+    }
+#endif
     sleep(3);
 
 
@@ -408,7 +534,15 @@ void leader_thread_func()
     {
         servers[i].join();
     }
+    write_latency_and_reset(FLAGS_latency_file+".write", latency_write_hist_);
+    write_latency_and_reset(FLAGS_latency_file+".user", latency_user_timeline_hist_);
+    write_latency_and_reset(FLAGS_latency_file+".home", latency_home_timeline_hist_);
 
+#if defined(RMEM_PROGRAM)
+    for (size_t i=0 ;i< FLAGS_server_num; i++) {
+        readers[i].join();
+    }
+#endif
 }
 
 int main(int argc, char **argv)
@@ -420,9 +554,26 @@ int main(int argc, char **argv)
 
     init_service_config(FLAGS_config_file,"client");
     init_specific_config();
+
+    int ret = hdr_init(1, 1000 * 1000 * 10, 3,
+                       &latency_write_hist_);
+    rmem::rt_assert(ret == 0, "hdr_init failed");
+    ret = hdr_init(1, 1000 * 1000 * 10, 3,
+                   &latency_user_timeline_hist_);
+    rmem::rt_assert(ret == 0, "hdr_init failed");
+    ret = hdr_init(1, 1000 * 1000 * 10, 3,
+                   &latency_home_timeline_hist_);
+    rmem::rt_assert(ret == 0, "hdr_init failed");
+
+
     rmem::rmem_init(rmem_self_addr, FLAGS_numa_client_node);
 
     std::thread leader_thread(leader_thread_func);
     rmem::bind_to_core(leader_thread, 1, get_bind_core(1));
     leader_thread.join();
+
+
+    hdr_close(latency_write_hist_);
+    hdr_close(latency_user_timeline_hist_);
+    hdr_close(latency_home_timeline_hist_);
 }

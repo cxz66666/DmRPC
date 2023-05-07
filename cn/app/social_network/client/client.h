@@ -2,6 +2,7 @@
 #include <hdr/hdr_histogram.h>
 #include "../social_network_commons.h"
 #include "../social_network.pb.h"
+#include <hs_clock.h>
 
 #include "api.h"
 #include "page.h"
@@ -16,6 +17,12 @@ std::vector<unsigned long> rmem_base_addr;
 std::atomic<uint64_t> rmems_init_number;
 
 int64_t generate_data_num;
+
+hdr_histogram *latency_user_timeline_hist_;
+hdr_histogram *latency_home_timeline_hist_;
+hdr_histogram *latency_write_hist_;
+
+std::vector<std::vector<rmem::Timer>> timers(kAppMaxRPC, std::vector<rmem::Timer>(kAppMaxBuffer));
 
 
 struct REQ_MSG
@@ -35,8 +42,8 @@ static_assert(sizeof(RESP_MSG) == 8, "RESP_MSG size is not 8");
 class QueueStore {
 public:
     QueueStore(){
-        spsc_queue = new atomic_queue::AtomicQueueB2<REQ_MSG, std::allocator<REQ_MSG>, true, false, true>(kAppMaxConcurrency);
-        resp_spsc_queue = new atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, true>(kAppMaxConcurrency);
+        spsc_queue = new atomic_queue::AtomicQueueB2<REQ_MSG, std::allocator<REQ_MSG>, true, false, true>(kAppMaxBuffer);
+        resp_spsc_queue = new atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, true>(kAppMaxBuffer);
         req_id_ = 1;
     }
     ~QueueStore(){
@@ -50,16 +57,19 @@ public:
         spsc_queue->push(REQ_MSG{0, RPC_TYPE::RPC_RMEM_PARAM});
     }
     void PushNextReq(){
-        uint32_t now_req_id = req_id_++;
+        uint32_t now_req_id;
+        mutex.lock();
+        now_req_id = req_id_++;
+        mutex.unlock();
         //TODO
         if(now_req_id % 3 == 0){
             spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_USER_TIMELINE_READ_REQ});
         } else if(now_req_id % 3 == 1) {
-            spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ});
+            spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_USER_TIMELINE_READ_REQ});
         } else {
-            spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ});
+            spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_USER_TIMELINE_READ_REQ});
         }
-
+        __sync_synchronize();
     }
 
     void PushReq(REQ_MSG msg){
@@ -83,12 +93,23 @@ public:
         return resp_spsc_queue->was_size();
     }
 
-
+    spinlock_mutex mutex;
     uint32_t req_id_;
     atomic_queue::AtomicQueueB2<REQ_MSG, std::allocator<REQ_MSG>, true, false, true> *spsc_queue;
     atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, true> *resp_spsc_queue{};
 
 };
+
+class ReaderHandler
+{
+public:
+    std::vector<void*> rmem_bufs;
+    std::vector<std::pair<size_t,size_t>> addrs_size;
+    size_t finished_num{};
+};
+using READER_QUEUE = atomic_queue::AtomicQueueB2<ReaderHandler*, std::allocator<ReaderHandler*>, true, false, false>;
+std::vector<READER_QUEUE *> reader_queues;
+
 
 class ClientContext : public BasicContext
 {
@@ -104,8 +125,8 @@ public:
     ~ClientContext()
     {
     }
-    erpc::MsgBuffer req_msgbuf[kAppMaxConcurrency];
-    erpc::MsgBuffer resp_msgbuf[kAppMaxConcurrency];
+    erpc::MsgBuffer req_msgbuf[kAppMaxBuffer];
+    erpc::MsgBuffer resp_msgbuf[kAppMaxBuffer];
 
     erpc::MsgBuffer ping_msgbuf;
     erpc::MsgBuffer ping_resp_msgbuf;
@@ -158,9 +179,6 @@ class AppContext
 public:
     AppContext()
     {
-        int ret = hdr_init(1, 1000 * 1000 * 10, 3,
-                           &latency_hist_);
-        rmem::rt_assert(ret == 0, "hdr_init failed");
         for (size_t i = 0; i < FLAGS_client_num; i++)
         {
             client_contexts_.push_back(new ClientContext(i, i % FLAGS_server_num));
@@ -172,13 +190,15 @@ public:
             server_contexts_.push_back(ctx);
         }
 
+        for (size_t i = 0;i < FLAGS_client_num; i++){
+            reader_queues.push_back(new READER_QUEUE(kAppMaxBuffer));
+        }
+
         rmems_.resize(FLAGS_client_num);
         rmem_base_addr.resize(FLAGS_client_num);
     }
     ~AppContext()
     {
-        hdr_close(latency_hist_);
-
         for (auto &ctx : client_contexts_)
         {
             delete ctx;
@@ -189,24 +209,8 @@ public:
         }
     }
 
-    [[maybe_unused]] [[nodiscard]] bool write_latency_and_reset(const std::string &filename) const
-    {
-
-        FILE *fp = fopen(filename.c_str(), "w");
-        if (fp == nullptr)
-        {
-            return false;
-        }
-        hdr_percentiles_print(latency_hist_, fp, 5, 10, CLASSIC);
-        fclose(fp);
-        hdr_reset(latency_hist_);
-        return true;
-    }
-
     std::vector<ClientContext *> client_contexts_;
     std::vector<ServerContext *> server_contexts_;
-
-    hdr_histogram *latency_hist_{};
 };
 
 // must be used after init_service_config
