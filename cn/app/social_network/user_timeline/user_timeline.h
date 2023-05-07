@@ -191,6 +191,7 @@ void read_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MPMC_QUEUE
 //        printf("don't fwd, req number is %u\n", req->req_common.req_number);
         erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>));
         new (resp_buf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_USER_TIMELINE_READ_RESP, req->req_common.req_number, {0});
+        __sync_synchronize();
         consumer_back->push(resp_buf);
         return;
     }
@@ -213,7 +214,7 @@ void read_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *rpc_, MPMC_QUEUE
     auto* fwd_req_msg = new (fwd_req.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_READ_REQ, req->req_common.req_number, {post_storage_req.ByteSizeLong()});
 
     post_storage_req.SerializeToArray(fwd_req_msg+1, static_cast<int>(post_storage_req.ByteSizeLong()));
-
+    __sync_synchronize();
     consumer_fwd->push(fwd_req);
 }
 

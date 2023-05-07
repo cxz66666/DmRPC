@@ -97,6 +97,8 @@ void post_storage_read_req_handler(erpc::ReqHandle *req_handler, void *_context)
     ctx->rpc_->resize_msg_buffer(&req_handler->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
 
     ctx->forward_all_mpmc_queue->push(*req_msgbuf);
+    __sync_synchronize();
+
     req_handler->get_hacked_req_msgbuf()->set_no_dynamic();
 
     ctx->rpc_->enqueue_response(req_handler, &req_handler->pre_resp_msgbuf_);
@@ -121,6 +123,8 @@ void post_storage_write_req_handler(erpc::ReqHandle *req_handler, void *_context
     ctx->rpc_->resize_msg_buffer(&req_handler->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
 
     ctx->forward_all_mpmc_queue->push(*req_msgbuf);
+    __sync_synchronize();
+
     req_handler->get_hacked_req_msgbuf()->set_no_dynamic();
 
     ctx->rpc_->enqueue_response(req_handler, &req_handler->pre_resp_msgbuf_);
@@ -155,6 +159,7 @@ void handler_post_storage_write_resp(ClientContext *ctx, const erpc::MsgBuffer &
 
     // it's a hack!
     req->req_common.type = RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP;
+    __sync_synchronize();
     ctx->rpc_->enqueue_request(ctx->client_session_num_, static_cast<uint8_t>(RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP),
                                &ctx->req_backward_msgbuf[req->req_common.req_number % kAppMaxBuffer], &resp_msgbuf,
                                callback_post_storage_write_resp, reinterpret_cast<void *>(req->req_common.req_number % kAppMaxBuffer));
@@ -261,6 +266,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     {
         ctx->now_session_ = ctx->user_timeline_session_num_;
         unsigned size = ctx->backward_mpmc_queue->was_size();
+        __sync_synchronize();
         for (unsigned i = 0; i < size; i++)
         {
             erpc::MsgBuffer req_msg = ctx->backward_mpmc_queue->pop();
@@ -272,6 +278,7 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
 
         ctx->now_session_ = ctx->home_timeline_session_num_;
         size = ctx->backward_mpmc_home_timeline_queue->was_size();
+        __sync_synchronize();
         for (unsigned i = 0; i < size; i++)
         {
             erpc::MsgBuffer req_msg = ctx->backward_mpmc_home_timeline_queue->pop();
@@ -320,11 +327,12 @@ void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus
         }
     }
 }
-void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *consumer, ClientContext *ctx, erpc::Rpc<erpc::CTransport> *server_rpc_)
+void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *consumer_user, MPMC_QUEUE *consumer_home, ClientContext *ctx, erpc::Rpc<erpc::CTransport> *server_rpc_)
 {
     while (true)
     {
         unsigned size = producer->was_size();
+        __sync_synchronize();
         for (unsigned i = 0; i < size; i++)
         {
             erpc::MsgBuffer req_msg = producer->pop();
@@ -334,14 +342,14 @@ void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *cons
                             req->type == RPC_TYPE::RPC_POST_STORAGE_WRITE_REQ, "req type error");
 
             if(req->type == RPC_TYPE::RPC_POST_STORAGE_READ_REQ) {
-                read_post_storage(thread_id, req);
+                read_post_storage(thread_id, req, consumer_user, consumer_home, ctx);
                 server_rpc_->free_msg_buffer(req_msg);
             } else if(req->type == RPC_TYPE::RPC_POST_STORAGE_WRITE_REQ) {
-                write_post_storage(thread_id, req,  ctx, consumer);
+                write_post_storage(thread_id, req,  ctx, consumer_user);
                 server_rpc_->free_msg_buffer(req_msg);
             } else {
                 req->type = RPC_TYPE::RPC_PING_RESP;
-                consumer->push(req_msg);
+                consumer_user->push(req_msg);
             }
         }
         if (ctrl_c_pressed == 1)
@@ -404,7 +412,7 @@ void reader_thread_func(size_t thread_id, MPMC_QUEUE *consumer_user, MPMC_QUEUE 
                     tmp->resp.SerializeToArray(resp_buf_msg+1, post_serialize_size);
 
 //                    printf("ready to response, req number is %u, data_length %ld\n", tmp->req_number, post_serialize_size);
-
+                    __sync_synchronize();
                     if(tmp->rpc_type == static_cast<uint32_t>(RPC_TYPE::RPC_USER_TIMELINE_READ_REQ)){
                         consumer_user->push(resp_buf);
                     } else if(tmp->rpc_type == static_cast<uint32_t>(RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ)) {
@@ -470,7 +478,7 @@ void leader_thread_func()
     for (size_t i = 0; i < FLAGS_client_num; i++)
     {
         rmem::rt_assert(context->client_contexts_[i]->rpc_ != nullptr && context->server_contexts_[i]->rpc_ != nullptr, "server rpc is null");
-        workers[i] = std::thread(worker_thread_func, i, context->client_contexts_[i]->forward_all_mpmc_queue, context->client_contexts_[i]->backward_mpmc_queue,
+        workers[i] = std::thread(worker_thread_func, i, context->client_contexts_[i]->forward_all_mpmc_queue, context->client_contexts_[i]->backward_mpmc_queue, context->client_contexts_[i]->backward_mpmc_home_timeline_queue,
                                  context->client_contexts_[i], context->server_contexts_[i]->rpc_);
         rmem::bind_to_core(workers[i], FLAGS_numa_client_node, get_bind_core(FLAGS_numa_client_node) + FLAGS_bind_core_offset);
 

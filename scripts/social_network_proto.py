@@ -9,7 +9,7 @@ passwd = "cxz123"
 proto_name = "social_network.proto"
 dst_file_name = "social_network.pb.*"
 
-proto_source_dir = os.path.join(os.getcwd(),"../cn/app/social_network")
+proto_source_dir = os.path.join("/home/cxz/rmem","cn/app/social_network")
 proto_source = os.path.join(proto_source_dir, proto_name)
 print(proto_source)
 

@@ -40,15 +40,15 @@ DEFINE_uint64(timeout_second, UINT64_MAX, "Timeout second for each request, defa
 DEFINE_string(latency_file, "latency.txt", "Latency file name");
 DEFINE_string(bandwidth_file, "bandwidth.txt", "Bandwidth file name");
 
-using SPSC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, true>;
-using MPMC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, false, false, false>;
+using SPSC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false>;
+using MPMC_QUEUE = atomic_queue::AtomicQueueB2<erpc::MsgBuffer, std::allocator<erpc::MsgBuffer>, true, false, false>;
 
 
 
 static constexpr size_t kAppMaxConcurrency = 128;       // Outstanding reqs per thread
 static constexpr size_t kAppMaxRPC = 12;                // Outstanding rpcs per thread, used for RMEM_BASED
 
-static constexpr size_t kAppMaxBuffer = kAppMaxConcurrency * kAppMaxRPC;
+static constexpr size_t kAppMaxBuffer = kAppMaxConcurrency * kAppMaxRPC*10;
 
 static constexpr size_t kAppEvLoopMs = 1000; // Duration of event loop
 

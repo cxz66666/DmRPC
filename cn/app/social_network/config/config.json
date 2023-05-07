@@ -1,7 +1,7 @@
 {
   "common": {
     "test_loop": 10,
-    "concurrency": 32,
+    "concurrency": 16,
     "numa_0_ports": "0",
     "numa_1_ports": "1",
     "client_num": 1,
@@ -15,7 +15,7 @@
   },
   "load_balance": {
     "server_addr": "192.168.189.8:31851",
-    "bind_core_offset": 2
+    "bind_core_offset": 4
   },
   "client": {
     "server_addr": "192.168.189.8:31852",
@@ -25,7 +25,7 @@
   },
   "nginx": {
     "server_addr": "192.168.189.8:31853",
-    "bind_core_offset": 4
+    "bind_core_offset": 7
   },
   "unique_id": {
     "server_addr": "192.168.189.8:31854"
@@ -37,14 +37,14 @@
     "server_addr": "192.168.189.9:31856"
   },
   "user_timeline": {
-    "server_addr": "192.168.189.8:31857",
-    "bind_core_offset": 6
+    "server_addr": "192.168.189.9:31857",
+    "bind_core_offset": 0
   },
   "home_timeline": {
-    "server_addr": "192.168.189.8:31858",
+    "server_addr": "192.168.189.9:31858",
     "data_file_path": "./home_timeline.data",
     "per_read_posts": 3,
-    "bind_core_offset": 9
+    "bind_core_offset": 3
   },
   "user_mention": {
     "server_addr": "192.168.189.8:31859"
@@ -53,7 +53,8 @@
     "server_addr": "192.168.189.9:31860",
     "rmem_self_addr": "192.168.189.9:31864",
     "read_total_size": 10,
-    "write_total_size": 4
+    "write_total_size": 4,
+    "bind_core_offset": 6
   },
   "user_service": {
     "server_addr": "192.168.189.8:31861"

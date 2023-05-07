@@ -83,6 +83,11 @@ message PostStorageReadResp {
     repeated Post posts = 1;
 }
 
+message PostStorageReadRefResp {
+    repeated uint64 posts_ref_addr = 1;
+    repeated uint64 posts_ref_size = 2;
+}
+
 message VecPostID {
     repeated int64 post_ids = 1;
 }

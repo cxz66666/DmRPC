@@ -41,7 +41,7 @@ public:
     std::vector<std::pair<size_t,size_t>> addrs_size;
     social_network::PostStorageReadResp resp;
 };
-using STORAGE_QUEUE = atomic_queue::AtomicQueueB2<StorageHandler*, std::allocator<StorageHandler*>, true, true, false>;
+using STORAGE_QUEUE = atomic_queue::AtomicQueueB2<StorageHandler*, std::allocator<StorageHandler*>, true, false, false>;
 
 std::vector<STORAGE_QUEUE *> storage_queues;
 
@@ -263,8 +263,11 @@ public:
             for(auto &item:read_posts_from_mongodb){
                 size_t item_size = item.ByteSizeLong();
                 rmems_[i]->rmem_write_sync(const_cast<char*>(item.SerializeAsString().c_str()), base_addr+begin, item_size);
-
+#if defined(ERPC_PROGRAM)
                 post_id_to_addr_map_[i][item.post_id()] = {base_addr+begin,item_size};
+#elif defined(RMEM_PROGRAM)
+                post_id_to_addr_map_[i][item.post_id()] = {begin,item_size};
+#endif
                 begin += item_size;
                 begin = PAGE_ROUND_UP(begin);
 
@@ -375,12 +378,17 @@ void init_specific_config(){
 
 }
 
-void read_post_storage(size_t thread_id, void *buf_) {
+void read_post_storage(size_t thread_id, void *buf_, MPMC_QUEUE *consumer_user, MPMC_QUEUE *consumer_home, ClientContext* ctx) {
+    _unused(consumer_user);
+    _unused(consumer_home);
+    _unused(ctx);
+
     auto* req = static_cast<RPCMsgReq<CommonRPCReq> *>(buf_);
     social_network::PostStorageReadReq post_storage_read_req;
 
     post_storage_read_req.ParseFromArray(req+1, req->req_control.data_length);
 
+#if defined(ERPC_PROGRAM)
     auto *storage_handler = new StorageHandler();
     storage_handler->req_number = req->req_common.req_number;
     storage_handler->rpc_type = post_storage_read_req.rpc_type();
@@ -404,6 +412,34 @@ void read_post_storage(size_t thread_id, void *buf_) {
     }
 
     storage_queues[thread_id]->push(storage_handler);
+
+#elif  defined(RMEM_PROGRAM)
+    social_network::PostStorageReadRefResp post_storage_read_ref_resp;
+    for(auto item: post_storage_read_req.post_ids()){
+        if(post_id_to_addr_map_[thread_id].count(item)) {
+            std::pair<size_t, size_t> addr_size = post_id_to_addr_map_[thread_id][item];
+            post_storage_read_ref_resp.add_posts_ref_addr(addr_size.first);
+            post_storage_read_ref_resp.add_posts_ref_size(addr_size.second);
+        } else {
+            RMEM_WARN("thread %ld post_id %ld not found", thread_id, item);
+            exit(1);
+        }
+    }
+    size_t post_serialize_size = post_storage_read_ref_resp.ByteSizeLong();
+    erpc::MsgBuffer resp_buf = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>) + post_serialize_size);
+    auto* resp_buf_msg = new (resp_buf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_READ_RESP, req->req_common.req_number, {post_serialize_size});
+    post_storage_read_ref_resp.SerializeToArray(resp_buf_msg+1, post_serialize_size);
+     __sync_synchronize();
+    if(post_storage_read_req.rpc_type() == static_cast<uint32_t>(RPC_TYPE::RPC_USER_TIMELINE_READ_REQ)) {
+            consumer_user->push(resp_buf);
+    } else if(post_storage_read_req.rpc_type() == static_cast<uint32_t>(RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ)) {
+            consumer_home->push(resp_buf);
+    } else {
+        RMEM_WARN("rpc_type %u not supported", post_storage_read_req.rpc_type());
+        exit(1);
+    }
+
+#endif
 }
 
 void write_post_storage(size_t thread_id, void *buf_, ClientContext* ctx, MPMC_QUEUE *consumer_back) {

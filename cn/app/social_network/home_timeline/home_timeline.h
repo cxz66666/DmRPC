@@ -247,6 +247,7 @@ void read_home_time_line_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *r
     if(!is_fwd){
         erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>));
         new (resp_buf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP, req->req_common.req_number, {0});
+        __sync_synchronize();
         consumer_back->push(resp_buf);
         return;
     }
@@ -268,7 +269,7 @@ void read_home_time_line_post_details(void *buf_, erpc::Rpc<erpc::CTransport> *r
     auto* fwd_req_msg = new (fwd_req.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_READ_REQ, req->req_common.req_number, {post_storage_req.ByteSizeLong()});
 
     post_storage_req.SerializeToArray(fwd_req_msg+1, static_cast<int>(post_storage_req.ByteSizeLong()));
-
+    __sync_synchronize();
     consumer_fwd->push(fwd_req);
 }
 
@@ -294,6 +295,6 @@ void write_home_timeline_and_return(void *buf_, erpc::Rpc<erpc::CTransport> *rpc
 
     erpc::MsgBuffer resp_buf = rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>));
     new (resp_buf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_HOME_TIMELINE_WRITE_RESP, req->req_common.req_number, {0});
-
+    __sync_synchronize();
     consumer_back->push(resp_buf);
 }
