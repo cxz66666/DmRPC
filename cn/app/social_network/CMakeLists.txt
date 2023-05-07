@@ -7,7 +7,15 @@ set(PROGRAMS load_balance unique_id url_shorten nginx user_mention user_timeline
 
 set(APP_ADDITIONAL_SOURCES ${CMAKE_SOURCE_DIR}/cn/app/social_network/social_network.pb.cc)
 
-add_definitions(-DERPC_PROGRAM)
+if(SOCIAL_NETWORK_TYPE STREQUAL "erpc")
+    add_definitions(-DERPC_PROGRAM)
+    message(STATUS "Using erpc for social_network")
+elseif (SOCIAL_NETWORK_TYPE STREQUAL "rmem")
+    add_definitions(-DRMEM_PROGRAM)
+    message(STATUS "Using rmem for social_network")
+else()
+    message(STATUS "ERROR for COMPILE TYPE")
+endif ()
 
 foreach (project_name IN LISTS PROGRAMS)
     add_executable(${project_name} ${CMAKE_SOURCE_DIR}/cn/app/social_network/${project_name}/${project_name}.cpp ${APP_ADDITIONAL_SOURCES})
