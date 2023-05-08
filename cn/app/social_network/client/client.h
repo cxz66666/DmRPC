@@ -17,6 +17,9 @@ std::vector<unsigned long> rmem_base_addr;
 std::atomic<uint64_t> rmems_init_number;
 
 int64_t generate_data_num;
+int64_t user_num_;
+int64_t home_num_;
+int64_t write_num_;
 
 hdr_histogram *latency_user_timeline_hist_;
 hdr_histogram *latency_home_timeline_hist_;
@@ -42,9 +45,12 @@ static_assert(sizeof(RESP_MSG) == 8, "RESP_MSG size is not 8");
 class QueueStore {
 public:
     QueueStore(){
-        spsc_queue = new atomic_queue::AtomicQueueB2<REQ_MSG, std::allocator<REQ_MSG>, true, false, true>(kAppMaxBuffer);
-        resp_spsc_queue = new atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, true>(kAppMaxBuffer);
+        spsc_queue = new atomic_queue::AtomicQueueB2<REQ_MSG, std::allocator<REQ_MSG>, true, false, false>(kAppMaxBuffer);
+        resp_spsc_queue = new atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, false>(kAppMaxBuffer);
         req_id_ = 1;
+        rpc_type_arr.insert(rpc_type_arr.end(), user_num_, RPC_TYPE::RPC_USER_TIMELINE_READ_REQ);
+        rpc_type_arr.insert(rpc_type_arr.end(), home_num_, RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ);
+        rpc_type_arr.insert(rpc_type_arr.end(), write_num_, RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ);
     }
     ~QueueStore(){
         delete spsc_queue;
@@ -62,13 +68,14 @@ public:
         now_req_id = req_id_++;
         mutex.unlock();
         //TODO
-        if(now_req_id % 3 == 0){
-            spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_USER_TIMELINE_READ_REQ});
-        } else if(now_req_id % 3 == 1) {
-            spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_USER_TIMELINE_READ_REQ});
-        } else {
-            spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_USER_TIMELINE_READ_REQ});
-        }
+//        if(now_req_id % 3 == 0){
+//            spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_USER_TIMELINE_READ_REQ});
+//        } else if(now_req_id % 3 == 1) {
+//            spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_USER_TIMELINE_READ_REQ});
+//        } else {
+//            spsc_queue->push(REQ_MSG{now_req_id, RPC_TYPE::RPC_USER_TIMELINE_READ_REQ});
+//        }
+        spsc_queue->push(REQ_MSG{now_req_id, rpc_type_arr[now_req_id % rpc_type_arr.size()]});
         __sync_synchronize();
     }
 
@@ -95,9 +102,9 @@ public:
 
     spinlock_mutex mutex;
     uint32_t req_id_;
-    atomic_queue::AtomicQueueB2<REQ_MSG, std::allocator<REQ_MSG>, true, false, true> *spsc_queue;
-    atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, true> *resp_spsc_queue{};
-
+    atomic_queue::AtomicQueueB2<REQ_MSG, std::allocator<REQ_MSG>, true, false, false> *spsc_queue;
+    atomic_queue::AtomicQueueB2<RESP_MSG, std::allocator<RESP_MSG>, true, false, false> *resp_spsc_queue{};
+    std::vector<RPC_TYPE> rpc_type_arr;
 };
 
 class ReaderHandler
@@ -231,6 +238,18 @@ void init_specific_config(){
     auto generate_num = config_json_all["client"]["generate_num"];
     rmem::rt_assert(!generate_num.is_null(),"generate_num is null");
     generate_data_num = generate_num;
+
+    generate_num = config_json_all["client"]["user_num"];
+    rmem::rt_assert(!generate_num.is_null(),"generate_num is null");
+    user_num_ = generate_num;
+
+    generate_num = config_json_all["client"]["home_num"];
+    rmem::rt_assert(!generate_num.is_null(),"generate_num is null");
+    home_num_ = generate_num;
+
+    generate_num = config_json_all["client"]["write_num"];
+    rmem::rt_assert(!generate_num.is_null(),"generate_num is null");
+    write_num_ = generate_num;
 }
 
 std::string generate_random_string(int length) {

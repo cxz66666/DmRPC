@@ -534,9 +534,9 @@ void leader_thread_func()
     {
         servers[i].join();
     }
-    write_latency_and_reset(FLAGS_latency_file+".write", latency_write_hist_);
-    write_latency_and_reset(FLAGS_latency_file+".user", latency_user_timeline_hist_);
-    write_latency_and_reset(FLAGS_latency_file+".home", latency_home_timeline_hist_);
+    write_latency_and_reset(FLAGS_latency_file+std::to_string(FLAGS_concurrency)+"-write", latency_write_hist_);
+    write_latency_and_reset(FLAGS_latency_file+std::to_string(FLAGS_concurrency)+"-user", latency_user_timeline_hist_);
+    write_latency_and_reset(FLAGS_latency_file+std::to_string(FLAGS_concurrency)+"-home", latency_home_timeline_hist_);
 
 #if defined(RMEM_PROGRAM)
     for (size_t i=0 ;i< FLAGS_server_num; i++) {

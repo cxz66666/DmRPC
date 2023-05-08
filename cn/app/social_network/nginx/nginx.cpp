@@ -370,10 +370,12 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     {
         // only can have ping and tc in forward
         unsigned size = ctx->forward_spsc_queue->was_size();
-        __sync_synchronize();
+
         for (unsigned i = 0; i < size; i++)
         {
             erpc::MsgBuffer req_msg = ctx->forward_spsc_queue->pop();
+            __sync_synchronize();
+
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
             rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_COMPOSE_POST_WRITE_REQ
                             || req->type == RPC_TYPE::RPC_USER_TIMELINE_READ_REQ || req->type == RPC_TYPE::RPC_HOME_TIMELINE_READ_REQ, "only ping and tc in forward queue");
@@ -381,10 +383,13 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
         }
 
         size = ctx->backward_spsc_queue->was_size();
-        __sync_synchronize();
+
         for (unsigned i = 0; i < size; i++)
         {
+
             erpc::MsgBuffer req_msg = ctx->backward_spsc_queue->pop();
+            __sync_synchronize();
+
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
             if (req->type != RPC_TYPE::RPC_PING_RESP && req->type != RPC_TYPE::RPC_COMPOSE_POST_WRITE_RESP &&
                 req->type != RPC_TYPE::RPC_USER_TIMELINE_READ_RESP && req->type != RPC_TYPE::RPC_HOME_TIMELINE_READ_RESP)

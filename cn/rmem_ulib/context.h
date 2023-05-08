@@ -147,6 +147,7 @@ namespace rmem
 
         // used for record alloc buffer
         phmap::parallel_node_hash_map<void *, erpc::MsgBuffer> alloc_buffer;
+        spinlock_mutex alloc_buffer_lock;
 //        std::unordered_map<void *, erpc::MsgBuffer> alloc_buffer;
 
     private:
