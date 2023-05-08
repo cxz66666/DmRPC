@@ -266,10 +266,12 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     {
         ctx->now_session_ = ctx->user_timeline_session_num_;
         unsigned size = ctx->backward_mpmc_queue->was_size();
-        __sync_synchronize();
+
         for (unsigned i = 0; i < size; i++)
         {
             erpc::MsgBuffer req_msg = ctx->backward_mpmc_queue->pop();
+            __sync_synchronize();
+
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
             rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP || req->type == RPC_TYPE::RPC_POST_STORAGE_READ_RESP
                             || req->type == RPC_TYPE::RPC_POST_STORAGE_WRITE_RESP, "only ping/post storage resp in backward queue");
@@ -278,10 +280,12 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
 
         ctx->now_session_ = ctx->home_timeline_session_num_;
         size = ctx->backward_mpmc_home_timeline_queue->was_size();
-        __sync_synchronize();
+
         for (unsigned i = 0; i < size; i++)
         {
             erpc::MsgBuffer req_msg = ctx->backward_mpmc_home_timeline_queue->pop();
+            __sync_synchronize();
+
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
             rmem::rt_assert(req->type == RPC_TYPE::RPC_PING_RESP || req->type == RPC_TYPE::RPC_POST_STORAGE_READ_RESP
                             || req->type == RPC_TYPE::RPC_POST_STORAGE_WRITE_RESP, "only ping/post storage resp in backward queue");
@@ -332,10 +336,11 @@ void worker_thread_func(size_t thread_id, MPMC_QUEUE *producer, MPMC_QUEUE *cons
     while (true)
     {
         unsigned size = producer->was_size();
-        __sync_synchronize();
+
         for (unsigned i = 0; i < size; i++)
         {
             erpc::MsgBuffer req_msg = producer->pop();
+            __sync_synchronize();
 
             auto *req = reinterpret_cast<CommonReq *>(req_msg.buf_);
             rmem::rt_assert(req->type == RPC_TYPE::RPC_PING || req->type == RPC_TYPE::RPC_POST_STORAGE_READ_REQ ||
@@ -432,6 +437,13 @@ void reader_thread_func(size_t thread_id, MPMC_QUEUE *consumer_user, MPMC_QUEUE 
                 fetch_num -= parse_num;
             } else {
                 rmems_[thread_id]->rmem_free_msg_buffer(tmp->rmem_bufs[0]);
+
+                if(!write_to_mongodb) {
+                    erpc::MsgBuffer resp_buf = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>));
+                    new (resp_buf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_WRITE_RESP, tmp->req_number, {0});
+                    consumer_user->push(resp_buf);
+                }
+
                 delete tmp;
                 queues.pop();
                 fetch_num -= 1;

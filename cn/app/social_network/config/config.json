@@ -10,8 +10,8 @@
     "numa_server_node": 0,
     "bind_core_offset": 0,
     "timeout_second": 18446744073709551615,
-    "latency_file": "latency.txt",
-    "bandwidth_file": "bandwidth.txt"
+    "latency_file": "/home/cxz/social_network_result/erpc-mongodb/latency",
+    "bandwidth_file": "/home/cxz/social_network_result/erpc-mongodb/bandwidth"
   },
   "load_balance": {
     "server_addr": "192.168.189.8:31851",
@@ -21,6 +21,9 @@
     "server_addr": "192.168.189.8:31852",
     "rmem_self_addr": "192.168.189.8:31863",
     "generate_num": 500,
+    "user_num": 6,
+    "home_num": 3,
+    "write_num": 1,
     "bind_core_offset": 0
   },
   "nginx": {
@@ -52,30 +55,31 @@
   "post_storage": {
     "server_addr": "192.168.189.9:31860",
     "rmem_self_addr": "192.168.189.9:31864",
-    "read_total_size": 10,
+    "read_total_size": 4,
     "write_total_size": 4,
+    "write_to_mongodb": true,
     "bind_core_offset": 6
   },
   "user_service": {
     "server_addr": "192.168.189.8:31861"
   },
   "user_mongodb": {
-    "addr": "192.168.189.8",
+    "addr": "127.0.0.1",
     "port": "20011",
     "connections": 512
   },
   "user_timeline_mongodb": {
-    "addr": "192.168.189.8",
+    "addr": "127.0.0.1",
     "port": "20012",
     "connections": 512
   },
   "social_graph_mongodb": {
-    "addr": "192.168.189.8",
+    "addr": "127.0.0.1",
     "port": "20013",
     "connections": 512
   },
   "post_storage_mongodb": {
-    "addr": "192.168.189.8",
+    "addr": "127.0.0.1",
     "port": "20014",
     "connections": 512
   },

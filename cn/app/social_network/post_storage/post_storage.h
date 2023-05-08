@@ -29,6 +29,7 @@ std::vector<phmap::flat_hash_map<int64_t , std::pair<size_t,size_t>>> post_id_to
 size_t read_total_size_per_thread;
 size_t write_total_size_per_thread;
 
+bool write_to_mongodb;
 
 class StorageHandler
 {
@@ -375,6 +376,9 @@ void init_specific_config(){
     rmem::rt_assert(!size.is_null(),"value is null");
     write_total_size_per_thread = size;
 
+    auto write_to = config_json_all["post_storage"]["write_to_mongodb"];
+    rmem::rt_assert(!write_to.is_null(),"value is null");
+    write_to_mongodb = write_to;
 
 }
 
@@ -443,12 +447,11 @@ void read_post_storage(size_t thread_id, void *buf_, MPMC_QUEUE *consumer_user, 
 }
 
 void write_post_storage(size_t thread_id, void *buf_, ClientContext* ctx, MPMC_QUEUE *consumer_back) {
+    _unused(consumer_back);
+
     auto* req = static_cast<RPCMsgReq<CommonRPCReq> *>(buf_);
 
-    auto *post = new social_network::Post();
-
     size_t data_length = req->req_control.data_length;
-    post->ParseFromArray(req+1, static_cast<int>(data_length));
 
     void*rmem_buf =  rmems_[thread_id]->rmem_get_msg_buffer(data_length);
     memcpy(rmem_buf, req+1, data_length);
@@ -463,87 +466,90 @@ void write_post_storage(size_t thread_id, void *buf_, ClientContext* ctx, MPMC_Q
 
     storage_queues[thread_id]->push(storage_handler);
 
-    erpc::MsgBuffer resp_buf = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>));
-    new (resp_buf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_WRITE_RESP, req->req_common.req_number, {0});
+    if(write_to_mongodb) {
+        erpc::MsgBuffer resp_buf = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(RPCMsgReq<CommonRPCReq>));
+        new (resp_buf.buf_) RPCMsgReq<CommonRPCReq>(RPC_TYPE::RPC_POST_STORAGE_WRITE_RESP, req->req_common.req_number, {0});
 
+        auto *post = new social_network::Post();
+        post->ParseFromArray(req+1, static_cast<int>(data_length));
 
-    std::async(std::launch::async, [=](social_network::Post *post_ptr, const erpc::MsgBuffer resp_buffer,MPMC_QUEUE *c_back) {
-        mongoc_client_t *mongodb_client = mongoc_client_pool_pop(mongodb_client_pool);
-        auto collection = mongoc_client_get_collection(mongodb_client, "post-write", "post-write");
+        std::async(std::launch::async, [=](social_network::Post *post_ptr, const erpc::MsgBuffer resp_buffer,MPMC_QUEUE *c_back) {
+            mongoc_client_t *mongodb_client = mongoc_client_pool_pop(mongodb_client_pool);
+            auto collection = mongoc_client_get_collection(mongodb_client, "post-write", "post-write");
 
-        bson_t *new_doc = bson_new();
-        BSON_APPEND_INT64(new_doc, "post_id", post_ptr->post_id());
-        BSON_APPEND_INT64(new_doc, "timestamp", post_ptr->timestamp());
-        BSON_APPEND_UTF8(new_doc, "text", post_ptr->text().c_str());
-        BSON_APPEND_INT64(new_doc, "req_id", post_ptr->req_id());
-        BSON_APPEND_INT32(new_doc, "post_type", post_ptr->req_id());
+            bson_t *new_doc = bson_new();
+            BSON_APPEND_INT64(new_doc, "post_id", post_ptr->post_id());
+            BSON_APPEND_INT64(new_doc, "timestamp", post_ptr->timestamp());
+            BSON_APPEND_UTF8(new_doc, "text", post_ptr->text().c_str());
+            BSON_APPEND_INT64(new_doc, "req_id", post_ptr->req_id());
+            BSON_APPEND_INT32(new_doc, "post_type", post_ptr->req_id());
 
-        bson_t creator_doc;
-        BSON_APPEND_DOCUMENT_BEGIN(new_doc, "creator", &creator_doc);
-        BSON_APPEND_INT64(&creator_doc, "user_id", post_ptr->creator().user_id());
-        BSON_APPEND_UTF8(&creator_doc, "username", post_ptr->creator().username().c_str());
-        bson_append_document_end(new_doc, &creator_doc);
+            bson_t creator_doc;
+            BSON_APPEND_DOCUMENT_BEGIN(new_doc, "creator", &creator_doc);
+            BSON_APPEND_INT64(&creator_doc, "user_id", post_ptr->creator().user_id());
+            BSON_APPEND_UTF8(&creator_doc, "username", post_ptr->creator().username().c_str());
+            bson_append_document_end(new_doc, &creator_doc);
 
-        const char *key;
-        int idx = 0;
-        char buf[16];
+            const char *key;
+            int idx = 0;
+            char buf[16];
 
-        bson_t url_list;
-        BSON_APPEND_ARRAY_BEGIN(new_doc, "urls", &url_list);
-        for (auto &url : post_ptr->urls()) {
-            bson_uint32_to_string(idx, &key, buf, sizeof buf);
-            bson_t url_doc;
-            BSON_APPEND_DOCUMENT_BEGIN(&url_list, key, &url_doc);
-            BSON_APPEND_UTF8(&url_doc, "shortened_url", url.shortened_url().c_str());
-            BSON_APPEND_UTF8(&url_doc, "expanded_url", url.expanded_url().c_str());
-            bson_append_document_end(&url_list, &url_doc);
-            idx++;
-        }
-        bson_append_array_end(new_doc, &url_list);
+            bson_t url_list;
+            BSON_APPEND_ARRAY_BEGIN(new_doc, "urls", &url_list);
+            for (auto &url : post_ptr->urls()) {
+                bson_uint32_to_string(idx, &key, buf, sizeof buf);
+                bson_t url_doc;
+                BSON_APPEND_DOCUMENT_BEGIN(&url_list, key, &url_doc);
+                BSON_APPEND_UTF8(&url_doc, "shortened_url", url.shortened_url().c_str());
+                BSON_APPEND_UTF8(&url_doc, "expanded_url", url.expanded_url().c_str());
+                bson_append_document_end(&url_list, &url_doc);
+                idx++;
+            }
+            bson_append_array_end(new_doc, &url_list);
 
-        bson_t user_mention_list;
-        idx = 0;
-        BSON_APPEND_ARRAY_BEGIN(new_doc, "user_mentions", &user_mention_list);
-        for (auto &user_mention : post_ptr->user_mentions()) {
-            bson_uint32_to_string(idx, &key, buf, sizeof buf);
-            bson_t user_mention_doc;
-            BSON_APPEND_DOCUMENT_BEGIN(&user_mention_list, key, &user_mention_doc);
-            BSON_APPEND_INT64(&user_mention_doc, "user_id", user_mention.user_id());
-            BSON_APPEND_UTF8(&user_mention_doc, "username",
-                             user_mention.username().c_str());
-            bson_append_document_end(&user_mention_list, &user_mention_doc);
-            idx++;
-        }
-        bson_append_array_end(new_doc, &user_mention_list);
+            bson_t user_mention_list;
+            idx = 0;
+            BSON_APPEND_ARRAY_BEGIN(new_doc, "user_mentions", &user_mention_list);
+            for (auto &user_mention : post_ptr->user_mentions()) {
+                bson_uint32_to_string(idx, &key, buf, sizeof buf);
+                bson_t user_mention_doc;
+                BSON_APPEND_DOCUMENT_BEGIN(&user_mention_list, key, &user_mention_doc);
+                BSON_APPEND_INT64(&user_mention_doc, "user_id", user_mention.user_id());
+                BSON_APPEND_UTF8(&user_mention_doc, "username",
+                                 user_mention.username().c_str());
+                bson_append_document_end(&user_mention_list, &user_mention_doc);
+                idx++;
+            }
+            bson_append_array_end(new_doc, &user_mention_list);
 
-        bson_t media_list;
-        idx = 0;
-        BSON_APPEND_ARRAY_BEGIN(new_doc, "media", &media_list);
-        for (auto &media : post_ptr->media()) {
-            bson_uint32_to_string(idx, &key, buf, sizeof buf);
-            bson_t media_doc;
-            BSON_APPEND_DOCUMENT_BEGIN(&media_list, key, &media_doc);
-            BSON_APPEND_INT64(&media_doc, "media_id", media.media_id());
-            BSON_APPEND_UTF8(&media_doc, "media_type", media.media_type().c_str());
-            bson_append_document_end(&media_list, &media_doc);
-            idx++;
-        }
-        bson_append_array_end(new_doc, &media_list);
-        bson_error_t error;
+            bson_t media_list;
+            idx = 0;
+            BSON_APPEND_ARRAY_BEGIN(new_doc, "media", &media_list);
+            for (auto &media : post_ptr->media()) {
+                bson_uint32_to_string(idx, &key, buf, sizeof buf);
+                bson_t media_doc;
+                BSON_APPEND_DOCUMENT_BEGIN(&media_list, key, &media_doc);
+                BSON_APPEND_INT64(&media_doc, "media_id", media.media_id());
+                BSON_APPEND_UTF8(&media_doc, "media_type", media.media_type().c_str());
+                bson_append_document_end(&media_list, &media_doc);
+                idx++;
+            }
+            bson_append_array_end(new_doc, &media_list);
+            bson_error_t error;
 
-        bool inserted = mongoc_collection_insert_one(collection, new_doc, nullptr,
-                                                     nullptr, &error);
+            bool inserted = mongoc_collection_insert_one(collection, new_doc, nullptr,
+                                                         nullptr, &error);
 
-        if(!inserted){
-            RMEM_WARN("insert error, %s", error.message);
-        }
-        bson_destroy(new_doc);
-        mongoc_collection_destroy(collection);
-        mongoc_client_pool_push(mongodb_client_pool, mongodb_client);
+            if(!inserted){
+                RMEM_WARN("insert error, %s", error.message);
+            }
+            bson_destroy(new_doc);
+            mongoc_collection_destroy(collection);
+            mongoc_client_pool_push(mongodb_client_pool, mongodb_client);
 
-        delete post_ptr;
-//        printf("push resp_buffer\n");
-        c_back->push(resp_buffer);
-    }, post, resp_buf, consumer_back);
-
+            delete post_ptr;
+    //        printf("push resp_buffer\n");
+            c_back->push(resp_buffer);
+        }, post, resp_buf, consumer_back);
+    }
 }
