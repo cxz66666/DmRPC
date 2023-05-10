@@ -110,6 +110,8 @@ public:
 class ReaderHandler
 {
 public:
+    uint32_t req_num;
+    hdr_histogram *hist;
     std::vector<void*> rmem_bufs;
     std::vector<std::pair<size_t,size_t>> addrs_size;
     size_t finished_num{};

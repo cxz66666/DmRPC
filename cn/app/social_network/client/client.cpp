@@ -77,20 +77,23 @@ void user_timeline_read_resp_handler(erpc::ReqHandle *req_handler, void *_contex
     auto *req = reinterpret_cast<RPCMsgReq<CommonRPCReq> *>(req_msgbuf->buf_);
 //    printf("user timeline read resp, type %u, number %u, data_length %ld\n", static_cast<uint32_t>(req->req_common.type), req->req_common.req_number, req->req_control.data_length);
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<CommonRPCReq>) + req->req_control.data_length, "data size not match");
-    hdr_record_value_atomic(latency_user_timeline_hist_,
-                            static_cast<int64_t>(timers[ctx->server_id_][req->req_common.req_number % kAppMaxBuffer].toc() * 10));
 
     new (req_handler->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
     ctx->rpc_->resize_msg_buffer(&req_handler->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
 
 
 #if defined(ERPC_PROGRAM)
+    hdr_record_value_atomic(latency_user_timeline_hist_,
+                            static_cast<int64_t>(timers[ctx->server_id_][req->req_common.req_number % kAppMaxBuffer].toc() * 10));
+
     ctx->queue_store->PushNextReq();
     __sync_synchronize();
 #elif defined(RMEM_PROGRAM)
     social_network::PostStorageReadRefResp post_storage_read_ref_resp;
     post_storage_read_ref_resp.ParseFromArray(req+1, req->req_control.data_length);
     ReaderHandler *reader_handler = new ReaderHandler();
+    reader_handler->hist = latency_user_timeline_hist_;
+    reader_handler->req_num = req->req_common.req_number;
     for(int i=0;i< post_storage_read_ref_resp.posts_ref_addr_size();i++)
     {
         reader_handler->addrs_size.push_back({post_storage_read_ref_resp.posts_ref_addr(i), post_storage_read_ref_resp.posts_ref_size(i)});
@@ -111,19 +114,22 @@ void home_timeline_read_resp_handler(erpc::ReqHandle *req_handler, void *_contex
 
     auto *req = reinterpret_cast<RPCMsgReq<CommonRPCReq> *>(req_msgbuf->buf_);
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<CommonRPCReq>) + req->req_control.data_length, "data size not match");
-    hdr_record_value_atomic(latency_home_timeline_hist_,
-                            static_cast<int64_t>(timers[ctx->server_id_][req->req_common.req_number % kAppMaxBuffer].toc() * 10));
 
     new (req_handler->pre_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, {0});
     ctx->rpc_->resize_msg_buffer(&req_handler->pre_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>));
 
 #if defined(ERPC_PROGRAM)
+    hdr_record_value_atomic(latency_home_timeline_hist_,
+                            static_cast<int64_t>(timers[ctx->server_id_][req->req_common.req_number % kAppMaxBuffer].toc() * 10));
+
     ctx->queue_store->PushNextReq();
     __sync_synchronize();
 #elif defined(RMEM_PROGRAM)
     social_network::PostStorageReadRefResp post_storage_read_ref_resp;
     post_storage_read_ref_resp.ParseFromArray(req+1, req->req_control.data_length);
     ReaderHandler *reader_handler = new ReaderHandler();
+    reader_handler->hist = latency_home_timeline_hist_;
+    reader_handler->req_num = req->req_common.req_number;
     for(int i=0;i< post_storage_read_ref_resp.posts_ref_addr_size();i++)
     {
         reader_handler->addrs_size.push_back({post_storage_read_ref_resp.posts_ref_addr(i), post_storage_read_ref_resp.posts_ref_size(i)});
@@ -411,6 +417,9 @@ void reader_thread_func(size_t thread_id, QueueStore* store) {
             }
 
             if(tmp->finished_num == tmp->rmem_bufs.size()) {
+                hdr_record_value_atomic(tmp->hist,
+                                        static_cast<int64_t>(timers[thread_id][tmp->req_num % kAppMaxBuffer].toc() * 10));
+
                 store->PushNextReq();
                 for(auto read_buf : tmp->rmem_bufs){
                     free(read_buf);

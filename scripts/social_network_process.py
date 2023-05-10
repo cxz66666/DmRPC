@@ -3,13 +3,13 @@ import os
 import re
 
 erpc_target_dir = "/home/cxz/social_network_result/erpc"
-rmem_target_dir = "/home/cxz/social_network_result/rmem"
+rmem_target_dir = "/home/cxz/social_network_result/rmem-new"
 
 user_pattern_lat = r"latency(\d+)-user"
 home_pattern_lat = r"latency(\d+)-home"
 write_pattern_lat = r"latency(\d+)-write"
 
-thread_map = {1: 1, 2: 2, 3: 3, 4: 4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10, 12:11, 16:12, 32:13}
+thread_map = {1: 1, 2: 2, 3: 3, 4: 4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10, 12:11, 16:12, 32:13, 36:14}
 
 class Vividict(dict):
     def __missing__(self, key):
@@ -123,6 +123,6 @@ if __name__ == '__main__':
     sheet_lat_avg = workbook.add_sheet('lat_avg')
 
     generate_lat_result(sheet_lat_99, sheet_lat_995, sheet_lat_999, sheet_lat_avg, erpc_target_dir, 0, 0, 0)
-    generate_lat_result(sheet_lat_99, sheet_lat_995, sheet_lat_999, sheet_lat_avg, rmem_target_dir, 6, 0, 10)
+    generate_lat_result(sheet_lat_99, sheet_lat_995, sheet_lat_999, sheet_lat_avg, rmem_target_dir, 6, 0, 0)
 
     workbook.save('result.xls')

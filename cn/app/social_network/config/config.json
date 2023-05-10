@@ -1,7 +1,7 @@
 {
   "common": {
     "test_loop": 10,
-    "concurrency": 16,
+    "concurrency": 1,
     "numa_0_ports": "0",
     "numa_1_ports": "1",
     "client_num": 1,
@@ -10,8 +10,8 @@
     "numa_server_node": 0,
     "bind_core_offset": 0,
     "timeout_second": 18446744073709551615,
-    "latency_file": "/home/cxz/social_network_result/erpc-mongodb/latency",
-    "bandwidth_file": "/home/cxz/social_network_result/erpc-mongodb/bandwidth"
+    "latency_file": "/home/cxz/social_network_result/rmem-new/latency",
+    "bandwidth_file": "/home/cxz/social_network_result/rmem-new/bandwidth"
   },
   "load_balance": {
     "server_addr": "192.168.189.8:31851",
@@ -57,7 +57,7 @@
     "rmem_self_addr": "192.168.189.9:31864",
     "read_total_size": 4,
     "write_total_size": 4,
-    "write_to_mongodb": true,
+    "write_to_mongodb": false,
     "bind_core_offset": 6
   },
   "user_service": {
@@ -84,7 +84,7 @@
     "connections": 512
   },
   "memory_node1": {
-    "addr": "192.168.189.14",
+    "addr": "192.168.189.7",
     "port": "31851"
   }
 }
