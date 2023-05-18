@@ -1,0 +1,49 @@
+cc_binary(
+    name = "example",
+    srcs = glob([
+        "*.cc",
+    ]),
+    data = [
+        "example.so",
+    ],
+    linkstatic = True,
+    deps = [
+        ":ray_api",
+    ],
+    linkopts = [
+        "-lpthread",
+        "-lnuma",
+        "-lgflags",
+    ]
+)
+
+cc_binary(
+    name = "example.so",
+    srcs = glob([
+        "*.cc",
+    ]),
+    linkstatic = True,
+    deps = [
+        ":ray_api",
+    ],
+    linkopts = [
+        "-shared",
+        "-lpthread",
+        "-lnuma",
+        "-lgflags",
+    ]
+)
+
+cc_library(
+    name = "ray_api",
+    srcs = [
+        "thirdparty/lib/libray_api.so",
+    ],
+    hdrs = glob([
+        "thirdparty/include/**/*.h",
+        "thirdparty/include/**/*.hpp",
+    ]),
+    linkopts = ["-Wl,-rpath, ./"],
+    strip_include_prefix = "thirdparty/include",
+    visibility = ["//visibility:public"],
+)
