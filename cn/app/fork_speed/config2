@@ -6,4 +6,3 @@
 --latency_file latency.txt
 --bandwidth_file bandwidth.txt
 --numa_node_user_thread 0
---cxl_fake_folder /testcxl
