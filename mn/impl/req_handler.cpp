@@ -7,8 +7,7 @@
 #include <hs_clock.h>
 #include "hdr/hdr_histogram.h"
 extern hdr_histogram *latency_hist_;
-namespace rmem
-{
+namespace rmem {
 
 #define RETURN_IF_ERROR(ERRNO, RESP_STRUCT, CTX, REQ_HANDLER, REQ)                             \
     {                                                                                          \
@@ -20,8 +19,7 @@ namespace rmem
         return;                                                                                \
     }
 
-    void alloc_req_handler(erpc::ReqHandle *req_handle, void *_context)
-    {
+    void alloc_req_handler(erpc::ReqHandle *req_handle, void *_context) {
         ServerContext *ctx = static_cast<ServerContext *>(_context);
         ctx->stat_req_rx_tot++;
         ctx->stat_req_alloc_tot++;
@@ -32,8 +30,7 @@ namespace rmem
         AllocReq *req = reinterpret_cast<AllocReq *>(req_msgbuf->buf_);
 
         // check req validity
-        if (!IS_PAGE_ALIGN(req->size))
-        {
+        if (!IS_PAGE_ALIGN(req->size)) {
             RETURN_IF_ERROR(EINVAL, AllocResp, ctx, req_handle, req->req)
         }
         // TODO check flags
@@ -50,8 +47,7 @@ namespace rmem
 
         return;
     }
-    void free_req_handler(erpc::ReqHandle *req_handle, void *_context)
-    {
+    void free_req_handler(erpc::ReqHandle *req_handle, void *_context) {
         ServerContext *ctx = static_cast<ServerContext *>(_context);
         ctx->stat_req_rx_tot++;
         ctx->stat_req_free_tot++;
@@ -62,8 +58,7 @@ namespace rmem
 
         // check req validity
         //
-        if (!IS_PAGE_ALIGN(req->raddr) || !IS_PAGE_ALIGN(req->rsize))
-        {
+        if (!IS_PAGE_ALIGN(req->raddr) || !IS_PAGE_ALIGN(req->rsize)) {
             RETURN_IF_ERROR(EINVAL, FreeResp, ctx, req_handle, req->req)
         }
 
@@ -73,8 +68,7 @@ namespace rmem
 
         // we need delete information in vma_list/fork_list before modify addr_map
         int res = mm->free_vma_list(req->raddr, req->rsize);
-        if (unlikely(res != 0))
-        {
+        if (unlikely(res != 0)) {
             RMEM_WARN("free_vma_list failed, errno: %d, addr %ld, size %ld", res, req->raddr, req->rsize);
             RETURN_IF_ERROR(res, FreeResp, ctx, req_handle, req->req)
         }
@@ -85,8 +79,7 @@ namespace rmem
 
         return;
     }
-    void read_req_handler(erpc::ReqHandle *req_handle, void *_context)
-    {
+    void read_req_handler(erpc::ReqHandle *req_handle, void *_context) {
         ServerContext *ctx = static_cast<ServerContext *>(_context);
         ctx->stat_req_rx_tot++;
         ctx->stat_req_read_tot++;
@@ -100,13 +93,11 @@ namespace rmem
 
         auto vma = mm->find_vma_range(req->raddr, req->rsize);
 
-        if (!vma)
-        {
+        if (!vma) {
             RETURN_IF_ERROR(EINVAL, ReadResp, ctx, req_handle, req->req)
         }
 
-        if ((vma->vm_flags & VM_FLAG_READ) == 0)
-        {
+        if ((vma->vm_flags & VM_FLAG_READ) == 0) {
             RETURN_IF_ERROR(EACCES, ReadResp, ctx, req_handle, req->req)
         }
 
@@ -114,8 +105,7 @@ namespace rmem
         resp_msgbuf = ctx->rpc_->alloc_msg_buffer_or_die(sizeof(ReadResp) + sizeof(char) * req->rsize);
 
         // check whether read success
-        if (!mm->do_read(vma, req->raddr, req->rsize, resp_msgbuf.buf_ + sizeof(ReadResp)))
-        {
+        if (!mm->do_read(vma, req->raddr, req->rsize, resp_msgbuf.buf_ + sizeof(ReadResp))) {
             ctx->rpc_->free_msg_buffer(resp_msgbuf);
             RETURN_IF_ERROR(EFAULT, ReadResp, ctx, req_handle, req->req)
         }
@@ -125,8 +115,7 @@ namespace rmem
         ctx->rpc_->resize_msg_buffer(&resp_msgbuf, sizeof(ReadResp) + sizeof(char) * req->rsize);
         ctx->rpc_->enqueue_response(req_handle, &resp_msgbuf);
     }
-    void write_req_handler(erpc::ReqHandle *req_handle, void *_context)
-    {
+    void write_req_handler(erpc::ReqHandle *req_handle, void *_context) {
         ServerContext *ctx = static_cast<ServerContext *>(_context);
         ctx->stat_req_rx_tot++;
         ctx->stat_req_write_tot++;
@@ -142,17 +131,14 @@ namespace rmem
 
         auto vma = mm->find_vma_range(req->raddr, req->rsize);
 
-        if (!vma)
-        {
+        if (!vma) {
             RETURN_IF_ERROR(EINVAL, WriteResp, ctx, req_handle, req->req)
         }
 
-        if ((vma->vm_flags & VM_FLAG_WRITE) == 0)
-        {
+        if ((vma->vm_flags & VM_FLAG_WRITE) == 0) {
             RETURN_IF_ERROR(EACCES, WriteResp, ctx, req_handle, req->req)
         }
-        if (!mm->do_write(vma, req->raddr, req->rsize, req_msgbuf->buf_ + sizeof(WriteReq)))
-        {
+        if (!mm->do_write(vma, req->raddr, req->rsize, req_msgbuf->buf_ + sizeof(WriteReq))) {
             RETURN_IF_ERROR(EFAULT, WriteResp, ctx, req_handle, req->req)
         }
 
@@ -161,17 +147,14 @@ namespace rmem
         ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
     }
     // 这个fork_req_handler 用于 fork_speed_rmem 测试， 同时需要配合mm_struct::do_fork
-    // void fork_req_handler(erpc::ReqHandle *req_handle, void *_context)
-    // {
-
+    // void fork_req_handler(erpc::ReqHandle *req_handle, void *_context) {
     //     Timer timer;
     //     timer.tic();
     //     ServerContext *ctx = static_cast<ServerContext *>(_context);
     //     ctx->stat_req_rx_tot++;
     //     ctx->stat_req_fork_tot++;
 
-    //     for (size_t i = 0; i < 100; i++)
-    //     {
+    //     for (size_t i = 0; i < 32; i++) {
     //         auto *req_msgbuf = req_handle->get_req_msgbuf();
     //         rt_assert(req_msgbuf->get_data_size() == sizeof(ForkReq), "data size not match");
 
@@ -181,15 +164,13 @@ namespace rmem
     //         mm_struct *mm = ctx->mm_struct_map_[req_handle->get_server_session_num()];
 
     //         // check req validity
-    //         if (!IS_PAGE_ALIGN(req->rsize) || !IS_PAGE_ALIGN(req->raddr))
-    //         {
+    //         if (!IS_PAGE_ALIGN(req->rsize) || !IS_PAGE_ALIGN(req->raddr)) {
     //             RETURN_IF_ERROR(EINVAL, ForkResp, ctx, req_handle, req->req)
     //         }
 
     //         auto vma = mm->find_vma_range(req->raddr, req->rsize);
 
-    //         if (!vma)
-    //         {
+    //         if (!vma) {
     //             RETURN_IF_ERROR(EINVAL, ForkResp, ctx, req_handle, req->req)
     //         }
     //         unsigned long new_addr = mm->do_fork(vma, req->raddr, req->rsize);
@@ -198,13 +179,12 @@ namespace rmem
     //         ctx->rpc_->resize_msg_buffer(&req_handle->pre_resp_msgbuf_, sizeof(ForkResp));
     //     }
     //     hdr_record_value_atomic(latency_hist_,
-    //                             static_cast<int64_t>(timer.toc() * 10));
+    //         static_cast<int64_t>(timer.toc() * 10));
 
     //     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
     // }
 
-    void fork_req_handler(erpc::ReqHandle *req_handle, void *_context)
-    {
+    void fork_req_handler(erpc::ReqHandle *req_handle, void *_context) {
         ServerContext *ctx = static_cast<ServerContext *>(_context);
         ctx->stat_req_rx_tot++;
         ctx->stat_req_fork_tot++;
@@ -217,15 +197,13 @@ namespace rmem
         mm_struct *mm = ctx->mm_struct_map_[req_handle->get_server_session_num()];
 
         // check req validity
-        if (!IS_PAGE_ALIGN(req->rsize) || !IS_PAGE_ALIGN(req->raddr))
-        {
+        if (!IS_PAGE_ALIGN(req->rsize) || !IS_PAGE_ALIGN(req->raddr)) {
             RETURN_IF_ERROR(EINVAL, ForkResp, ctx, req_handle, req->req)
         }
 
         auto vma = mm->find_vma_range(req->raddr, req->rsize);
 
-        if (!vma)
-        {
+        if (!vma) {
             RETURN_IF_ERROR(EINVAL, ForkResp, ctx, req_handle, req->req)
         }
         unsigned long new_addr = mm->do_fork(vma, req->raddr, req->rsize);
@@ -235,8 +213,7 @@ namespace rmem
         ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
     }
 
-    void join_req_handler(erpc::ReqHandle *req_handle, void *_context)
-    {
+    void join_req_handler(erpc::ReqHandle *req_handle, void *_context) {
         // 这里不妨假设不会出现thread的并发冲突，只会出现session的并发冲突，否则性能还挺可惜的
         // 后面有时间肯定写，得多加几个spin lock
         ServerContext *ctx = static_cast<ServerContext *>(_context);
@@ -251,14 +228,12 @@ namespace rmem
         mm_struct *mm = ctx->mm_struct_map_[req_handle->get_server_session_num()];
 
         mm_struct *target_mm = ctx->find_target_mm(req->thread_id, req->session_id);
-        if (!target_mm || mm == target_mm)
-        {
+        if (!target_mm || mm == target_mm) {
             RETURN_IF_ERROR(EINVAL, JoinResp, ctx, req_handle, req->req)
         }
 
         unsigned long new_addr = mm->do_join(target_mm, req->raddr);
-        if (unlikely(new_addr == UINT64_MAX))
-        {
+        if (unlikely(new_addr == UINT64_MAX)) {
             RETURN_IF_ERROR(EINVAL, JoinResp, ctx, req_handle, req->req)
         }
 
@@ -268,14 +243,12 @@ namespace rmem
     }
 
     void basic_sm_handler(int session_num, int remote_session_num, erpc::SmEventType sm_event_type,
-                          erpc::SmErrType sm_err_type, void *_context)
-    {
+        erpc::SmErrType sm_err_type, void *_context) {
         _unused(remote_session_num);
         auto *ctx = static_cast<ServerContext *>(_context);
         ctx->num_sm_resps_++;
 
-        switch (sm_event_type)
-        {
+        switch (sm_event_type) {
         case erpc::SmEventType::kConnected:
         {
 
@@ -290,10 +263,9 @@ namespace rmem
         case erpc::SmEventType::kConnectFailed:
         {
             RMEM_WARN("Connect Error %s.\n",
-                      sm_err_type_str(sm_err_type).c_str());
+                sm_err_type_str(sm_err_type).c_str());
 
-            if (ctx->mm_struct_map_.count(session_num) != 0)
-            {
+            if (ctx->mm_struct_map_.count(session_num) != 0) {
                 delete ctx->mm_struct_map_[session_num];
                 ctx->mm_struct_map_.erase(session_num);
             }
@@ -314,7 +286,7 @@ namespace rmem
         case erpc::SmEventType::kDisconnectFailed:
         {
             RMEM_WARN("Connect disconnected Error %s.\n",
-                      sm_err_type_str(sm_err_type).c_str());
+                sm_err_type_str(sm_err_type).c_str());
             rt_assert(false, "always failed when disconnect failed");
             break;
         }
