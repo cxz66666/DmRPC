@@ -4,21 +4,17 @@
 #include "fork_test_cxl.h"
 #include <sys/mman.h>
 
-size_t get_bind_core(size_t numa)
-{
+size_t get_bind_core(size_t numa) {
     static size_t numa0_core = 0;
     static size_t numa1_core = 0;
     static spinlock_mutex lock;
     size_t res;
     lock.lock();
     rmem::rt_assert(numa == 0 || numa == 1);
-    if (numa == 0)
-    {
+    if (numa == 0) {
         rmem::rt_assert(numa0_core <= rmem::num_lcores_per_numa_node());
         res = numa0_core++;
-    }
-    else
-    {
+    } else {
         rmem::rt_assert(numa1_core <= rmem::num_lcores_per_numa_node());
         res = numa1_core++;
     }
@@ -26,8 +22,7 @@ size_t get_bind_core(size_t numa)
     return res;
 }
 
-void ping_handler(erpc::ReqHandle *req_handle, void *_context)
-{
+void ping_handler(erpc::ReqHandle *req_handle, void *_context) {
     auto *ctx = static_cast<ServerContext *>(_context);
     ctx->stat_req_ping_tot++;
     auto *req_msgbuf = req_handle->get_req_msgbuf();
@@ -44,8 +39,7 @@ void ping_handler(erpc::ReqHandle *req_handle, void *_context)
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 }
 
-void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
-{
+void transcode_handler(erpc::ReqHandle *req_handle, void *_context) {
     static size_t write_count = 0;
     auto *ctx = static_cast<ServerContext *>(_context);
     ctx->stat_req_tc_tot++;
@@ -58,31 +52,23 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
     std::string filename = folder_name + std::string(req->extra.filename);
     FILE *file = fopen(filename.c_str(), "r+");
     void *addr;
-    if (!FLAGS_no_cow)
-    {
+    if (!FLAGS_no_cow) {
         addr = mmap(NULL, FLAGS_block_size, PROT_READ | PROT_WRITE, MAP_SHARED, fileno(file), 0);
-    }
-    else
-    {
+    } else {
         addr = mmap(NULL, FLAGS_block_size, PROT_READ | PROT_WRITE, MAP_SHARED, fileno(file), 0);
     }
     rmem::rt_assert(addr != MAP_FAILED, "mmap failed");
 
     timer.tic();
-    if (!FLAGS_no_cow)
-    {
-        for (size_t i = 0; i < FLAGS_write_num; i++)
-        {
+    if (!FLAGS_no_cow) {
+        for (size_t i = 0; i < FLAGS_write_num; i++) {
             memcpy(ctx->random_1[write_count], static_cast<char *>(addr) + PAGE_SIZE * i, PAGE_SIZE);
             memcpy(ctx->random_2[write_count], static_cast<char *>(ctx->write_buf) + PAGE_SIZE * i, FLAGS_write_page_size);
             write_count = (write_count + 1) % ctx->max_num;
         }
-    }
-    else
-    {
+    } else {
         memcpy(ctx->random_3[write_count], addr, FLAGS_block_size);
-        for (size_t i = 0; i < FLAGS_write_num; i++)
-        {
+        for (size_t i = 0; i < FLAGS_write_num; i++) {
             memcpy(static_cast<char *>(ctx->random_3[write_count]) + PAGE_SIZE * i, static_cast<char *>(ctx->write_buf) + PAGE_SIZE * i, FLAGS_write_page_size);
         }
         write_count = (write_count + 1) % ctx->max_num_copy;
@@ -92,43 +78,38 @@ void transcode_handler(erpc::ReqHandle *req_handle, void *_context)
 
     munmap(addr, FLAGS_block_size);
     fclose(file);
-
     ctx->rpc_->enqueue_response(req_handle, &req_handle->pre_resp_msgbuf_);
 }
 
-void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus)
-{
+void server_thread_func(size_t thread_id, ServerContext *ctx, erpc::Nexus *nexus) {
     ctx->server_id_ = thread_id;
     std::vector<size_t> port_vec = flags_get_numa_ports(0);
     uint8_t phy_port = port_vec.at(thread_id % port_vec.size());
     erpc::Rpc<erpc::CTransport> rpc(nexus, static_cast<void *>(ctx),
-                                    static_cast<uint8_t>(thread_id),
-                                    basic_sm_handler_server, phy_port);
+        static_cast<uint8_t>(thread_id),
+        basic_sm_handler_server, phy_port);
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
-    while (true)
-    {
+    while (true) {
         ctx->reset_stat();
         erpc::ChronoTimer start;
         start.reset();
         rpc.run_event_loop(kAppEvLoopMs);
         const double seconds = start.get_sec();
         printf("thread %zu: ping_req : %.2f, tc : %.2f \n", thread_id,
-               ctx->stat_req_ping_tot / seconds, ctx->stat_req_tc_tot / seconds);
+            ctx->stat_req_ping_tot / seconds, ctx->stat_req_tc_tot / seconds);
 
         ctx->rpc_->reset_dpath_stats();
         // more handler
-        if (ctrl_c_pressed == 1)
-        {
+        if (ctrl_c_pressed == 1) {
             break;
         }
     }
 }
 
-void leader_thread_func()
-{
+void leader_thread_func() {
     erpc::Nexus nexus(rmem::get_uri_for_process(FLAGS_server_index),
-                      FLAGS_numa_server_node, 0);
+        FLAGS_numa_server_node, 0);
 
     nexus.register_req_func(static_cast<uint8_t>(RPC_TYPE::RPC_PING), ping_handler);
 
@@ -142,28 +123,24 @@ void leader_thread_func()
     sleep(2);
     rmem::bind_to_core(servers[0], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node) + FLAGS_bind_core_offset);
 
-    for (size_t i = 1; i < FLAGS_server_num; i++)
-    {
+    for (size_t i = 1; i < FLAGS_server_num; i++) {
         servers[i] = std::thread(server_thread_func, i, context->server_contexts_[i], &nexus);
 
         rmem::bind_to_core(servers[i], FLAGS_numa_server_node, get_bind_core(FLAGS_numa_server_node) + FLAGS_bind_core_offset);
     }
     sleep(2);
 
-    if (FLAGS_timeout_second != UINT64_MAX)
-    {
+    if (FLAGS_timeout_second != UINT64_MAX) {
         sleep(FLAGS_timeout_second);
         ctrl_c_pressed = true;
     }
 
-    for (size_t i = 0; i < FLAGS_server_num; i++)
-    {
+    for (size_t i = 0; i < FLAGS_server_num; i++) {
         servers[i].join();
     }
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     signal(SIGINT, ctrl_c_handler);
     signal(SIGTERM, ctrl_c_handler);
     gflags::ParseCommandLineFlags(&argc, &argv, true);
