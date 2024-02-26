@@ -11,8 +11,8 @@ cxl_pattern_band = r"bw_b(\d+)_t(\d+)_cow(\d+)"
 rmem_pattern_lat = r"lat_b(\d+)_t(\d+)_cow(\d+)"
 cxl_pattern_lat = r"lat_b(\d+)_t(\d+)_cow(\d+)"
 
-rmem_thread_map = {1: 1, 12: 2}
-cxl_thread_map = {1: 1, 12: 2}
+rmem_thread_map = {1: 1, 2:2, 4:3, 6:4, 8:5, 12: 6}
+cxl_thread_map = {1: 1, 2:2, 4:3, 6:4, 8:5, 12: 6}
 
 
 class Vividict(dict):
@@ -51,7 +51,9 @@ def get_lat_result(file_name):
 
                 if line.find("Mean") != -1:
                     tmp = re.findall(r"[-+]?\d*\.\d+|\d+", line)
-                    result_avg = float(tmp[0])
+                    if len(tmp)!=0:
+                        result_avg = float(tmp[0])
+                    
 
     f.close()
     return result_99, result_995, result_999, result_avg
@@ -75,7 +77,7 @@ def generate_band_result(target_sheet, target_dir, pattern, thread_map, row_offs
     for i in thread_map.keys():
         target_sheet.write(row_offset, thread_map[i] + col_offset, i)
     for i in thread_map.keys():
-        target_sheet.write(row_offset, thread_map[i] + col_offset + 2, "copy_" + str(i))
+        target_sheet.write(row_offset, thread_map[i] + col_offset + len(thread_map), "copy_" + str(i))
 
     row = 1
     for msg_size_key in sorted(target_map):
@@ -88,7 +90,7 @@ def generate_band_result(target_sheet, target_dir, pattern, thread_map, row_offs
                 print("error: not find thread num {} in thread map".format(num_thread_key))
         for num_thread_key in sorted(target_map[msg_size_key]):
             if num_thread_key in thread_map:
-                target_sheet.write(row + row_offset, thread_map[num_thread_key] + col_offset + 2,
+                target_sheet.write(row + row_offset, thread_map[num_thread_key] + col_offset + len(thread_map),
                                    target_map[msg_size_key][num_thread_key][1])
             else:
                 print("error: not find thread num {} in thread map".format(num_thread_key))
@@ -119,7 +121,7 @@ def generate_lat_result(target_sheet_avg,
         for i in thread_map.keys():
             target_sheet.write(row_offset, thread_map[i] + col_offset, i)
         for i in thread_map.keys():
-            target_sheet.write(row_offset, thread_map[i] + col_offset + 2, "copy_" + str(i))
+            target_sheet.write(row_offset, thread_map[i] + col_offset + len(thread_map), "copy_" + str(i))
         row = 1
         for msg_size_key in sorted(target_map):
             target_sheet.write(row + row_offset, col_offset, msg_size_key)
@@ -131,7 +133,7 @@ def generate_lat_result(target_sheet_avg,
                     print("error: not find thread num {} in thread map".format(num_thread_key))
             for num_thread_key in sorted(target_map[msg_size_key]):
                 if num_thread_key in thread_map:
-                    target_sheet.write(row + row_offset, thread_map[num_thread_key] + col_offset + 2,
+                    target_sheet.write(row + row_offset, thread_map[num_thread_key] + col_offset + len(thread_map),
                                        target_map[msg_size_key][num_thread_key][1])
                 else:
                     print("error: not find thread num {} in thread map".format(num_thread_key))

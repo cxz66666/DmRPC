@@ -15,7 +15,7 @@ init_build = True
 client_machine = "192.168.189.9"
 memory_machine = "192.168.189.8"
 
-memory_node_alloc_gb = 32
+memory_node_alloc_gb = 16
 memory_node_thread = 12
 memory_node_ips = "192.168.189.8"
 memory_node_port = 31851
@@ -26,12 +26,12 @@ output_file_format = "/home/cxz/fork_speed_rmem_result/{}_b{}_t{}_cow{}"
 msg_size = [4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288]
 
 # test_loops = [400000, 400000, 400000, 400000, 320000, 160000, 80000, 40000]
-test_loops = [4000, 4000, 4000, 4000, 3200, 1600, 800, 400]
+test_loops = [40000, 40000, 40000, 40000, 32000, 16000, 8000, 4000]
 
 zero_copys = [0, 1]
 
 # num_threads = [1, 2, 3, 4, 6, 8]
-num_threads = [1, 12]
+num_threads = [1, 2, 4, 6, 8, 12]
 
 common_timeout = 40
 
@@ -126,15 +126,15 @@ if __name__ == '__main__':
                     memory_node_port, memory_node_thread, output_file_format.format("lat", m_i, t_i, z_i), z_i
                 ))
 
-                m2 = threading.Thread(target=pcm_run, args=(
-                    ssh_memory, 30, output_file_format.format("pcm", m_i, t_i, z_i)))
+                # m2 = threading.Thread(target=pcm_run, args=(
+                #     ssh_memory, 30, output_file_format.format("pcm", m_i, t_i, z_i)))
 
                 m1.start()
                 time.sleep(15)
-                m2.start()
+                # m2.start()
                 t0.start()
 
-                m2.join()
+                # m2.join()
                 t0.join()
 
                 m1.join()
