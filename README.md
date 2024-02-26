@@ -9,11 +9,22 @@ DmRPC is a fast RPC lib for Data-intensive Applications and Disaggregated Memory
 **Some highlights:**
 
 - Pass by reference: use pass by reference instead of pass by value.
-- Multiple supported disaggregate memory: support Network(RoCE/Ethernet) and CXL
-- Easy to program: use copy-on-write mechanism to provide programming simplicity
-- Much faster than [Ray](https://www.ray.io/) and [Spark](https://spark.apache.org/):  DmRPC designed for fine-grained microservices
-- High performance: get  3.1× higher throughput and 2.5× lower average latency than the baseline on DeathStarBench test suites, and get great performance for synthetic 7-tier microservices.
+- Multiple supported disaggregate memory: support Network(RoCE/Ethernet) and CXL.
+- Easy to program: use copy-on-write mechanism to provide programming simplicity.
+- Much faster than [Ray](https://www.ray.io/) and [Spark](https://spark.apache.org/):  DmRPC designed for fine-grained microservices. In our micro-benchmark, DmRPC achieves up to 62$\times$ / 5.6 $\times$ higher throughput compore with Ray/Spark.
+- High performance: get  3.1$\times$ higher throughput and 2.5$\times$ lower average latency than the baseline on DeathStarBench test suites, and get great performance for synthetic 7-tier microservices.
 
+### Architecture
+<figure align=center>
+<img src="./figure/arch_net.png" alt="DmRPC-net Architecture" style="zoom:20%;" />
+
+  <figcaption>DmRPC-net Architecture</figcaption>
+</figure>
+<figure align=center>
+<img src="./figure/arch_cxl.png" alt="DmRPC-net Architecture" style="zoom:46%;" />
+
+  <figcaption>DmRPC-CXL Architecture</figcaption>
+</figure>
 
 
 ### System requirements
