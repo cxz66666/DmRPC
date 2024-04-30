@@ -59,7 +59,6 @@ namespace rmem
         for (size_t i = 0; i < g_page_table_size; i++)
         {
             memset(g_pages + i, 0, PAGE_SIZE);
-            memset(g_page_tables + i, 0, PAGE_TABLE_SIZE);
         }
         // neede to unlock
         rt_assert(mlock(g_pages, FLAGS_rmem_size) == 0, "mlock failed");

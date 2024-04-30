@@ -106,7 +106,7 @@ namespace erpc
           free_msg_buffer(msgbuf_j);
         }
 
-        free(session);
+        delete session;
         ERPC_WARN("%s: Failed to allocate prealloc MsgBuffer.\n", issue_msg);
         sm_pkt_udp_tx_st(sm_construct_resp(sm_pkt, SmErrType::kOutOfMemory));
         return;
