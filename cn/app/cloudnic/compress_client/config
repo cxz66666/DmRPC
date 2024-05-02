@@ -1,0 +1,10 @@
+--test_loop 20
+--concurrency 1
+--numa_0_ports 0
+--numa_1_ports 1
+--server_addr 192.168.189.8:31851
+--remote_addr 192.168.189.7:31851
+--client_num 1
+--server_num 1
+--numa_client_node 0
+--numa_server_node 0

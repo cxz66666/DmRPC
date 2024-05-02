@@ -7,6 +7,12 @@ set(PROGRAMS load_balance unique_id url_shorten nginx user_mention user_timeline
 
 set(APP_ADDITIONAL_SOURCES ${CMAKE_SOURCE_DIR}/cn/app/social_network/social_network.pb.cc)
 
+find_package (mongoc-1.0 1.7 REQUIRED)
+# include directories for the mongoc driver, which is very weird in https://mongoc.org/libmongoc/1.22.0/tutorial.html
+include_directories(/usr/local/include/libmongoc-1.0 /usr/local/include/libbson-1.0)
+
+set(LIBRARIES ${LIBRARIES} mongo::mongoc_static)
+
 if(SOCIAL_NETWORK_TYPE STREQUAL "erpc")
     add_definitions(-DERPC_PROGRAM)
     message(STATUS "Using erpc for social_network")
