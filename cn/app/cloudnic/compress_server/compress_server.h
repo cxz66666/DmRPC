@@ -72,7 +72,6 @@ cloudnic::CompressImgResp generate_compress_img(const cloudnic::CompressImgReq &
 
     // 将compressed_len做16Bytes对齐
     compressed_len = (compressed_len + 15) & ~15;
-
     unsigned char *encrypted_img = aes.EncryptECB(reinterpret_cast<const unsigned char *>(compressed_img), compressed_len, aes_key);
 
     cloudnic::CompressImgResp resp;

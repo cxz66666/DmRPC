@@ -41,8 +41,8 @@ void callback_compress(void *_context, void *_tag) {
     uint32_t req_id = req_id_ptr;
     hdr_record_value_atomic(latency_hist_,
         static_cast<int64_t>(timers[ctx->client_id_][req_id % FLAGS_concurrency].toc() * 10));
-
-    ctx->spsc_queue->push(REQ_MSG{ static_cast<uint32_t>(req_id + FLAGS_concurrency), RPC_TYPE::RPC_APP1 });
+    ctx->req_id_++;
+    ctx->spsc_queue->push(REQ_MSG{ static_cast<uint32_t>(ctx->req_id_), RPC_TYPE::RPC_APP1 });
 }
 
 void handler_compress(ClientContext *ctx, REQ_MSG req_msg) {
@@ -67,11 +67,15 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     printf("client %p\n", reinterpret_cast<void *>(ctx));
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
+    cloudnic::CompressImgReq compress_img_req;
+    compress_img_req.set_img_id(1);
+    compress_img_req.set_img(std::string(reinterpret_cast<const char *>(encrypted_img)));
+    std::string serialized_img = compress_img_req.SerializeAsString();
     for (size_t i = 0; i < kAppMaxConcurrency; i++) {
         // TODO
-        ctx->req_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(RPCMsgReq<PingRPCReq>) + IMG_SIZE);
-        memcpy(ctx->req_msgbuf[i].buf_ + sizeof(RPCMsgReq<PingRPCReq>), encrypted_img, IMG_SIZE);
-        ctx->resp_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(RPCMsgReq<PingRPCReq>) + IMG_SIZE);
+        ctx->req_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(RPCMsgReq<PingRPCReq>) + serialized_img.size());
+        memcpy(ctx->req_msgbuf[i].buf_ + sizeof(RPCMsgReq<PingRPCReq>), serialized_img.c_str(), serialized_img.size());
+        ctx->resp_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(RPCMsgReq<PingRPCReq>) + serialized_img.size());
     }
     ctx->ping_msgbuf = rpc.alloc_msg_buffer_or_die(sizeof(RPCMsgReq<PingRPCReq>));
     ctx->ping_resp_msgbuf = rpc.alloc_msg_buffer_or_die(sizeof(RPCMsgReq<PingRPCResp>));
@@ -82,7 +86,20 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     FUNC_HANDLER handlers[] = { handler_ping, handler_compress, nullptr };
 
     printf("begin to worke \n");
+    while (true) {
+        unsigned size = ctx->spsc_queue->was_size();
+        for (unsigned i = 0; i < size; i++) {
+            REQ_MSG req_msg = ctx->spsc_queue->pop();
 
+            handlers[static_cast<uint8_t>(req_msg.req_type)](ctx, req_msg);
+        }
+        ctx->rpc_->run_event_loop_once();
+        if (unlikely(ctrl_c_pressed)) {
+            break;
+        }
+    }
+    long us_time = ctx->now_timer.toc();
+    total_speed.fetch_add(ctx->req_id_ * 1e6 * 1.0 / us_time);
 }
 
 void leader_thread_func() {
@@ -112,6 +129,7 @@ void leader_thread_func() {
         while (tmp--) {
             context->client_contexts_[i]->PushNextTCReq();
         }
+        context->client_contexts_[i]->now_timer.tic();
     }
     if (FLAGS_timeout_second != UINT64_MAX) {
         sleep(FLAGS_timeout_second);
@@ -139,7 +157,7 @@ bool write_bandwidth(const std::string &filename) {
     if (fp == nullptr) {
         return false;
     }
-    fprintf(fp, "%f\n", total_speed);
+    fprintf(fp, "%d\n", total_speed.load());
     fclose(fp);
     return true;
 }

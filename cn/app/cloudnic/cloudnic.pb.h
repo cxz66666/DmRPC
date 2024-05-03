@@ -163,7 +163,7 @@ class CompressImgReq final :
     kImgFieldNumber = 2,
     kImgIdFieldNumber = 1,
   };
-  // optional string img = 2;
+  // optional bytes img = 2;
   bool has_img() const;
   private:
   bool _internal_has_img() const;
@@ -315,7 +315,7 @@ class CompressImgResp final :
     kImgFieldNumber = 2,
     kImgIdFieldNumber = 1,
   };
-  // optional string img = 2;
+  // optional bytes img = 2;
   bool has_img() const;
   private:
   bool _internal_has_img() const;
@@ -398,7 +398,7 @@ inline void CompressImgReq::set_img_id(int64_t value) {
   // @@protoc_insertion_point(field_set:cloudnic.CompressImgReq.img_id)
 }
 
-// optional string img = 2;
+// optional bytes img = 2;
 inline bool CompressImgReq::_internal_has_img() const {
   bool value = (_has_bits_[0] & 0x00000001u) != 0;
   return value;
@@ -418,7 +418,7 @@ template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void CompressImgReq::set_img(ArgT0&& arg0, ArgT... args) {
  _has_bits_[0] |= 0x00000001u;
- img_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+ img_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:cloudnic.CompressImgReq.img)
 }
 inline std::string* CompressImgReq::mutable_img() {
@@ -498,7 +498,7 @@ inline void CompressImgResp::set_img_id(int64_t value) {
   // @@protoc_insertion_point(field_set:cloudnic.CompressImgResp.img_id)
 }
 
-// optional string img = 2;
+// optional bytes img = 2;
 inline bool CompressImgResp::_internal_has_img() const {
   bool value = (_has_bits_[0] & 0x00000001u) != 0;
   return value;
@@ -518,7 +518,7 @@ template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void CompressImgResp::set_img(ArgT0&& arg0, ArgT... args) {
  _has_bits_[0] |= 0x00000001u;
- img_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+ img_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:cloudnic.CompressImgResp.img)
 }
 inline std::string* CompressImgResp::mutable_img() {

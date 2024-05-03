@@ -4,11 +4,13 @@
 #include "atomic_queue/atomic_queue.h"
 #include <hs_clock.h>
 #include "../AES.h"
+#include "../cloudnic.pb.h"
+
 
 std::vector<std::vector<rmem::Timer>> timers(kAppMaxRPC, std::vector<rmem::Timer>(kAppMaxConcurrency));
 hdr_histogram *latency_hist_;
 
-double total_speed = 0;
+std::atomic<int> total_speed = 0;
 spinlock_mutex total_speed_lock;
 
 constexpr size_t IMG_SIZE = 4096;
@@ -47,6 +49,7 @@ public:
 
     size_t client_id_;
     uint32_t req_id_{};
+    rmem::Timer now_timer;
     atomic_queue::AtomicQueueB2<REQ_MSG, std::allocator<REQ_MSG>, true, false, true> *spsc_queue;
 };
 
