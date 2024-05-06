@@ -67,6 +67,8 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
     printf("client %p\n", reinterpret_cast<void *>(ctx));
     rpc.retry_connect_on_invalid_rpc_id_ = true;
     ctx->rpc_ = &rpc;
+
+#if USE_SERIALIZATION
     cloudnic::CompressImgReq compress_img_req;
     compress_img_req.set_img_id(1);
     compress_img_req.set_img(std::string(reinterpret_cast<const char *>(encrypted_img)));
@@ -77,6 +79,16 @@ void client_thread_func(size_t thread_id, ClientContext *ctx, erpc::Nexus *nexus
         memcpy(ctx->req_msgbuf[i].buf_ + sizeof(RPCMsgReq<PingRPCReq>), serialized_img.c_str(), serialized_img.size());
         ctx->resp_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(RPCMsgReq<PingRPCReq>) + serialized_img.size());
     }
+#else
+    for (size_t i = 0; i < kAppMaxConcurrency; i++) {
+        // TODO
+        ctx->req_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(RPCMsgReq<PingRPCReq>) + IMG_SIZE);
+        memcpy(ctx->req_msgbuf[i].buf_ + sizeof(RPCMsgReq<PingRPCReq>), encrypted_img, IMG_SIZE);
+        ctx->resp_msgbuf[i] = rpc.alloc_msg_buffer_or_die(sizeof(RPCMsgReq<PingRPCReq>) + IMG_SIZE);
+    }
+#endif
+
+
     ctx->ping_msgbuf = rpc.alloc_msg_buffer_or_die(sizeof(RPCMsgReq<PingRPCReq>));
     ctx->ping_resp_msgbuf = rpc.alloc_msg_buffer_or_die(sizeof(RPCMsgReq<PingRPCResp>));
 

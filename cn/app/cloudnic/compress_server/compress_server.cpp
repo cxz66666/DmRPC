@@ -27,6 +27,7 @@ void compress_handler(erpc::ReqHandle *req_handler, void *_context) {
     rmem::rt_assert(req_msgbuf->get_data_size() == sizeof(RPCMsgReq<CommonRPCReq>) + req->req_control.data_length, "data size not match");
 
     // 现在先用RTC模式来做，后面有需要再改成异步
+#if USE_SERIALIZATION
     cloudnic::CompressImgReq compress_img_req;
     compress_img_req.ParseFromArray(req + 1, req->req_control.data_length);
     rmem::rt_assert(compress_img_req.IsInitialized(), "req parsed error");
@@ -44,6 +45,21 @@ void compress_handler(erpc::ReqHandle *req_handler, void *_context) {
     ctx->rpc_->resize_msg_buffer(&req_handler->dyn_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>) + resp_data_length);
 
     ctx->rpc_->enqueue_response(req_handler, &req_handler->dyn_resp_msgbuf_);
+#else 
+
+    auto [compressed_img_ptr, img_size] = generate_compress_img_without_ser(reinterpret_cast<char *>(req + 1), req->req_control.data_length);
+    req_handler->dyn_resp_msgbuf_ = ctx->rpc_->alloc_msg_buffer(sizeof(RPCMsgResp<CommonRPCResp>) + img_size);
+
+    new (req_handler->dyn_resp_msgbuf_.buf_) RPCMsgResp<CommonRPCResp>(req->req_common.type, req->req_common.req_number, 0, { img_size });
+
+    memcpy(req_handler->dyn_resp_msgbuf_.buf_ + sizeof(RPCMsgResp<CommonRPCResp>), compressed_img_ptr, img_size);
+
+    ctx->rpc_->resize_msg_buffer(&req_handler->dyn_resp_msgbuf_, sizeof(RPCMsgResp<CommonRPCResp>) + img_size);
+
+    ctx->rpc_->enqueue_response(req_handler, &req_handler->dyn_resp_msgbuf_);
+
+    delete compressed_img_ptr;
+#endif
 }
 
 

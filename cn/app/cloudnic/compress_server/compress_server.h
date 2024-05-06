@@ -83,3 +83,20 @@ cloudnic::CompressImgResp generate_compress_img(const cloudnic::CompressImgReq &
     delete encrypted_img;
     return resp;
 }
+
+std::pair<unsigned char *, size_t> generate_compress_img_without_ser(char *img_ptr, size_t img_size) {
+    unsigned char *decrypted_img = aes.DecryptECB(reinterpret_cast<const unsigned char *>(img_ptr), img_size, aes_key);
+
+    char *compressed_img = new char[img_size];
+
+    int compressed_len = LZ4_compress_default(reinterpret_cast<const char *>(decrypted_img), compressed_img, img_size, img_size);
+    rmem::rt_assert(compressed_len > 0, "compress failed");
+
+    // 将compressed_len做16Bytes对齐
+    compressed_len = (compressed_len + 15) & ~15;
+    unsigned char *encrypted_img = aes.EncryptECB(reinterpret_cast<const unsigned char *>(compressed_img), compressed_len, aes_key);
+    delete decrypted_img;
+    delete compressed_img;
+
+    return { encrypted_img, compressed_len };
+}
