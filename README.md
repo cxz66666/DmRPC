@@ -2,7 +2,7 @@
 
 
 
-DmRPC is a fast RPC lib for Data-intensive Applications and Disaggregated Memory, which is the first DM-aware datacenter RPC for data-intensive datacenter applications.
+DmRPC is a fast RPC lib for Data-intensive Applications and Disaggregated Memory, which is the first DM-aware datacenter RPC for data-intensive datacenter applications, our ICDE 2024 [paper](https://ieeexplore.ieee.org/abstract/document/10597882) describes the system in detail.
 
 
 
@@ -112,5 +112,16 @@ Working in the process...
 
 email at chenxuz@zju.edu.cn
 
+### Cite
+~~~
+@inproceedings{zhang2024dmrpc,
+  title={DmRPC: Disaggregated Memory-aware Datacenter RPC for Data-intensive Applications},
+  author={Zhang, Jie and Chen, Xuzheng and Zhang, Yin and Wang, Zeke},
+  booktitle={2024 IEEE 40th International Conference on Data Engineering (ICDE)},
+  pages={3796--3809},
+  year={2024},
+  organization={IEEE}
+}
+~~~
 
 
